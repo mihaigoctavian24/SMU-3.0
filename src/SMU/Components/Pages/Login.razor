@@ -1,0 +1,172 @@
+@page "/login"
+@using SMU.Services
+@inject AuthService AuthService
+@inject NavigationManager Navigation
+
+<PageTitle>Autentificare - SMU</PageTitle>
+
+<div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 via-white to-secondary-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-md w-full">
+        <!-- Logo & Title -->
+        <div class="text-center mb-8">
+            <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-primary-600 to-primary-700 shadow-lg mb-4">
+                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5l4-2.222"/>
+                </svg>
+            </div>
+            <h1 class="text-3xl font-bold text-gray-900 font-display">
+                Student Management
+            </h1>
+            <p class="mt-2 text-gray-600">
+                Sistemul de Management Universitar
+            </p>
+        </div>
+
+        <!-- Login Card -->
+        <div class="card">
+            <div class="card-body space-y-6">
+                <h2 class="text-xl font-semibold text-gray-900 text-center">
+                    Autentificare
+                </h2>
+
+                @if (!string.IsNullOrEmpty(ErrorMessage))
+                {
+                    <div class="alert-danger flex items-center gap-3">
+                        <svg class="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                        </svg>
+                        <span>@ErrorMessage</span>
+                    </div>
+                }
+
+                <EditForm Model="@loginModel" OnValidSubmit="HandleLogin" FormName="login">
+                    <DataAnnotationsValidator />
+
+                    <div class="space-y-4">
+                        <!-- Email -->
+                        <div>
+                            <label for="email" class="form-label">Email</label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207"/>
+                                    </svg>
+                                </div>
+                                <InputText id="email" @bind-Value="loginModel.Email"
+                                           class="form-input pl-10"
+                                           placeholder="exemplu@universitate.ro"
+                                           autocomplete="email" />
+                            </div>
+                            <ValidationMessage For="@(() => loginModel.Email)" class="form-error" />
+                        </div>
+
+                        <!-- Password -->
+                        <div>
+                            <label for="password" class="form-label">Parola</label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                                    </svg>
+                                </div>
+                                <InputText id="password" @bind-Value="loginModel.Password"
+                                           type="password"
+                                           class="form-input pl-10"
+                                           placeholder="Introduceți parola"
+                                           autocomplete="current-password" />
+                            </div>
+                            <ValidationMessage For="@(() => loginModel.Password)" class="form-error" />
+                        </div>
+
+                        <!-- Remember Me -->
+                        <div class="flex items-center justify-between">
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <InputCheckbox @bind-Value="loginModel.RememberMe"
+                                               class="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500" />
+                                <span class="text-sm text-gray-600">Ține-mă minte</span>
+                            </label>
+                            <a href="/forgot-password" class="text-sm text-primary-600 hover:text-primary-700 font-medium">
+                                Ai uitat parola?
+                            </a>
+                        </div>
+
+                        <!-- Submit Button -->
+                        <button type="submit"
+                                class="btn-primary w-full py-3 text-base"
+                                disabled="@IsLoading">
+                            @if (IsLoading)
+                            {
+                                <span class="spinner mr-2"></span>
+                                <span>Se autentifică...</span>
+                            }
+                            else
+                            {
+                                <span>Autentificare</span>
+                            }
+                        </button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <p class="mt-6 text-center text-sm text-gray-500">
+            © @DateTime.Now.Year Student Management University
+        </p>
+    </div>
+</div>
+
+@code {
+    private LoginModel loginModel = new();
+    private string? ErrorMessage;
+    private bool IsLoading;
+
+    [SupplyParameterFromQuery]
+    public string? ReturnUrl { get; set; }
+
+    private async Task HandleLogin()
+    {
+        ErrorMessage = null;
+        IsLoading = true;
+
+        try
+        {
+            var result = await AuthService.LoginAsync(
+                loginModel.Email,
+                loginModel.Password,
+                loginModel.RememberMe);
+
+            if (result.Succeeded)
+            {
+                var returnUrl = string.IsNullOrEmpty(ReturnUrl) ? "/dashboard" : ReturnUrl;
+                Navigation.NavigateTo(returnUrl, forceLoad: true);
+            }
+            else
+            {
+                ErrorMessage = result.ErrorMessage;
+            }
+        }
+        catch (Exception)
+        {
+            ErrorMessage = "A apărut o eroare. Vă rugăm încercați din nou.";
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    public class LoginModel
+    {
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Email-ul este obligatoriu")]
+        [System.ComponentModel.DataAnnotations.EmailAddress(ErrorMessage = "Format email invalid")]
+        public string Email { get; set; } = string.Empty;
+
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Parola este obligatorie")]
+        public string Password { get; set; } = string.Empty;
+
+        public bool RememberMe { get; set; }
+    }
+}

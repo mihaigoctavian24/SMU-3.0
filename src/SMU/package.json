@@ -1,0 +1,11 @@
+{
+  "name": "smu-tailwind",
+  "version": "1.0.0",
+  "scripts": {
+    "css:build": "npx tailwindcss -i ./Styles/app.css -o ./wwwroot/css/app.css --minify",
+    "css:watch": "npx tailwindcss -i ./Styles/app.css -o ./wwwroot/css/app.css --watch"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.17"
+  }
+}
