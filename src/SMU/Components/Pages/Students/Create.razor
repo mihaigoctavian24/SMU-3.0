@@ -1,0 +1,305 @@
+@page "/studenti/nou"
+@using Microsoft.AspNetCore.Authorization
+@using SMU.Services
+@using SMU.Services.DTOs
+@using SMU.Data
+@using SMU.Data.Entities
+@using Microsoft.EntityFrameworkCore
+@attribute [Authorize(Policy = "CanManageStudents")]
+@inject IStudentService StudentService
+@inject ApplicationDbContext DbContext
+@inject NavigationManager Navigation
+
+<PageTitle>Student Nou - SMU</PageTitle>
+
+<div class="max-w-3xl mx-auto space-y-6">
+    <!-- Header -->
+    <div>
+        <button @onclick='() => Navigation.NavigateTo("/studenti")' class="text-gray-600 hover:text-gray-900 mb-4 flex items-center space-x-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+            </svg>
+            <span>Înapoi la Studenți</span>
+        </button>
+        <h1 class="text-2xl font-bold text-gray-900">Adaugă Student Nou</h1>
+        <p class="mt-1 text-sm text-gray-500">Completează informațiile pentru a crea un nou student</p>
+    </div>
+
+    <!-- Form Card -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <form @onsubmit="HandleSubmit">
+            <div class="space-y-6">
+                <!-- Email -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Email <span class="text-red-500">*</span>
+                    </label>
+                    <input type="email"
+                           @bind="model.Email"
+                           required
+                           placeholder="student@example.com"
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 @GetFieldClass(nameof(model.Email))">
+                    @if (validationErrors.ContainsKey(nameof(model.Email)))
+                    {
+                        <p class="mt-1 text-sm text-red-600">@validationErrors[nameof(model.Email)]</p>
+                    }
+                </div>
+
+                <!-- First Name & Last Name -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Prenume <span class="text-red-500">*</span>
+                        </label>
+                        <input type="text"
+                               @bind="model.FirstName"
+                               required
+                               placeholder="Ion"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 @GetFieldClass(nameof(model.FirstName))">
+                        @if (validationErrors.ContainsKey(nameof(model.FirstName)))
+                        {
+                            <p class="mt-1 text-sm text-red-600">@validationErrors[nameof(model.FirstName)]</p>
+                        }
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Nume <span class="text-red-500">*</span>
+                        </label>
+                        <input type="text"
+                               @bind="model.LastName"
+                               required
+                               placeholder="Popescu"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 @GetFieldClass(nameof(model.LastName))">
+                        @if (validationErrors.ContainsKey(nameof(model.LastName)))
+                        {
+                            <p class="mt-1 text-sm text-red-600">@validationErrors[nameof(model.LastName)]</p>
+                        }
+                    </div>
+                </div>
+
+                <!-- Group -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Grupă <span class="text-red-500">*</span>
+                    </label>
+                    <select @bind="model.GroupId"
+                            required
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 @GetFieldClass(nameof(model.GroupId))">
+                        <option value="">Selectează grupa</option>
+                        @foreach (var group in groups)
+                        {
+                            <option value="@group.Id">@group.Name - @group.ProgramName (An @group.Year)</option>
+                        }
+                    </select>
+                    @if (validationErrors.ContainsKey(nameof(model.GroupId)))
+                    {
+                        <p class="mt-1 text-sm text-red-600">@validationErrors[nameof(model.GroupId)]</p>
+                    }
+                </div>
+
+                <!-- Enrollment Date & Scholarship -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Data Înscrierii <span class="text-red-500">*</span>
+                        </label>
+                        <input type="date"
+                               @bind="model.EnrollmentDate"
+                               @bind:format="yyyy-MM-dd"
+                               required
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                    </div>
+
+                    <div class="flex items-end">
+                        <label class="flex items-center space-x-3 cursor-pointer">
+                            <input type="checkbox"
+                                   @bind="model.ScholarshipHolder"
+                                   class="w-5 h-5 text-primary-600 border-gray-300 rounded focus:ring-2 focus:ring-primary-500">
+                            <span class="text-sm font-medium text-gray-700">Bursier</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Info Box -->
+                <div class="bg-info-50 border border-info-200 rounded-lg p-4">
+                    <div class="flex items-start space-x-3">
+                        <svg class="w-5 h-5 text-info-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        <div class="flex-1">
+                            <h4 class="text-sm font-medium text-info-900">Notă Importantă</h4>
+                            <p class="text-sm text-info-700 mt-1">
+                                Un cont de utilizator va fi creat automat cu parola inițială: <strong>Student123!</strong>
+                                <br>Studentul va primi un email cu instrucțiuni de conectare.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Error Message -->
+                @if (!string.IsNullOrEmpty(errorMessage))
+                {
+                    <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                        <div class="flex items-start space-x-3">
+                            <svg class="w-5 h-5 text-red-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            <p class="text-sm text-red-700">@errorMessage</p>
+                        </div>
+                    </div>
+                }
+
+                <!-- Success Message -->
+                @if (!string.IsNullOrEmpty(successMessage))
+                {
+                    <div class="bg-success-50 border border-success-200 rounded-lg p-4">
+                        <div class="flex items-start space-x-3">
+                            <svg class="w-5 h-5 text-success-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            <p class="text-sm text-success-700">@successMessage</p>
+                        </div>
+                    </div>
+                }
+
+                <!-- Actions -->
+                <div class="flex space-x-3 justify-end pt-4 border-t border-gray-100">
+                    <button type="button"
+                            @onclick='() => Navigation.NavigateTo("/studenti")'
+                            class="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors">
+                        Anulează
+                    </button>
+                    <button type="submit"
+                            disabled="@isSubmitting"
+                            class="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2">
+                        @if (isSubmitting)
+                        {
+                            <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                            <span>Se salvează...</span>
+                        }
+                        else
+                        {
+                            <span>Salvează Student</span>
+                        }
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+@code {
+    private CreateStudentDto model = new() { EnrollmentDate = DateOnly.FromDateTime(DateTime.Now) };
+    private List<GroupDto> groups = new();
+    private Dictionary<string, string> validationErrors = new();
+    private bool isSubmitting = false;
+    private string errorMessage = "";
+    private string successMessage = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadGroups();
+    }
+
+    private async Task LoadGroups()
+    {
+        groups = await DbContext.Groups
+            .Include(g => g.Program)
+            .Where(g => g.IsActive)
+            .OrderBy(g => g.Program.Name)
+            .ThenBy(g => g.Year)
+            .ThenBy(g => g.Name)
+            .Select(g => new GroupDto
+            {
+                Id = g.Id,
+                Name = g.Name,
+                Year = g.Year,
+                ProgramName = g.Program.Name
+            })
+            .ToListAsync();
+    }
+
+    private async Task HandleSubmit()
+    {
+        validationErrors.Clear();
+        errorMessage = "";
+        successMessage = "";
+
+        // Validate
+        if (string.IsNullOrWhiteSpace(model.Email))
+        {
+            validationErrors[nameof(model.Email)] = "Email-ul este obligatoriu";
+        }
+        else if (!IsValidEmail(model.Email))
+        {
+            validationErrors[nameof(model.Email)] = "Email-ul nu este valid";
+        }
+
+        if (string.IsNullOrWhiteSpace(model.FirstName))
+        {
+            validationErrors[nameof(model.FirstName)] = "Prenumele este obligatoriu";
+        }
+
+        if (string.IsNullOrWhiteSpace(model.LastName))
+        {
+            validationErrors[nameof(model.LastName)] = "Numele este obligatoriu";
+        }
+
+        if (model.GroupId == Guid.Empty)
+        {
+            validationErrors[nameof(model.GroupId)] = "Selectați o grupă";
+        }
+
+        if (validationErrors.Any())
+        {
+            return;
+        }
+
+        isSubmitting = true;
+        StateHasChanged();
+
+        var result = await StudentService.CreateAsync(model);
+
+        isSubmitting = false;
+
+        if (result.Succeeded)
+        {
+            successMessage = "Student creat cu succes! Redirecționare...";
+            StateHasChanged();
+            await Task.Delay(1500);
+            Navigation.NavigateTo($"/studenti/{result.Data}");
+        }
+        else
+        {
+            errorMessage = result.ErrorMessage ?? "Eroare la crearea studentului";
+            StateHasChanged();
+        }
+    }
+
+    private bool IsValidEmail(string email)
+    {
+        try
+        {
+            var addr = new System.Net.Mail.MailAddress(email);
+            return addr.Address == email;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private string GetFieldClass(string fieldName)
+    {
+        return validationErrors.ContainsKey(fieldName) ? "border-red-500" : "";
+    }
+
+    private class GroupDto
+    {
+        public Guid Id { get; set; }
+        public string Name { get; set; } = "";
+        public int Year { get; set; }
+        public string ProgramName { get; set; } = "";
+    }
+}

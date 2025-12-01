@@ -1,0 +1,289 @@
+@inject NavigationManager Navigation
+
+<!-- Command Palette Modal -->
+@if (IsVisible)
+{
+    <div class="fixed inset-0 z-50 overflow-y-auto" @onclick="Close">
+        <div class="flex min-h-screen items-start justify-center pt-16 p-4">
+            <!-- Backdrop -->
+            <div class="fixed inset-0 bg-gray-900 bg-opacity-50 transition-opacity"></div>
+
+            <!-- Command Palette Content -->
+            <div class="relative bg-white rounded-lg shadow-2xl max-w-2xl w-full overflow-hidden"
+                 @onclick:stopPropagation="true">
+
+                <!-- Search Input -->
+                <div class="flex items-center border-b border-gray-200 px-4">
+                    <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                    <input type="text"
+                           @ref="SearchInputRef"
+                           @bind="SearchQuery"
+                           @bind:event="oninput"
+                           @onkeydown="HandleKeyDown"
+                           placeholder="Quick search... (type to filter)"
+                           class="flex-1 px-4 py-4 text-lg outline-none border-none focus:ring-0"
+                           autocomplete="off"
+                           spellcheck="false" />
+                    @if (!string.IsNullOrEmpty(SearchQuery))
+                    {
+                        <button @onclick="ClearSearch"
+                                class="text-gray-400 hover:text-gray-600 transition-colors">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    }
+                </div>
+
+                <!-- Results -->
+                <div class="max-h-96 overflow-y-auto">
+                    @if (FilteredCommands.Any())
+                    {
+                        <div class="py-2">
+                            @foreach (var (command, index) in FilteredCommands.Select((c, i) => (c, i)))
+                            {
+                                <button @onclick="() => ExecuteCommand(command)"
+                                        @onmouseenter="() => SelectedIndex = index"
+                                        class="w-full flex items-center justify-between px-4 py-3 hover:bg-blue-50 transition-colors @(SelectedIndex == index ? "bg-blue-50" : "")">
+                                    <div class="flex items-center gap-3">
+                                        <div class="@GetIconColorClass(command.Category)">
+                                            @((MarkupString)command.Icon)
+                                        </div>
+                                        <div class="text-left">
+                                            <div class="font-medium text-gray-900">@command.Title</div>
+                                            @if (!string.IsNullOrEmpty(command.Subtitle))
+                                            {
+                                                <div class="text-sm text-gray-500">@command.Subtitle</div>
+                                            }
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        @if (!string.IsNullOrEmpty(command.Shortcut))
+                                        {
+                                            <span class="text-xs text-gray-400">@command.Shortcut</span>
+                                        }
+                                        @if (SelectedIndex == index)
+                                        {
+                                            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                            </svg>
+                                        }
+                                    </div>
+                                </button>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="py-12 text-center text-gray-500">
+                            <svg class="w-12 h-12 mx-auto mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                      d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            <p>No results found for "@SearchQuery"</p>
+                        </div>
+                    }
+                </div>
+
+                <!-- Footer -->
+                <div class="flex items-center justify-between px-4 py-3 border-t border-gray-200 bg-gray-50 text-xs text-gray-500">
+                    <div class="flex items-center gap-4">
+                        <span><kbd class="kbd">↑↓</kbd> Navigate</span>
+                        <span><kbd class="kbd">Enter</kbd> Select</span>
+                        <span><kbd class="kbd">Esc</kbd> Close</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public bool IsVisible { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> IsVisibleChanged { get; set; }
+
+    private ElementReference SearchInputRef;
+    private string SearchQuery { get; set; } = string.Empty;
+    private int SelectedIndex { get; set; } = 0;
+
+    private List<Command> AllCommands { get; set; } = new();
+    private List<Command> FilteredCommands => string.IsNullOrWhiteSpace(SearchQuery)
+        ? AllCommands
+        : AllCommands.Where(c => c.MatchesQuery(SearchQuery)).ToList();
+
+    protected override void OnInitialized()
+    {
+        InitializeCommands();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (IsVisible)
+        {
+            // Focus search input when modal opens
+            try
+            {
+                await Task.Delay(100); // Small delay to ensure rendering
+                // Note: Focus requires JS interop in production
+            }
+            catch { }
+        }
+    }
+
+    private void InitializeCommands()
+    {
+        AllCommands = new List<Command>
+        {
+            // Navigation
+            new Command
+            {
+                Title = "Dashboard",
+                Subtitle = "Go to main dashboard",
+                Url = "/dashboard",
+                Icon = "<svg class='w-5 h-5' fill='none' stroke='currentColor' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6'/></svg>",
+                Category = "Navigation",
+                Shortcut = "G D"
+            },
+            new Command
+            {
+                Title = "Students",
+                Subtitle = "Manage student records",
+                Url = "/studenti",
+                Icon = "<svg class='w-5 h-5' fill='none' stroke='currentColor' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z'/></svg>",
+                Category = "Navigation",
+                Shortcut = "G S"
+            },
+            new Command
+            {
+                Title = "Grades",
+                Subtitle = "View and manage grades",
+                Url = "/note",
+                Icon = "<svg class='w-5 h-5' fill='none' stroke='currentColor' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2'/></svg>",
+                Category = "Navigation",
+                Shortcut = "G G"
+            },
+            new Command
+            {
+                Title = "Attendance",
+                Subtitle = "Track student attendance",
+                Url = "/prezente",
+                Icon = "<svg class='w-5 h-5' fill='none' stroke='currentColor' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z'/></svg>",
+                Category = "Navigation",
+                Shortcut = "G A"
+            },
+            new Command
+            {
+                Title = "Reports",
+                Subtitle = "View analytics and reports",
+                Url = "/rapoarte",
+                Icon = "<svg class='w-5 h-5' fill='none' stroke='currentColor' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z'/></svg>",
+                Category = "Navigation",
+                Shortcut = "G R"
+            },
+            new Command
+            {
+                Title = "Export",
+                Subtitle = "Export data to PDF/Excel",
+                Url = "/export",
+                Icon = "<svg class='w-5 h-5' fill='none' stroke='currentColor' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'/></svg>",
+                Category = "Navigation",
+                Shortcut = "G E"
+            },
+
+            // Actions
+            new Command
+            {
+                Title = "Keyboard Shortcuts",
+                Subtitle = "View all available shortcuts",
+                Action = "show-shortcuts",
+                Icon = "<svg class='w-5 h-5' fill='none' stroke='currentColor' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'/></svg>",
+                Category = "Actions",
+                Shortcut = "?"
+            }
+        };
+    }
+
+    private void HandleKeyDown(KeyboardEventArgs e)
+    {
+        switch (e.Key)
+        {
+            case "ArrowDown":
+                SelectedIndex = Math.Min(SelectedIndex + 1, FilteredCommands.Count - 1);
+                break;
+            case "ArrowUp":
+                SelectedIndex = Math.Max(SelectedIndex - 1, 0);
+                break;
+            case "Enter":
+                if (FilteredCommands.Any())
+                {
+                    ExecuteCommand(FilteredCommands[SelectedIndex]);
+                }
+                break;
+            case "Escape":
+                Close();
+                break;
+        }
+    }
+
+    private void ExecuteCommand(Command command)
+    {
+        if (!string.IsNullOrEmpty(command.Url))
+        {
+            Navigation.NavigateTo(command.Url);
+            Close();
+        }
+        else if (command.Action == "show-shortcuts")
+        {
+            // This will be handled by parent component
+            Close();
+        }
+    }
+
+    private void ClearSearch()
+    {
+        SearchQuery = string.Empty;
+        SelectedIndex = 0;
+    }
+
+    private async Task Close()
+    {
+        SearchQuery = string.Empty;
+        SelectedIndex = 0;
+        IsVisible = false;
+        await IsVisibleChanged.InvokeAsync(false);
+    }
+
+    private string GetIconColorClass(string category)
+    {
+        return category switch
+        {
+            "Navigation" => "text-blue-600",
+            "Actions" => "text-green-600",
+            _ => "text-gray-600"
+        };
+    }
+
+    private class Command
+    {
+        public string Title { get; set; } = string.Empty;
+        public string Subtitle { get; set; } = string.Empty;
+        public string Url { get; set; } = string.Empty;
+        public string Icon { get; set; } = string.Empty;
+        public string Category { get; set; } = string.Empty;
+        public string Shortcut { get; set; } = string.Empty;
+        public string Action { get; set; } = string.Empty;
+
+        public bool MatchesQuery(string query)
+        {
+            var lowerQuery = query.ToLower();
+            return Title.ToLower().Contains(lowerQuery) ||
+                   Subtitle.ToLower().Contains(lowerQuery);
+        }
+    }
+}

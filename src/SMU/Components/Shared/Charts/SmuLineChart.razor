@@ -1,0 +1,105 @@
+@using ApexCharts
+
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+    @if (IsLoading)
+    {
+        <div class="flex justify-center items-center h-64">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+        </div>
+    }
+    else if (Data == null || !Data.Any())
+    {
+        <div class="flex flex-col items-center justify-center h-64 text-gray-400">
+            <svg class="w-12 h-12 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
+            </svg>
+            <p class="text-sm">Nu sunt date disponibile</p>
+        </div>
+    }
+    else
+    {
+        <ApexChart TItem="ChartDataPoint"
+                   Title="@Title"
+                   Options="options"
+                   Height="@Height"
+                   XAxisType="XAxisType.Datetime">
+            <ApexPointSeries TItem="ChartDataPoint"
+                             Items="Data"
+                             Name="@SeriesName"
+                             SeriesType="SeriesType.Line"
+                             XValue="e => e.Date"
+                             YValue="e => e.Value"
+                             OrderBy="e => e.X" />
+        </ApexChart>
+    }
+</div>
+
+@code {
+    [Parameter] public string Title { get; set; } = "Line Chart";
+    [Parameter] public List<ChartDataPoint> Data { get; set; } = new();
+    [Parameter] public string YAxisLabel { get; set; } = "Value";
+    [Parameter] public int Height { get; set; } = 350;
+    [Parameter] public bool IsLoading { get; set; } = false;
+
+    private string SeriesName => YAxisLabel;
+    private ApexChartOptions<ChartDataPoint> options = new();
+
+    protected override void OnParametersSet()
+    {
+        options = new ApexChartOptions<ChartDataPoint>
+        {
+            Theme = new Theme
+            {
+                Mode = Mode.Light,
+                Palette = PaletteType.Palette1
+            },
+            Chart = new Chart
+            {
+                Toolbar = new Toolbar
+                {
+                    Show = true,
+                    Tools = new Tools
+                    {
+                        Download = true,
+                        Zoom = true,
+                        Pan = true
+                    }
+                },
+                Zoom = new Zoom
+                {
+                    Enabled = true
+                }
+            },
+            Stroke = new Stroke
+            {
+                Curve = Curve.Smooth,
+                Width = 3
+            },
+            Colors = new List<string> { "#4F46E5" },
+            Yaxis = new List<YAxis>
+            {
+                new YAxis
+                {
+                    Title = new AxisTitle
+                    {
+                        Text = YAxisLabel
+                    }
+                }
+            },
+            Tooltip = new Tooltip
+            {
+                Enabled = true,
+                X = new TooltipX
+                {
+                    Format = "dd MMM yyyy"
+                }
+            }
+        };
+    }
+
+    public class ChartDataPoint
+    {
+        public DateTime Date { get; set; }
+        public decimal Value { get; set; }
+    }
+}

@@ -1,0 +1,368 @@
+@page "/admin/activity-feed"
+@using SMU.Services
+@using SMU.Services.DTOs
+@using SMU.Data.Entities
+@using Microsoft.AspNetCore.SignalR.Client
+@inject IActivityFeedService ActivityService
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+@attribute [Authorize(Policy = "AdminOnly")]
+
+<PageTitle>Activity Feed - SMU</PageTitle>
+
+<div class="p-6">
+    <!-- Header -->
+    <div class="flex justify-between items-center mb-6">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">Activity Feed</h1>
+            <p class="text-gray-600 mt-1">Monitor system activities in real-time</p>
+        </div>
+        <button @onclick="ExportActivities" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition">
+            <i data-lucide="download" class="w-4 h-4 inline-block mr-2"></i>
+            Export to Excel
+        </button>
+    </div>
+
+    <!-- Filters -->
+    <div class="bg-white rounded-lg shadow p-4 mb-6">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <!-- Search -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Search</label>
+                <input type="text" @bind="filter.SearchTerm" @bind:event="oninput" @onkeyup="OnSearchChanged"
+                       placeholder="User, entity type..."
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+            </div>
+
+            <!-- Action Filter -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Action</label>
+                <select @bind="filter.Action" @bind:after="LoadActivities"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <option value="">All Actions</option>
+                    @foreach (var action in Enum.GetValues<ActivityAction>())
+                    {
+                        <option value="@action">@action.ToString()</option>
+                    }
+                </select>
+            </div>
+
+            <!-- Entity Type Filter -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Entity Type</label>
+                <select @bind="filter.EntityType" @bind:after="LoadActivities"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <option value="">All Types</option>
+                    <option value="Student">Student</option>
+                    <option value="Grade">Grade</option>
+                    <option value="Course">Course</option>
+                    <option value="User">User</option>
+                    <option value="Faculty">Faculty</option>
+                    <option value="Program">Program</option>
+                    <option value="Group">Group</option>
+                    <option value="Attendance">Attendance</option>
+                </select>
+            </div>
+
+            <!-- Date Range -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Date Range</label>
+                <select @onchange="OnDateRangeChanged"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <option value="today">Today</option>
+                    <option value="week">Last 7 Days</option>
+                    <option value="month" selected>Last 30 Days</option>
+                    <option value="all">All Time</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- Activity Timeline -->
+    <div class="bg-white rounded-lg shadow">
+        @if (isLoading)
+        {
+            <div class="p-12 text-center">
+                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+                <p class="text-gray-600 mt-4">Loading activities...</p>
+            </div>
+        }
+        else if (activities.Count == 0)
+        {
+            <div class="p-12 text-center">
+                <i data-lucide="inbox" class="w-16 h-16 text-gray-400 mx-auto mb-4"></i>
+                <p class="text-gray-600">No activities found</p>
+            </div>
+        }
+        else
+        {
+            <div class="divide-y divide-gray-200">
+                @foreach (var group in activitiesByDate)
+                {
+                    <!-- Date Header -->
+                    <div class="px-6 py-3 bg-gray-50">
+                        <h3 class="text-sm font-semibold text-gray-700">@group.Key</h3>
+                    </div>
+
+                    <!-- Activities for this date -->
+                    @foreach (var activity in group.Value)
+                    {
+                        <div class="px-6 py-4 hover:bg-gray-50 transition">
+                            <div class="flex items-start gap-4">
+                                <!-- Icon -->
+                                <div class="flex-shrink-0">
+                                    <div class="w-10 h-10 rounded-full flex items-center justify-center @GetActionBackgroundClass(activity.IconColor)">
+                                        <i data-lucide="@activity.Icon" class="w-5 h-5 @GetActionTextClass(activity.IconColor)"></i>
+                                    </div>
+                                </div>
+
+                                <!-- Content -->
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex items-center justify-between">
+                                        <p class="text-sm text-gray-900">
+                                            <span class="font-medium">@activity.UserName</span>
+                                            <span class="text-gray-600">@activity.ActionDescription</span>
+                                            @if (!string.IsNullOrEmpty(activity.EntityName))
+                                            {
+                                                <span class="text-gray-900 font-medium">@activity.EntityName</span>
+                                            }
+                                        </p>
+                                        <span class="text-xs text-gray-500 whitespace-nowrap ml-4">@activity.RelativeTime</span>
+                                    </div>
+
+                                    <!-- Additional Details -->
+                                    <div class="mt-1 flex items-center gap-4 text-xs text-gray-500">
+                                        @if (!string.IsNullOrEmpty(activity.UserRole))
+                                        {
+                                            <span class="flex items-center gap-1">
+                                                <i data-lucide="shield" class="w-3 h-3"></i>
+                                                @activity.UserRole
+                                            </span>
+                                        }
+                                        @if (!string.IsNullOrEmpty(activity.IpAddress))
+                                        {
+                                            <span class="flex items-center gap-1">
+                                                <i data-lucide="map-pin" class="w-3 h-3"></i>
+                                                @activity.IpAddress
+                                            </span>
+                                        }
+                                        <span class="flex items-center gap-1">
+                                            <i data-lucide="clock" class="w-3 h-3"></i>
+                                            @activity.CreatedAt.ToString("HH:mm:ss")
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                }
+            </div>
+
+            <!-- Pagination -->
+            @if (pagedResult != null && pagedResult.TotalPages > 1)
+            {
+                <div class="px-6 py-4 border-t border-gray-200">
+                    <div class="flex items-center justify-between">
+                        <div class="text-sm text-gray-700">
+                            Showing <span class="font-medium">@((pagedResult.Page - 1) * pagedResult.PageSize + 1)</span>
+                            to <span class="font-medium">@Math.Min(pagedResult.Page * pagedResult.PageSize, pagedResult.TotalCount)</span>
+                            of <span class="font-medium">@pagedResult.TotalCount</span> activities
+                        </div>
+                        <div class="flex gap-2">
+                            <button @onclick="PreviousPage" disabled="@(!pagedResult.HasPreviousPage)"
+                                    class="px-3 py-1 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                                Previous
+                            </button>
+                            <button @onclick="NextPage" disabled="@(!pagedResult.HasNextPage)"
+                                    class="px-3 py-1 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                                Next
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+    </div>
+</div>
+
+@code {
+    private ActivityFilter filter = new();
+    private List<ActivityLogDto> activities = new();
+    private Dictionary<string, List<ActivityLogDto>> activitiesByDate = new();
+    private PagedResult<ActivityLogDto>? pagedResult;
+    private int currentPage = 1;
+    private int pageSize = 25;
+    private bool isLoading = true;
+    private System.Threading.Timer? searchDebounceTimer;
+    private HubConnection? hubConnection;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Set default date range to last 30 days
+        filter.EndDate = DateTime.UtcNow;
+        filter.StartDate = DateTime.UtcNow.AddDays(-30);
+
+        await LoadActivities();
+        await InitializeSignalR();
+    }
+
+    private async Task InitializeSignalR()
+    {
+        try
+        {
+            hubConnection = new HubConnectionBuilder()
+                .WithUrl(Navigation.ToAbsoluteUri("/notificationHub"))
+                .WithAutomaticReconnect()
+                .Build();
+
+            hubConnection.On<ActivityLogDto>("ReceiveActivity", async (activity) =>
+            {
+                // Add new activity to the top
+                activities.Insert(0, activity);
+                GroupActivitiesByDate();
+                await InvokeAsync(StateHasChanged);
+            });
+
+            await hubConnection.StartAsync();
+            await hubConnection.InvokeAsync("JoinAdminActivityGroup");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"SignalR connection failed: {ex.Message}");
+        }
+    }
+
+    private async Task LoadActivities()
+    {
+        isLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            pagedResult = await ActivityService.GetPagedActivitiesAsync(filter, currentPage, pageSize);
+            activities = pagedResult.Items;
+            GroupActivitiesByDate();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Failed to load activities: {ex.Message}");
+            activities = new();
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void GroupActivitiesByDate()
+    {
+        activitiesByDate = activities
+            .GroupBy(a => a.CreatedAt.Date == DateTime.UtcNow.Date ? "Today" :
+                         a.CreatedAt.Date == DateTime.UtcNow.Date.AddDays(-1) ? "Yesterday" :
+                         a.CreatedAt.ToString("dddd, dd MMMM yyyy"))
+            .ToDictionary(g => g.Key, g => g.ToList());
+    }
+
+    private void OnSearchChanged()
+    {
+        searchDebounceTimer?.Dispose();
+        searchDebounceTimer = new System.Threading.Timer(async _ =>
+        {
+            await InvokeAsync(async () =>
+            {
+                currentPage = 1;
+                await LoadActivities();
+            });
+        }, null, 500, Timeout.Infinite);
+    }
+
+    private async Task OnDateRangeChanged(ChangeEventArgs e)
+    {
+        var range = e.Value?.ToString();
+        var now = DateTime.UtcNow;
+
+        filter.EndDate = now;
+        filter.StartDate = range switch
+        {
+            "today" => now.Date,
+            "week" => now.AddDays(-7),
+            "month" => now.AddDays(-30),
+            "all" => null,
+            _ => now.AddDays(-30)
+        };
+
+        currentPage = 1;
+        await LoadActivities();
+    }
+
+    private async Task PreviousPage()
+    {
+        if (pagedResult?.HasPreviousPage == true)
+        {
+            currentPage--;
+            await LoadActivities();
+        }
+    }
+
+    private async Task NextPage()
+    {
+        if (pagedResult?.HasNextPage == true)
+        {
+            currentPage++;
+            await LoadActivities();
+        }
+    }
+
+    private async Task ExportActivities()
+    {
+        try
+        {
+            var fileBytes = await ActivityService.ExportActivitiesAsync(filter);
+            var fileName = $"activity_log_{DateTime.UtcNow:yyyyMMdd_HHmmss}.xlsx";
+
+            await JS.InvokeVoidAsync("downloadFile", fileName, Convert.ToBase64String(fileBytes));
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Export failed: {ex.Message}");
+        }
+    }
+
+    private string GetActionBackgroundClass(string color)
+    {
+        return color switch
+        {
+            "green" => "bg-green-100",
+            "blue" => "bg-blue-100",
+            "red" => "bg-red-100",
+            "gray" => "bg-gray-100",
+            "purple" => "bg-purple-100",
+            _ => "bg-gray-100"
+        };
+    }
+
+    private string GetActionTextClass(string color)
+    {
+        return color switch
+        {
+            "green" => "text-green-600",
+            "blue" => "text-blue-600",
+            "red" => "text-red-600",
+            "gray" => "text-gray-600",
+            "purple" => "text-purple-600",
+            _ => "text-gray-600"
+        };
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        searchDebounceTimer?.Dispose();
+
+        if (hubConnection != null)
+        {
+            await hubConnection.InvokeAsync("LeaveAdminActivityGroup");
+            await hubConnection.DisposeAsync();
+        }
+    }
+}

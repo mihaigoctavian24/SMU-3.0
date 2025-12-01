@@ -1,0 +1,332 @@
+@using Microsoft.AspNetCore.SignalR.Client
+@using Microsoft.AspNetCore.Components.Authorization
+@using SMU.Services
+@using SMU.Services.DTOs
+@using SMU.Data.Entities
+@using System.Security.Claims
+@inject INotificationService NotificationService
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@implements IAsyncDisposable
+
+<!-- Notification Bell Button -->
+<div class="relative">
+    <button @onclick="ToggleDropdown" class="relative p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+        </svg>
+        @if (UnreadCount > 0)
+        {
+            <span class="absolute top-1 right-1 flex items-center justify-center min-w-[18px] h-[18px] text-xs font-bold text-white bg-danger-500 rounded-full px-1">
+                @(UnreadCount > 99 ? "99+" : UnreadCount.ToString())
+            </span>
+        }
+    </button>
+
+    <!-- Notifications Dropdown -->
+    @if (ShowDropdown)
+    {
+        <div class="absolute right-0 mt-2 w-96 bg-white rounded-xl shadow-lg border border-gray-200 z-50">
+            <!-- Header -->
+            <div class="p-4 border-b border-gray-100">
+                <div class="flex items-center justify-between">
+                    <h3 class="font-semibold text-gray-900">Notificări</h3>
+                    <div class="flex items-center gap-2">
+                        @if (UnreadCount > 0)
+                        {
+                            <span class="text-xs bg-primary-100 text-primary-700 px-2 py-1 rounded-full">
+                                @UnreadCount @(UnreadCount == 1 ? "nouă" : "noi")
+                            </span>
+                        }
+                        @if (UnreadCount > 0)
+                        {
+                            <button @onclick="MarkAllAsRead"
+                                    class="text-xs text-primary-600 hover:text-primary-700 font-medium px-2 py-1 hover:bg-primary-50 rounded transition-colors"
+                                    title="Marchează toate ca citite">
+                                Marchează ca citite
+                            </button>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Notifications List -->
+            <div class="max-h-[400px] overflow-y-auto">
+                @if (IsLoading)
+                {
+                    <div class="p-8 text-center">
+                        <div class="inline-block w-8 h-8 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin"></div>
+                        <p class="text-sm text-gray-500 mt-2">Se încarcă...</p>
+                    </div>
+                }
+                else if (RecentNotifications.Any())
+                {
+                    @foreach (var notification in RecentNotifications)
+                    {
+                        <div @onclick="() => HandleNotificationClick(notification)"
+                             class="p-4 border-b border-gray-50 hover:bg-gray-50 cursor-pointer transition-colors @(!notification.IsRead ? "bg-primary-50/30" : "")">
+                            <div class="flex gap-3">
+                                <!-- Type Icon/Badge -->
+                                <div class="flex-shrink-0">
+                                    <span class="inline-flex items-center justify-center w-8 h-8 rounded-full text-sm @GetTypeColorClass(notification.Type)">
+                                        @notification.TypeIcon
+                                    </span>
+                                </div>
+
+                                <!-- Content -->
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex items-start justify-between gap-2">
+                                        <p class="text-sm font-medium text-gray-900 @(!notification.IsRead ? "font-semibold" : "")">
+                                            @notification.Title
+                                        </p>
+                                        @if (!notification.IsRead)
+                                        {
+                                            <span class="w-2 h-2 mt-1.5 bg-primary-500 rounded-full flex-shrink-0"></span>
+                                        }
+                                    </div>
+                                    <p class="text-xs text-gray-600 mt-1 line-clamp-2">
+                                        @notification.Message
+                                    </p>
+                                    <div class="flex items-center gap-2 mt-2">
+                                        <span class="text-xs text-gray-400">@notification.TimeAgo</span>
+                                        <span class="text-xs px-2 py-0.5 rounded-full @GetTypeBadgeClass(notification.Type)">
+                                            @notification.TypeLabel
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="p-8 text-center">
+                        <svg class="w-12 h-12 text-gray-300 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/>
+                        </svg>
+                        <p class="text-sm text-gray-500">Nu aveți notificări</p>
+                    </div>
+                }
+            </div>
+
+            <!-- Footer -->
+            @if (RecentNotifications.Any())
+            {
+                <div class="p-3 border-t border-gray-100">
+                    <a href="/notifications"
+                       class="block w-full text-center text-sm text-primary-600 hover:text-primary-700 font-medium py-2 hover:bg-primary-50 rounded transition-colors"
+                       @onclick="CloseDropdown">
+                        Vezi toate notificările
+                    </a>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private HubConnection? _hubConnection;
+    private List<NotificationDto> RecentNotifications { get; set; } = new();
+    private int UnreadCount { get; set; }
+    private bool ShowDropdown { get; set; }
+    private bool IsLoading { get; set; }
+    private Guid CurrentUserId { get; set; }
+
+    private bool _initialized = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Get current user ID
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var userIdClaim = authState.User.FindFirst(ClaimTypes.NameIdentifier);
+        if (userIdClaim != null && Guid.TryParse(userIdClaim.Value, out var userId))
+        {
+            CurrentUserId = userId;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !_initialized && CurrentUserId != Guid.Empty)
+        {
+            _initialized = true;
+
+            // Small delay to avoid DbContext concurrency with other components
+            await Task.Delay(100);
+
+            // Load initial data
+            await LoadNotifications();
+            StateHasChanged();
+
+            // Setup SignalR connection
+            await SetupSignalRConnection();
+        }
+    }
+
+    private async Task LoadNotifications()
+    {
+        if (CurrentUserId == Guid.Empty) return;
+
+        IsLoading = true;
+        try
+        {
+            // Load sequentially to avoid DbContext concurrency issues
+            var notifications = await NotificationService.GetRecentAsync(CurrentUserId, 10);
+            RecentNotifications = notifications;
+
+            var unreadCount = await NotificationService.GetUnreadCountAsync(CurrentUserId);
+            UnreadCount = unreadCount;
+        }
+        catch (Exception ex)
+        {
+            // Log error but don't crash - notifications are non-critical
+            Console.WriteLine($"Error loading notifications: {ex.Message}");
+            RecentNotifications = new List<NotificationDto>();
+            UnreadCount = 0;
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private async Task SetupSignalRConnection()
+    {
+        try
+        {
+            _hubConnection = new HubConnectionBuilder()
+                .WithUrl(Navigation.ToAbsoluteUri("/notificationHub"))
+                .WithAutomaticReconnect()
+                .Build();
+
+            // Handle incoming notifications
+            _hubConnection.On<NotificationDto>("ReceiveNotification", async (notification) =>
+            {
+                // Add to list at the top
+                RecentNotifications.Insert(0, notification);
+                if (RecentNotifications.Count > 10)
+                {
+                    RecentNotifications.RemoveAt(RecentNotifications.Count - 1);
+                }
+
+                // Increment unread count
+                UnreadCount++;
+
+                await InvokeAsync(StateHasChanged);
+            });
+
+            // Handle unread count updates
+            _hubConnection.On<int>("UpdateUnreadCount", async (count) =>
+            {
+                UnreadCount = count;
+                await InvokeAsync(StateHasChanged);
+            });
+
+            await _hubConnection.StartAsync();
+
+            // Join user group
+            if (CurrentUserId != Guid.Empty)
+            {
+                await _hubConnection.SendAsync("JoinUserGroup", CurrentUserId.ToString());
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"SignalR connection error: {ex.Message}");
+        }
+    }
+
+    private void ToggleDropdown()
+    {
+        ShowDropdown = !ShowDropdown;
+    }
+
+    private void CloseDropdown()
+    {
+        ShowDropdown = false;
+    }
+
+    private async Task HandleNotificationClick(NotificationDto notification)
+    {
+        // Mark as read if unread
+        if (!notification.IsRead)
+        {
+            await NotificationService.MarkAsReadAsync(notification.Id);
+            notification.IsRead = true;
+            UnreadCount = Math.Max(0, UnreadCount - 1);
+        }
+
+        // Navigate to link if available
+        if (!string.IsNullOrEmpty(notification.Link))
+        {
+            Navigation.NavigateTo(notification.Link);
+        }
+
+        CloseDropdown();
+    }
+
+    private async Task MarkAllAsRead()
+    {
+        if (CurrentUserId == Guid.Empty) return;
+
+        var result = await NotificationService.MarkAllAsReadAsync(CurrentUserId);
+        if (result.Succeeded)
+        {
+            foreach (var notification in RecentNotifications)
+            {
+                notification.IsRead = true;
+            }
+            UnreadCount = 0;
+            StateHasChanged();
+        }
+    }
+
+    private string GetTypeColorClass(NotificationType type)
+    {
+        return type switch
+        {
+            NotificationType.Info => "bg-blue-100 text-blue-600",
+            NotificationType.Success => "bg-green-100 text-green-600",
+            NotificationType.Warning => "bg-yellow-100 text-yellow-600",
+            NotificationType.Error => "bg-red-100 text-red-600",
+            NotificationType.GradeAdded => "bg-purple-100 text-purple-600",
+            NotificationType.AttendanceMarked => "bg-cyan-100 text-cyan-600",
+            NotificationType.RequestUpdate => "bg-indigo-100 text-indigo-600",
+            _ => "bg-gray-100 text-gray-600"
+        };
+    }
+
+    private string GetTypeBadgeClass(NotificationType type)
+    {
+        return type switch
+        {
+            NotificationType.Info => "bg-blue-50 text-blue-700",
+            NotificationType.Success => "bg-green-50 text-green-700",
+            NotificationType.Warning => "bg-yellow-50 text-yellow-700",
+            NotificationType.Error => "bg-red-50 text-red-700",
+            NotificationType.GradeAdded => "bg-purple-50 text-purple-700",
+            NotificationType.AttendanceMarked => "bg-cyan-50 text-cyan-700",
+            NotificationType.RequestUpdate => "bg-indigo-50 text-indigo-700",
+            _ => "bg-gray-50 text-gray-700"
+        };
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_hubConnection != null)
+        {
+            try
+            {
+                if (CurrentUserId != Guid.Empty)
+                {
+                    await _hubConnection.SendAsync("LeaveUserGroup", CurrentUserId.ToString());
+                }
+                await _hubConnection.DisposeAsync();
+            }
+            catch
+            {
+                // Ignore errors during disposal
+            }
+        }
+    }
+}

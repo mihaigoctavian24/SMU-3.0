@@ -1,0 +1,108 @@
+@* Language Selector Component - Dropdown to switch between RO and EN *@
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+
+<div class="relative">
+    <button @onclick="ToggleDropdown"
+            class="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors">
+        <!-- Current Language Flag/Icon -->
+        @if (CurrentCulture == "ro-RO")
+        {
+            <span class="text-base">🇷🇴</span>
+            <span class="hidden sm:inline">RO</span>
+        }
+        else
+        {
+            <span class="text-base">🇬🇧</span>
+            <span class="hidden sm:inline">EN</span>
+        }
+
+        <!-- Dropdown Arrow -->
+        <svg class="w-4 h-4 @(ShowDropdown ? "rotate-180" : "") transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+        </svg>
+    </button>
+
+    <!-- Dropdown Menu -->
+    @if (ShowDropdown)
+    {
+        <div class="absolute right-0 mt-2 w-40 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+            <button @onclick="@(() => ChangeLanguage("ro-RO"))"
+                    class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors rounded-t-lg @(CurrentCulture == "ro-RO" ? "bg-primary-50 text-primary-700" : "")">
+                <span class="text-base">🇷🇴</span>
+                <span>Română</span>
+                @if (CurrentCulture == "ro-RO")
+                {
+                    <svg class="w-4 h-4 ml-auto text-primary-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                    </svg>
+                }
+            </button>
+
+            <button @onclick="@(() => ChangeLanguage("en-US"))"
+                    class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors rounded-b-lg @(CurrentCulture == "en-US" ? "bg-primary-50 text-primary-700" : "")">
+                <span class="text-base">🇬🇧</span>
+                <span>English</span>
+                @if (CurrentCulture == "en-US")
+                {
+                    <svg class="w-4 h-4 ml-auto text-primary-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                    </svg>
+                }
+            </button>
+        </div>
+    }
+</div>
+
+@code {
+    private bool ShowDropdown { get; set; }
+    private string CurrentCulture { get; set; } = "ro-RO";
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Try to get current culture from localStorage
+        try
+        {
+            var savedCulture = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "preferredCulture");
+            if (!string.IsNullOrEmpty(savedCulture))
+            {
+                CurrentCulture = savedCulture;
+            }
+            else
+            {
+                // Default to Romanian
+                CurrentCulture = "ro-RO";
+            }
+        }
+        catch
+        {
+            CurrentCulture = "ro-RO";
+        }
+    }
+
+    private void ToggleDropdown()
+    {
+        ShowDropdown = !ShowDropdown;
+    }
+
+    private async Task ChangeLanguage(string culture)
+    {
+        CurrentCulture = culture;
+        ShowDropdown = false;
+
+        // Save preference to localStorage
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("localStorage.setItem", "preferredCulture", culture);
+        }
+        catch
+        {
+            // Ignore localStorage errors
+        }
+
+        // Set culture cookie and redirect to current page
+        var uri = new Uri(Navigation.Uri);
+        var cultureQuery = $"?culture={culture}&redirectUri={uri.PathAndQuery}";
+        Navigation.NavigateTo($"/api/culture/set{cultureQuery}", forceLoad: true);
+    }
+}

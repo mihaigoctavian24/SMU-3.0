@@ -1,0 +1,295 @@
+@page "/cereri/proceseaza/{id:guid}"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@attribute [Authorize(Roles = "Secretary,Dean,Admin")]
+@using SMU.Data
+@using SMU.Data.Entities
+@using SMU.Services
+@using SMU.Services.DTOs
+@inject IDocumentRequestService RequestService
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+
+<div class="max-w-3xl mx-auto space-y-6">
+    <!-- Page Header -->
+    <div>
+        <div class="flex items-center mb-2">
+            <a href="/cereri" class="text-gray-500 hover:text-gray-700 mr-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                </svg>
+            </a>
+            <h1 class="text-2xl font-bold text-gray-900">Procesare Cerere Document</h1>
+        </div>
+        <p class="text-sm text-gray-600">Aprobă sau respinge cererea studentului</p>
+    </div>
+
+    @if (IsLoading)
+    {
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-8 text-center">
+            <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+            <p class="mt-2 text-gray-600">Se încarcă...</p>
+        </div>
+    }
+    else if (Request == null)
+    {
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-8 text-center">
+            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <p class="mt-2 text-gray-600">Cererea nu a fost găsită.</p>
+            <a href="/cereri" class="mt-4 inline-block text-primary-600 hover:text-primary-700">
+                Înapoi la lista de cereri
+            </a>
+        </div>
+    }
+    else
+    {
+        <!-- Request Details Card -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Detalii Cerere</h2>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Student</label>
+                    <p class="text-sm text-gray-900">@Request.StudentName</p>
+                    <p class="text-xs text-gray-500">@Request.StudentNumber</p>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Tip Document</label>
+                    <p class="text-sm text-gray-900">@Request.TypeLabel</p>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Status Curent</label>
+                    <span class="@GetStatusBadgeClass(Request.Status)">
+                        @Request.StatusLabel
+                    </span>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Data Cererii</label>
+                    <p class="text-sm text-gray-900">@Request.CreatedAt.ToString("dd.MM.yyyy HH:mm")</p>
+                </div>
+
+                @if (!string.IsNullOrEmpty(Request.Notes))
+                {
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Observații Student</label>
+                        <div class="bg-gray-50 rounded-lg p-4">
+                            <p class="text-sm text-gray-900 whitespace-pre-wrap">@Request.Notes</p>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+
+        @if (Request.Status == RequestStatus.Pending)
+        {
+            <!-- Processing Form Card -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                <h2 class="text-lg font-semibold text-gray-900 mb-4">Procesare Cerere</h2>
+
+                <div class="space-y-6">
+                    <!-- Decision Radio Buttons -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-3">
+                            Decizie <span class="text-danger-600">*</span>
+                        </label>
+                        <div class="space-y-3">
+                            <label class="flex items-center p-4 border-2 rounded-lg cursor-pointer transition-colors @(ProcessDto.Approved ? "border-success-500 bg-success-50" : "border-gray-200 hover:border-gray-300")">
+                                <input type="radio" name="decision" value="true"
+                                       checked="@ProcessDto.Approved"
+                                       @onchange="@(() => { ProcessDto.Approved = true; ProcessDto.RejectionReason = null; })"
+                                       class="h-4 w-4 text-success-600 focus:ring-success-500" />
+                                <div class="ml-3">
+                                    <span class="block text-sm font-medium text-gray-900">Aprobă Cererea</span>
+                                    <span class="block text-xs text-gray-500">Cererea va fi aprobată și studentul va fi notificat</span>
+                                </div>
+                            </label>
+
+                            <label class="flex items-center p-4 border-2 rounded-lg cursor-pointer transition-colors @(!ProcessDto.Approved ? "border-danger-500 bg-danger-50" : "border-gray-200 hover:border-gray-300")">
+                                <input type="radio" name="decision" value="false"
+                                       checked="@(!ProcessDto.Approved)"
+                                       @onchange="@(() => ProcessDto.Approved = false)"
+                                       class="h-4 w-4 text-danger-600 focus:ring-danger-500" />
+                                <div class="ml-3">
+                                    <span class="block text-sm font-medium text-gray-900">Respinge Cererea</span>
+                                    <span class="block text-xs text-gray-500">Va fi necesară o motivare pentru respingere</span>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Rejection Reason (shown only if rejecting) -->
+                    @if (!ProcessDto.Approved)
+                    {
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Motiv Respingere <span class="text-danger-600">*</span>
+                            </label>
+                            <textarea @bind="ProcessDto.RejectionReason" rows="4"
+                                      placeholder="Specifică motivul respingerii cererii..."
+                                      class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"></textarea>
+                            <p class="mt-1 text-sm text-gray-500">
+                                Studentul va vedea acest mesaj
+                            </p>
+                        </div>
+                    }
+
+                    <!-- Error Message -->
+                    @if (!string.IsNullOrEmpty(ErrorMessage))
+                    {
+                        <div class="bg-danger-50 border border-danger-200 rounded-lg p-4">
+                            <div class="flex">
+                                <svg class="h-5 w-5 text-danger-400" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+                                </svg>
+                                <p class="ml-3 text-sm text-danger-700">@ErrorMessage</p>
+                            </div>
+                        </div>
+                    }
+
+                    <!-- Action Buttons -->
+                    <div class="flex gap-4 pt-4">
+                        <button @onclick="HandleSubmit"
+                                disabled="@IsSubmitting"
+                                class="flex-1 px-6 py-3 @(ProcessDto.Approved ? "bg-success-600 hover:bg-success-700" : "bg-danger-600 hover:bg-danger-700") disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-colors">
+                            @if (IsSubmitting)
+                            {
+                                <span class="flex items-center justify-center">
+                                    <svg class="animate-spin h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    Se procesează...
+                                </span>
+                            }
+                            else
+                            {
+                                <text>@(ProcessDto.Approved ? "Aprobă Cererea" : "Respinge Cererea")</text>
+                            }
+                        </button>
+                        <a href="/cereri" class="flex-1 px-6 py-3 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium rounded-lg text-center transition-colors">
+                            Anulează
+                        </a>
+                    </div>
+                </div>
+            </div>
+        }
+        else
+        {
+            <!-- Already Processed Message -->
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div class="flex">
+                    <svg class="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                    </svg>
+                    <div class="ml-3">
+                        <p class="text-sm text-blue-700">
+                            Această cerere a fost deja procesată.
+                            @if (Request.ProcessedByName != null)
+                            {
+                                <span>Procesată de <strong>@Request.ProcessedByName</strong> pe @Request.ProcessedAt?.ToString("dd.MM.yyyy HH:mm").</span>
+                            }
+                        </p>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    [Parameter]
+    public Guid Id { get; set; }
+
+    private DocumentRequestDto? Request;
+    private ProcessDocumentRequestDto ProcessDto = new() { Approved = true };
+    private bool IsLoading = true;
+    private bool IsSubmitting = false;
+    private string? ErrorMessage;
+    private Guid CurrentUserId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            CurrentUserId = Guid.Parse(user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "");
+        }
+
+        await LoadRequest();
+    }
+
+    private async Task LoadRequest()
+    {
+        IsLoading = true;
+        Request = await RequestService.GetByIdAsync(Id);
+        IsLoading = false;
+    }
+
+    private async Task HandleSubmit()
+    {
+        ErrorMessage = null;
+
+        // Validate rejection reason if rejecting
+        if (!ProcessDto.Approved && string.IsNullOrWhiteSpace(ProcessDto.RejectionReason))
+        {
+            ErrorMessage = "Motivul respingerii este obligatoriu.";
+            return;
+        }
+
+        var confirmed = await JS.InvokeAsync<bool>("confirm",
+            ProcessDto.Approved
+                ? "Sigur doriți să aprobați această cerere?"
+                : "Sigur doriți să respingeți această cerere?");
+
+        if (!confirmed) return;
+
+        IsSubmitting = true;
+
+        try
+        {
+            var result = await RequestService.ProcessAsync(Id, ProcessDto, CurrentUserId);
+
+            if (result.Succeeded)
+            {
+                await JS.InvokeVoidAsync("alert",
+                    ProcessDto.Approved
+                        ? "Cererea a fost aprobată cu succes!"
+                        : "Cererea a fost respinsă.");
+                Navigation.NavigateTo("/cereri");
+            }
+            else
+            {
+                ErrorMessage = result.ErrorMessage ?? "A apărut o eroare la procesarea cererii.";
+            }
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Eroare: {ex.Message}";
+        }
+        finally
+        {
+            IsSubmitting = false;
+        }
+    }
+
+    private string GetStatusBadgeClass(RequestStatus status)
+    {
+        return status switch
+        {
+            RequestStatus.Pending => "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-warning-100 text-warning-700",
+            RequestStatus.InProgress => "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-info-100 text-info-700",
+            RequestStatus.Approved => "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-success-100 text-success-700",
+            RequestStatus.Rejected => "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-danger-100 text-danger-700",
+            RequestStatus.Completed => "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-success-100 text-success-700",
+            _ => "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700"
+        };
+    }
+}

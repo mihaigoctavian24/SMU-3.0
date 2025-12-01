@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <BlazorDisableThrowNavigationException>true</BlazorDisableThrowNavigationException>
@@ -9,18 +9,19 @@
 
   <ItemGroup>
     <!-- Entity Framework Core -->
-    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.0" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.0">
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="10.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.0-preview.5.25277.114" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.0-preview.5.25277.114">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.2" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.0-preview.5" />
 
     <!-- ASP.NET Identity -->
-    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="9.0.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.0-preview.5.25277.114" />
 
     <!-- Charts & Visualization -->
-    <PackageReference Include="Blazor-ApexCharts" Version="3.6.0" />
+    <PackageReference Include="Blazor-ApexCharts" Version="4.0.0" />
 
     <!-- Document Generation -->
     <PackageReference Include="QuestPDF" Version="2024.10.2" />

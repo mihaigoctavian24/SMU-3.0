@@ -1,10 +1,86 @@
 {
   "version": 2,
-  "dgSpecHash": "y+QowL83+hY=",
+  "dgSpecHash": "RfgIVvyH3sA=",
   "success": true,
   "projectFilePath": "/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/SMU.csproj",
   "expectedPackageFiles": [
-    "/Users/octavianmihai/.nuget/packages/microsoft.aspnetcore.app.internal.assets/10.0.0/microsoft.aspnetcore.app.internal.assets.10.0.0.nupkg.sha512"
+    "/Users/octavianmihai/.nuget/packages/blazor-apexcharts/4.0.0/blazor-apexcharts.4.0.0.nupkg.sha512",
+    "/Users/octavianmihai/.nuget/packages/closedxml/0.104.2/closedxml.0.104.2.nupkg.sha512",
+    "/Users/octavianmihai/.nuget/packages/closedxml.parser/1.2.0/closedxml.parser.1.2.0.nupkg.sha512",
+    "/Users/octavianmihai/.nuget/packages/documentformat.openxml/3.1.1/documentformat.openxml.3.1.1.nupkg.sha512",
+    "/Users/octavianmihai/.nuget/packages/documentformat.openxml.framework/3.1.1/documentformat.openxml.framework.3.1.1.nupkg.sha512",
+    "/Users/octavianmihai/.nuget/packages/excelnumberformat/1.1.0/excelnumberformat.1.1.0.nupkg.sha512",
+    "/Users/octavianmihai/.nuget/packages/humanizer.core/2.14.1/humanizer.core.2.14.1.nupkg.sha512",
+    "/Users/octavianmihai/.nuget/packages/microsoft.aspnetcore.app.internal.assets/10.0.0/microsoft.aspnetcore.app.internal.assets.10.0.0.nupkg.sha512",
+    "/Users/octavianmihai/.nuget/packages/microsoft.aspnetcore.http.connections.client/10.0.0/microsoft.aspnetcore.http.connections.client.10.0.0.nupkg.sha512",
+    "/Users/octavianmihai/.nuget/packages/microsoft.aspnetcore.identity.entityframeworkcore/10.0.0-preview.5.25277.114/microsoft.aspnetcore.identity.entityframeworkcore.10.0.0-preview.5.25277.114.nupkg.sha512",
+    "/Users/octavianmihai/.nuget/packages/microsoft.aspnetcore.signalr.client/10.0.0/microsoft.aspnetcore.signalr.client.10.0.0.nupkg.sha512",
+    "/Users/octavianmihai/.nuget/packages/microsoft.aspnetcore.signalr.client.core/10.0.0/microsoft.aspnetcore.signalr.client.core.10.0.0.nupkg.sha512",
+    "/Users/octavianmihai/.nuget/packages/microsoft.build/17.7.2/microsoft.build.17.7.2.nupkg.sha512",
+    "/Users/octavianmihai/.nuget/packages/microsoft.build.framework/17.14.8/microsoft.build.framework.17.14.8.nupkg.sha512",
+    "/Users/octavianmihai/.nuget/packages/microsoft.build.locator/1.9.1/microsoft.build.locator.1.9.1.nupkg.sha512",
+    "/Users/octavianmihai/.nuget/packages/microsoft.build.tasks.core/17.14.8/microsoft.build.tasks.core.17.14.8.nupkg.sha512",
+    "/Users/octavianmihai/.nuget/packages/microsoft.build.utilities.core/17.14.8/microsoft.build.utilities.core.17.14.8.nupkg.sha512",
+    "/Users/octavianmihai/.nuget/packages/microsoft.codeanalysis.analyzers/3.11.0/microsoft.codeanalysis.analyzers.3.11.0.nupkg.sha512",
+    "/Users/octavianmihai/.nuget/packages/microsoft.codeanalysis.common/4.14.0/microsoft.codeanalysis.common.4.14.0.nupkg.sha512",
+    "/Users/octavianmihai/.nuget/packages/microsoft.codeanalysis.csharp/4.14.0/microsoft.codeanalysis.csharp.4.14.0.nupkg.sha512",
+    "/Users/octavianmihai/.nuget/packages/microsoft.codeanalysis.csharp.workspaces/4.14.0/microsoft.codeanalysis.csharp.workspaces.4.14.0.nupkg.sha512",
+    "/Users/octavianmihai/.nuget/packages/microsoft.codeanalysis.workspaces.common/4.14.0/microsoft.codeanalysis.workspaces.common.4.14.0.nupkg.sha512",
+    "/Users/octavianmihai/.nuget/packages/microsoft.codeanalysis.workspaces.msbuild/4.14.0/microsoft.codeanalysis.workspaces.msbuild.4.14.0.nupkg.sha512",
+    "/Users/octavianmihai/.nuget/packages/microsoft.entityframeworkcore/10.0.0-preview.5.25277.114/microsoft.entityframeworkcore.10.0.0-preview.5.25277.114.nupkg.sha512",
+    "/Users/octavianmihai/.nuget/packages/microsoft.entityframeworkcore.abstractions/10.0.0-preview.5.25277.114/microsoft.entityframeworkcore.abstractions.10.0.0-preview.5.25277.114.nupkg.sha512",
+    "/Users/octavianmihai/.nuget/packages/microsoft.entityframeworkcore.design/10.0.0-preview.5.25277.114/microsoft.entityframeworkcore.design.10.0.0-preview.5.25277.114.nupkg.sha512",
+    "/Users/octavianmihai/.nuget/packages/microsoft.entityframeworkcore.relational/10.0.0-preview.5.25277.114/microsoft.entityframeworkcore.relational.10.0.0-preview.5.25277.114.nupkg.sha512",
+    "/Users/octavianmihai/.nuget/packages/microsoft.extensions.dependencymodel/10.0.0-preview.5.25277.114/microsoft.extensions.dependencymodel.10.0.0-preview.5.25277.114.nupkg.sha512",
+    "/Users/octavianmihai/.nuget/packages/microsoft.net.stringtools/17.14.8/microsoft.net.stringtools.17.14.8.nupkg.sha512",
+    "/Users/octavianmihai/.nuget/packages/mono.texttemplating/3.0.0/mono.texttemplating.3.0.0.nupkg.sha512",
+    "/Users/octavianmihai/.nuget/packages/newtonsoft.json/13.0.3/newtonsoft.json.13.0.3.nupkg.sha512",
+    "/Users/octavianmihai/.nuget/packages/npgsql/9.0.3/npgsql.9.0.3.nupkg.sha512",
+    "/Users/octavianmihai/.nuget/packages/npgsql.entityframeworkcore.postgresql/10.0.0-preview.5/npgsql.entityframeworkcore.postgresql.10.0.0-preview.5.nupkg.sha512",
+    "/Users/octavianmihai/.nuget/packages/questpdf/2024.10.2/questpdf.2024.10.2.nupkg.sha512",
+    "/Users/octavianmihai/.nuget/packages/rbush/4.0.0/rbush.4.0.0.nupkg.sha512",
+    "/Users/octavianmihai/.nuget/packages/sixlabors.fonts/1.0.0/sixlabors.fonts.1.0.0.nupkg.sha512",
+    "/Users/octavianmihai/.nuget/packages/system.codedom/9.0.0/system.codedom.9.0.0.nupkg.sha512",
+    "/Users/octavianmihai/.nuget/packages/system.composition/9.0.0/system.composition.9.0.0.nupkg.sha512",
+    "/Users/octavianmihai/.nuget/packages/system.composition.attributedmodel/9.0.0/system.composition.attributedmodel.9.0.0.nupkg.sha512",
+    "/Users/octavianmihai/.nuget/packages/system.composition.convention/9.0.0/system.composition.convention.9.0.0.nupkg.sha512",
+    "/Users/octavianmihai/.nuget/packages/system.composition.hosting/9.0.0/system.composition.hosting.9.0.0.nupkg.sha512",
+    "/Users/octavianmihai/.nuget/packages/system.composition.runtime/9.0.0/system.composition.runtime.9.0.0.nupkg.sha512",
+    "/Users/octavianmihai/.nuget/packages/system.composition.typedparts/9.0.0/system.composition.typedparts.9.0.0.nupkg.sha512",
+    "/Users/octavianmihai/.nuget/packages/system.configuration.configurationmanager/9.0.0/system.configuration.configurationmanager.9.0.0.nupkg.sha512",
+    "/Users/octavianmihai/.nuget/packages/system.formats.nrbf/9.0.0/system.formats.nrbf.9.0.0.nupkg.sha512",
+    "/Users/octavianmihai/.nuget/packages/system.io.packaging/8.0.1/system.io.packaging.8.0.1.nupkg.sha512",
+    "/Users/octavianmihai/.nuget/packages/system.reflection.metadataloadcontext/7.0.0/system.reflection.metadataloadcontext.7.0.0.nupkg.sha512",
+    "/Users/octavianmihai/.nuget/packages/system.resources.extensions/9.0.0/system.resources.extensions.9.0.0.nupkg.sha512",
+    "/Users/octavianmihai/.nuget/packages/system.security.cryptography.pkcs/9.0.0/system.security.cryptography.pkcs.9.0.0.nupkg.sha512",
+    "/Users/octavianmihai/.nuget/packages/system.security.cryptography.protecteddata/9.0.0/system.security.cryptography.protecteddata.9.0.0.nupkg.sha512",
+    "/Users/octavianmihai/.nuget/packages/system.security.permissions/9.0.0/system.security.permissions.9.0.0.nupkg.sha512",
+    "/Users/octavianmihai/.nuget/packages/system.windows.extensions/9.0.0/system.windows.extensions.9.0.0.nupkg.sha512"
   ],
-  "logs": []
+  "logs": [
+    {
+      "code": "NU1903",
+      "level": "Warning",
+      "message": "Package 'Microsoft.Build.Tasks.Core' 17.14.8 has a known high severity vulnerability, https://github.com/advisories/GHSA-w3q9-fxm7-j8fq",
+      "projectPath": "/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/SMU.csproj",
+      "warningLevel": 1,
+      "filePath": "/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/SMU.csproj",
+      "libraryId": "Microsoft.Build.Tasks.Core",
+      "targetGraphs": [
+        "net10.0"
+      ]
+    },
+    {
+      "code": "NU1903",
+      "level": "Warning",
+      "message": "Package 'Microsoft.Build.Utilities.Core' 17.14.8 has a known high severity vulnerability, https://github.com/advisories/GHSA-w3q9-fxm7-j8fq",
+      "projectPath": "/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/SMU.csproj",
+      "warningLevel": 1,
+      "filePath": "/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/SMU.csproj",
+      "libraryId": "Microsoft.Build.Utilities.Core",
+      "targetGraphs": [
+        "net10.0"
+      ]
+    }
+  ]
 }

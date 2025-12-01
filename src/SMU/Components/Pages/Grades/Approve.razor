@@ -1,0 +1,407 @@
+@page "/note/aprobare"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@attribute [Authorize(Policy = "CanApproveGrades")]
+@using SMU.Data
+@using SMU.Data.Entities
+@using SMU.Services
+@using SMU.Services.DTOs
+@using Microsoft.EntityFrameworkCore
+@inject ApplicationDbContext DbContext
+@inject IGradeService GradeService
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+
+<div class="space-y-6">
+    <!-- Page Header -->
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">Aprobare Note</h1>
+            <p class="mt-1 text-sm text-gray-600">Aprobă sau respinge notele în așteptare</p>
+        </div>
+        <a href="/note" class="text-gray-600 hover:text-gray-900">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+        </a>
+    </div>
+
+    @if (ErrorMessage != null)
+    {
+        <div class="bg-danger-50 border border-danger-200 rounded-lg p-4">
+            <p class="text-sm text-danger-800">@ErrorMessage</p>
+        </div>
+    }
+
+    @if (SuccessMessage != null)
+    {
+        <div class="bg-success-50 border border-success-200 rounded-lg p-4">
+            <p class="text-sm text-success-800">@SuccessMessage</p>
+        </div>
+    }
+
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <div class="w-12 h-12 bg-warning-100 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-warning-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-600">În Așteptare</p>
+                    <p class="text-2xl font-bold text-gray-900">@PendingGrades.Count</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <div class="w-12 h-12 bg-success-100 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-success-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-600">Aprobate Astăzi</p>
+                    <p class="text-2xl font-bold text-gray-900">@ApprovedToday</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <div class="w-12 h-12 bg-danger-100 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-danger-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-600">Respinse Astăzi</p>
+                    <p class="text-2xl font-bold text-gray-900">@RejectedToday</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pending Grades Table -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+            <h2 class="text-lg font-semibold text-gray-900">Note în Așteptare</h2>
+            @if (SelectedGrades.Count > 0)
+            {
+                <button @onclick="BulkApprove" class="px-4 py-2 bg-success-600 hover:bg-success-700 text-white font-medium rounded-lg transition-colors">
+                    Aprobă Selectate (@SelectedGrades.Count)
+                </button>
+            }
+        </div>
+
+        @if (IsLoading)
+        {
+            <div class="p-8 text-center">
+                <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+                <p class="mt-2 text-gray-600">Se încarcă...</p>
+            </div>
+        }
+        else if (PendingGrades.Count == 0)
+        {
+            <div class="p-8 text-center text-gray-500">
+                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <p class="mt-2">Nu există note în așteptare pentru aprobare.</p>
+            </div>
+        }
+        else
+        {
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left">
+                                <input type="checkbox" @onchange="ToggleSelectAll"
+                                       class="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500" />
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Curs</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nota</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tip</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Profesor</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acțiuni</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        @foreach (var grade in PendingGrades)
+                        {
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <input type="checkbox" @onchange="() => ToggleGradeSelection(grade.Id)"
+                                           checked="@SelectedGrades.Contains(grade.Id)"
+                                           class="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500" />
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">@grade.StudentName</td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm font-medium text-gray-900">@grade.CourseName</div>
+                                    <div class="text-sm text-gray-500">@grade.Credits credite</div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="@GetGradeBadgeClass(grade.Value)">
+                                        @grade.Value.ToString("0.00")
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">@GetGradeTypeLabel(grade.Type)</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">@grade.EnteredByName</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">@grade.ExamDate.ToString("dd.MM.yyyy")</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
+                                    <button @onclick="() => ApproveGrade(grade.Id)"
+                                            class="text-success-600 hover:text-success-900 inline-flex items-center">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                        </svg>
+                                    </button>
+                                    <button @onclick="() => ShowRejectModal(grade.Id)"
+                                            class="text-danger-600 hover:text-danger-900 inline-flex items-center">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                        </svg>
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- Reject Modal -->
+@if (ShowRejectModalFlag)
+{
+    <div class="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50" @onclick="CloseRejectModal">
+        <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4" @onclick:stopPropagation="true">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-900">Respinge Nota</h3>
+            </div>
+            <div class="px-6 py-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Motiv Respingere <span class="text-danger-500">*</span></label>
+                <textarea @bind="RejectionReason" rows="4" placeholder="Introdu motivul respingerii..."
+                          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"></textarea>
+            </div>
+            <div class="px-6 py-4 bg-gray-50 flex justify-end space-x-3">
+                <button @onclick="CloseRejectModal" class="px-4 py-2 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors">
+                    Anulează
+                </button>
+                <button @onclick="ConfirmReject" class="px-4 py-2 bg-danger-600 hover:bg-danger-700 text-white font-medium rounded-lg transition-colors">
+                    Respinge Nota
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<GradeListDto> PendingGrades = new();
+    private HashSet<Guid> SelectedGrades = new();
+    private bool IsLoading = true;
+    private Guid CurrentUserId;
+    private Guid? FacultyId;
+
+    private int ApprovedToday = 0;
+    private int RejectedToday = 0;
+
+    private bool ShowRejectModalFlag = false;
+    private Guid? GradeToReject;
+    private string RejectionReason = "";
+
+    private string? ErrorMessage;
+    private string? SuccessMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            CurrentUserId = Guid.Parse(user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "");
+            await LoadData();
+        }
+    }
+
+    private async Task LoadData()
+    {
+        IsLoading = true;
+
+        // Get dean's faculty
+        var professor = await DbContext.Professors
+            .Include(p => p.Faculty)
+            .FirstOrDefaultAsync(p => p.UserId == CurrentUserId);
+
+        FacultyId = professor?.FacultyId;
+
+        // Load pending grades
+        PendingGrades = await GradeService.GetPendingForApprovalAsync(FacultyId);
+
+        // Count today's approvals/rejections
+        var today = DateTime.UtcNow.Date;
+        ApprovedToday = await DbContext.Grades
+            .Where(g => g.Status == GradeStatus.Approved && g.UpdatedAt.Date == today)
+            .CountAsync();
+
+        RejectedToday = await DbContext.Grades
+            .Where(g => g.Status == GradeStatus.Rejected && g.UpdatedAt.Date == today)
+            .CountAsync();
+
+        IsLoading = false;
+    }
+
+    private void ToggleSelectAll(ChangeEventArgs e)
+    {
+        if ((bool)e.Value!)
+        {
+            SelectedGrades = PendingGrades.Select(g => g.Id).ToHashSet();
+        }
+        else
+        {
+            SelectedGrades.Clear();
+        }
+    }
+
+    private void ToggleGradeSelection(Guid gradeId)
+    {
+        if (SelectedGrades.Contains(gradeId))
+        {
+            SelectedGrades.Remove(gradeId);
+        }
+        else
+        {
+            SelectedGrades.Add(gradeId);
+        }
+    }
+
+    private async Task ApproveGrade(Guid gradeId)
+    {
+        ErrorMessage = null;
+        SuccessMessage = null;
+
+        var result = await GradeService.ApproveAsync(gradeId, CurrentUserId);
+
+        if (result.Succeeded)
+        {
+            SuccessMessage = "Nota a fost aprobată cu succes!";
+            await LoadData();
+            SelectedGrades.Clear();
+        }
+        else
+        {
+            ErrorMessage = result.ErrorMessage;
+        }
+    }
+
+    private async Task BulkApprove()
+    {
+        ErrorMessage = null;
+        SuccessMessage = null;
+
+        int successCount = 0;
+        int failCount = 0;
+
+        foreach (var gradeId in SelectedGrades)
+        {
+            var result = await GradeService.ApproveAsync(gradeId, CurrentUserId);
+            if (result.Succeeded)
+                successCount++;
+            else
+                failCount++;
+        }
+
+        if (successCount > 0)
+        {
+            SuccessMessage = $"{successCount} note au fost aprobate cu succes!";
+        }
+
+        if (failCount > 0)
+        {
+            ErrorMessage = $"{failCount} note nu au putut fi aprobate.";
+        }
+
+        await LoadData();
+        SelectedGrades.Clear();
+    }
+
+    private void ShowRejectModal(Guid gradeId)
+    {
+        GradeToReject = gradeId;
+        RejectionReason = "";
+        ShowRejectModalFlag = true;
+    }
+
+    private void CloseRejectModal()
+    {
+        ShowRejectModalFlag = false;
+        GradeToReject = null;
+        RejectionReason = "";
+    }
+
+    private async Task ConfirmReject()
+    {
+        if (string.IsNullOrWhiteSpace(RejectionReason))
+        {
+            ErrorMessage = "Motivul respingerii este obligatoriu.";
+            return;
+        }
+
+        if (GradeToReject.HasValue)
+        {
+            ErrorMessage = null;
+            SuccessMessage = null;
+
+            var result = await GradeService.RejectAsync(GradeToReject.Value, CurrentUserId, RejectionReason);
+
+            if (result.Succeeded)
+            {
+                SuccessMessage = "Nota a fost respinsă.";
+                await LoadData();
+                CloseRejectModal();
+            }
+            else
+            {
+                ErrorMessage = result.ErrorMessage;
+            }
+        }
+    }
+
+    private string GetGradeBadgeClass(decimal value)
+    {
+        return value switch
+        {
+            >= 9 => "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-success-100 text-success-700",
+            >= 7 => "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-info-100 text-info-700",
+            >= 5 => "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-warning-100 text-warning-700",
+            _ => "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-danger-100 text-danger-700"
+        };
+    }
+
+    private string GetGradeTypeLabel(GradeType type)
+    {
+        return type switch
+        {
+            GradeType.Exam => "Examen",
+            GradeType.Lab => "Laborator",
+            GradeType.Seminar => "Seminar",
+            GradeType.Project => "Proiect",
+            GradeType.Final => "Final",
+            _ => type.ToString()
+        };
+    }
+}

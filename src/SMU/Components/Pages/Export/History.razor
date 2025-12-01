@@ -1,0 +1,289 @@
+@page "/export/history"
+@using SMU.Data.Entities
+@using SMU.Services
+@using SMU.Services.DTOs
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@inject IExportHistoryService ExportHistoryService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IJSRuntime JSRuntime
+@rendermode InteractiveServer
+
+<PageTitle>Istoric Exporturi - SMU</PageTitle>
+
+<div class="container mx-auto px-4 py-6">
+    <!-- Header -->
+    <div class="mb-6">
+        <h1 class="text-3xl font-bold text-gray-800">Istoric Exporturi</h1>
+        <p class="text-gray-600 mt-2">Vizualizează și gestionează toate exporturile tale anterioare</p>
+    </div>
+
+    <!-- Filters -->
+    <div class="bg-white rounded-lg shadow p-4 mb-6">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <!-- Export Type Filter -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Tip Export</label>
+                <select @bind="selectedExportType" @bind:after="LoadExports"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">Toate</option>
+                    @foreach (var type in Enum.GetValues<ExportType>())
+                    {
+                        <option value="@type">@GetExportTypeName(type)</option>
+                    }
+                </select>
+            </div>
+
+            <!-- Limit Filter -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Rezultate</label>
+                <select @bind="limit" @bind:after="LoadExports"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="10">10</option>
+                    <option value="20">20</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                </select>
+            </div>
+
+            <!-- Refresh Button -->
+            <div class="flex items-end">
+                <button @onclick="LoadExports" disabled="@isLoading"
+                        class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50">
+                    @if (isLoading)
+                    {
+                        <span>Se încarcă...</span>
+                    }
+                    else
+                    {
+                        <span>🔄 Reîmprospătează</span>
+                    }
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Card -->
+    @if (stats != null)
+    {
+        <div class="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg shadow-lg p-6 mb-6 text-white">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                    <p class="text-blue-100 text-sm">Total Exporturi</p>
+                    <p class="text-3xl font-bold">@stats.TotalExports</p>
+                </div>
+                <div>
+                    <p class="text-blue-100 text-sm">Total Descărcări</p>
+                    <p class="text-3xl font-bold">@stats.TotalDownloads</p>
+                </div>
+                <div>
+                    <p class="text-blue-100 text-sm">Dimensiune Totală</p>
+                    <p class="text-2xl font-bold">@stats.TotalFileSizeFormatted</p>
+                </div>
+                <div>
+                    <p class="text-blue-100 text-sm">Cel Mai Popular</p>
+                    <p class="text-xl font-bold">@(stats.MostPopularExport?.TypeName ?? "N/A")</p>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Export History Table -->
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        @if (isLoading)
+        {
+            <div class="p-8 text-center">
+                <div class="inline-block animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent"></div>
+                <p class="mt-4 text-gray-600">Se încarcă istoricul...</p>
+            </div>
+        }
+        else if (exports == null || !exports.Any())
+        {
+            <div class="p-8 text-center">
+                <p class="text-gray-500 text-lg">📭 Nu există exporturi în istoric</p>
+                <p class="text-gray-400 mt-2">Exporturile tale vor apărea aici după generare</p>
+            </div>
+        }
+        else
+        {
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tip</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fișier</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dimensiune</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data</th>
+                            <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Descărcări</th>
+                            <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Acțiuni</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        @foreach (var export in exports)
+                        {
+                            <tr class="hover:bg-gray-50 transition-colors">
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="flex items-center">
+                                        <span class="text-2xl mr-2">@GetExportIcon(export.ExportType)</span>
+                                        <div>
+                                            <div class="text-sm font-medium text-gray-900">@export.ExportTypeName</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <div class="text-sm text-gray-900 font-mono">@export.FileName</div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm text-gray-500">@export.FileSizeFormatted</div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm text-gray-900">@export.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</div>
+                                    <div class="text-xs text-gray-500">@export.CreatedAtRelative</div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-center">
+                                    <span class="px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                                        @export.DownloadCount
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
+                                    <div class="flex justify-center space-x-2">
+                                        <button @onclick="() => RegenerateExport(export)"
+                                                class="text-blue-600 hover:text-blue-900 px-3 py-1 rounded hover:bg-blue-50"
+                                                title="Regenerează">
+                                            🔄
+                                        </button>
+                                        <button @onclick="() => DeleteExport(export.Id)"
+                                                class="text-red-600 hover:text-red-900 px-3 py-1 rounded hover:bg-red-50"
+                                                title="Șterge">
+                                            🗑️
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+
+    <!-- Info Footer -->
+    <div class="mt-4 text-sm text-gray-500 text-center">
+        <p>💡 Exporturile sunt păstrate 30 de zile, după care sunt șterse automat</p>
+    </div>
+</div>
+
+@code {
+    private List<ExportHistoryDto>? exports;
+    private ExportStatsDto? stats;
+    private bool isLoading = true;
+    private string selectedExportType = "";
+    private int limit = 20;
+    private Guid currentUserId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            var userIdClaim = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+            if (userIdClaim != null && Guid.TryParse(userIdClaim.Value, out var userId))
+            {
+                currentUserId = userId;
+                await LoadExports();
+                await LoadStats();
+            }
+        }
+    }
+
+    private async Task LoadExports()
+    {
+        isLoading = true;
+        try
+        {
+            ExportType? typeFilter = null;
+            if (!string.IsNullOrEmpty(selectedExportType))
+            {
+                typeFilter = Enum.Parse<ExportType>(selectedExportType);
+            }
+
+            exports = await ExportHistoryService.GetUserExportsAsync(
+                currentUserId,
+                limit,
+                typeFilter);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading exports: {ex.Message}");
+            exports = new List<ExportHistoryDto>();
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task LoadStats()
+    {
+        try
+        {
+            stats = await ExportHistoryService.GetExportStatsAsync(currentUserId);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading stats: {ex.Message}");
+        }
+    }
+
+    private async Task DeleteExport(Guid exportId)
+    {
+        if (await JSRuntime.InvokeAsync<bool>("confirm", "Sigur doriți să ștergeți acest export?"))
+        {
+            try
+            {
+                await ExportHistoryService.DeleteExportAsync(exportId);
+                await LoadExports();
+                await LoadStats();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error deleting export: {ex.Message}");
+            }
+        }
+    }
+
+    private async Task RegenerateExport(ExportHistoryDto export)
+    {
+        // TODO: Implement re-generation logic
+        // This would parse export.Parameters JSON and call the appropriate export method
+        Console.WriteLine($"Regenerate {export.ExportType} with params: {export.Parameters}");
+    }
+
+    private string GetExportTypeName(ExportType type)
+    {
+        return type switch
+        {
+            ExportType.SituatieScolara => "Situație Școlară (PDF)",
+            ExportType.AdeverintaStudent => "Adeverință Student (PDF)",
+            ExportType.CatalogNote => "Catalog Note (PDF)",
+            ExportType.RaportFacultate => "Raport Facultate (PDF)",
+            ExportType.StudentsExcel => "Lista Studenți (Excel)",
+            ExportType.GradesExcel => "Lista Note (Excel)",
+            ExportType.AttendanceExcel => "Lista Prezență (Excel)",
+            ExportType.ActivityLogExcel => "Jurnal Activitate (Excel)",
+            _ => type.ToString()
+        };
+    }
+
+    private string GetExportIcon(ExportType type)
+    {
+        return type switch
+        {
+            ExportType.SituatieScolara or ExportType.AdeverintaStudent or ExportType.CatalogNote or ExportType.RaportFacultate => "📄",
+            ExportType.StudentsExcel or ExportType.GradesExcel or ExportType.AttendanceExcel or ExportType.ActivityLogExcel => "📊",
+            _ => "📁"
+        };
+    }
+}

@@ -1,0 +1,280 @@
+@page "/studenti/{id:guid}/editare"
+@using Microsoft.AspNetCore.Authorization
+@using SMU.Services
+@using SMU.Services.DTOs
+@using SMU.Data
+@using SMU.Data.Entities
+@using Microsoft.EntityFrameworkCore
+@attribute [Authorize(Policy = "CanManageStudents")]
+@inject IStudentService StudentService
+@inject ApplicationDbContext DbContext
+@inject NavigationManager Navigation
+
+<PageTitle>Editare Student - SMU</PageTitle>
+
+@if (isLoading)
+{
+    <div class="flex items-center justify-center py-12">
+        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+    </div>
+}
+else if (student == null)
+{
+    <div class="text-center py-12">
+        <p class="text-gray-500">Studentul nu a fost găsit</p>
+        <button @onclick='() => Navigation.NavigateTo("/studenti")' class="mt-4 text-primary-600 hover:text-primary-700">
+            Înapoi la Studenți
+        </button>
+    </div>
+}
+else
+{
+    <div class="max-w-3xl mx-auto space-y-6">
+        <!-- Header -->
+        <div>
+            <button @onclick='() => Navigation.NavigateTo($"/studenti/{Id}")' class="text-gray-600 hover:text-gray-900 mb-4 flex items-center space-x-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                </svg>
+                <span>Înapoi la Detalii</span>
+            </button>
+            <h1 class="text-2xl font-bold text-gray-900">Editare Student</h1>
+            <p class="mt-1 text-sm text-gray-500">Modifică informațiile studentului @student.FullName</p>
+        </div>
+
+        <!-- Form Card -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+            <form @onsubmit="HandleSubmit">
+                <div class="space-y-6">
+                    <!-- Non-editable Info -->
+                    <div class="bg-gray-50 rounded-lg p-4 space-y-3">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-medium text-gray-500 mb-1">Email</label>
+                                <p class="text-sm text-gray-900">@student.Email</p>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-gray-500 mb-1">Nr. Matricol</label>
+                                <p class="text-sm text-gray-900">@student.StudentNumber</p>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-gray-500 mb-1">Data Înscrierii</label>
+                                <p class="text-sm text-gray-900">@student.EnrollmentDate.ToString("dd.MM.yyyy")</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- First Name & Last Name -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Prenume <span class="text-red-500">*</span>
+                            </label>
+                            <input type="text"
+                                   @bind="model.FirstName"
+                                   required
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Nume <span class="text-red-500">*</span>
+                            </label>
+                            <input type="text"
+                                   @bind="model.LastName"
+                                   required
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                        </div>
+                    </div>
+
+                    <!-- Group -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Grupă</label>
+                        <select @bind="selectedGroupId"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                            <option value="">Neasignat</option>
+                            @foreach (var group in groups)
+                            {
+                                <option value="@group.Id">@group.Name - @group.ProgramName (An @group.Year)</option>
+                            }
+                        </select>
+                    </div>
+
+                    <!-- Status & Scholarship -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                            <select @bind="model.Status"
+                                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                                <option value="@StudentStatus.Active">Activ</option>
+                                <option value="@StudentStatus.Inactive">Inactiv</option>
+                                <option value="@StudentStatus.Graduated">Absolvent</option>
+                                <option value="@StudentStatus.Suspended">Suspendat</option>
+                                <option value="@StudentStatus.Expelled">Exmatriculat</option>
+                            </select>
+                        </div>
+
+                        <div class="flex items-center">
+                            <label class="flex items-center space-x-3 cursor-pointer">
+                                <input type="checkbox"
+                                       @bind="model.ScholarshipHolder"
+                                       class="w-5 h-5 text-primary-600 border-gray-300 rounded focus:ring-2 focus:ring-primary-500">
+                                <span class="text-sm font-medium text-gray-700">Bursier</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Error Message -->
+                    @if (!string.IsNullOrEmpty(errorMessage))
+                    {
+                        <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                            <div class="flex items-start space-x-3">
+                                <svg class="w-5 h-5 text-red-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                <p class="text-sm text-red-700">@errorMessage</p>
+                            </div>
+                        </div>
+                    }
+
+                    <!-- Success Message -->
+                    @if (!string.IsNullOrEmpty(successMessage))
+                    {
+                        <div class="bg-success-50 border border-success-200 rounded-lg p-4">
+                            <div class="flex items-start space-x-3">
+                                <svg class="w-5 h-5 text-success-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                <p class="text-sm text-success-700">@successMessage</p>
+                            </div>
+                        </div>
+                    }
+
+                    <!-- Actions -->
+                    <div class="flex space-x-3 justify-end pt-4 border-t border-gray-100">
+                        <button type="button"
+                                @onclick='() => Navigation.NavigateTo($"/studenti/{Id}")'
+                                class="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors">
+                            Anulează
+                        </button>
+                        <button type="submit"
+                                disabled="@isSubmitting"
+                                class="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2">
+                            @if (isSubmitting)
+                            {
+                                <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                <span>Se salvează...</span>
+                            }
+                            else
+                            {
+                                <span>Salvează Modificările</span>
+                            }
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private StudentDetailDto? student;
+    private UpdateStudentDto model = new();
+    private string selectedGroupId = "";
+    private List<GroupDto> groups = new();
+    private bool isLoading = true;
+    private bool isSubmitting = false;
+    private string errorMessage = "";
+    private string successMessage = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadStudent();
+        await LoadGroups();
+    }
+
+    private async Task LoadStudent()
+    {
+        isLoading = true;
+        student = await StudentService.GetByIdAsync(Id);
+
+        if (student != null)
+        {
+            model = new UpdateStudentDto
+            {
+                FirstName = student.FirstName,
+                LastName = student.LastName,
+                GroupId = student.GroupId,
+                ScholarshipHolder = student.ScholarshipHolder,
+                Status = student.Status
+            };
+            selectedGroupId = student.GroupId?.ToString() ?? "";
+        }
+
+        isLoading = false;
+    }
+
+    private async Task LoadGroups()
+    {
+        groups = await DbContext.Groups
+            .Include(g => g.Program)
+            .Where(g => g.IsActive)
+            .OrderBy(g => g.Program.Name)
+            .ThenBy(g => g.Year)
+            .ThenBy(g => g.Name)
+            .Select(g => new GroupDto
+            {
+                Id = g.Id,
+                Name = g.Name,
+                Year = g.Year,
+                ProgramName = g.Program.Name
+            })
+            .ToListAsync();
+    }
+
+    private async Task HandleSubmit()
+    {
+        errorMessage = "";
+        successMessage = "";
+
+        // Parse selected group
+        if (Guid.TryParse(selectedGroupId, out var groupId))
+        {
+            model.GroupId = groupId;
+        }
+        else
+        {
+            model.GroupId = null;
+        }
+
+        isSubmitting = true;
+        StateHasChanged();
+
+        var result = await StudentService.UpdateAsync(Id, model);
+
+        isSubmitting = false;
+
+        if (result.Succeeded)
+        {
+            successMessage = "Student actualizat cu succes! Redirecționare...";
+            StateHasChanged();
+            await Task.Delay(1500);
+            Navigation.NavigateTo($"/studenti/{Id}");
+        }
+        else
+        {
+            errorMessage = result.ErrorMessage ?? "Eroare la actualizarea studentului";
+            StateHasChanged();
+        }
+    }
+
+    private class GroupDto
+    {
+        public Guid Id { get; set; }
+        public string Name { get; set; } = "";
+        public int Year { get; set; }
+        public string ProgramName { get; set; } = "";
+    }
+}

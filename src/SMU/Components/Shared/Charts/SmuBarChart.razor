@@ -1,0 +1,134 @@
+@using ApexCharts
+
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+    @if (IsLoading)
+    {
+        <div class="flex justify-center items-center h-64">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+        </div>
+    }
+    else if (Data == null || !Data.Any())
+    {
+        <div class="flex flex-col items-center justify-center h-64 text-gray-400">
+            <svg class="w-12 h-12 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+            </svg>
+            <p class="text-sm">Nu sunt date disponibile</p>
+        </div>
+    }
+    else
+    {
+        <ApexChart TItem="ChartDataItem"
+                   Title="@Title"
+                   Options="options"
+                   Height="@Height">
+            <ApexPointSeries TItem="ChartDataItem"
+                             Items="Data"
+                             Name="@SeriesName"
+                             SeriesType="SeriesType.Bar"
+                             XValue="e => e.Label"
+                             YValue="e => e.Value"
+                             OrderByDescending="e => e.Y" />
+        </ApexChart>
+    }
+</div>
+
+@code {
+    [Parameter] public string Title { get; set; } = "Bar Chart";
+    [Parameter] public List<ChartDataItem> Data { get; set; } = new();
+    [Parameter] public string YAxisLabel { get; set; } = "Value";
+    [Parameter] public int Height { get; set; } = 350;
+    [Parameter] public bool Horizontal { get; set; } = false;
+    [Parameter] public bool IsLoading { get; set; } = false;
+
+    private string SeriesName => YAxisLabel;
+    private ApexChartOptions<ChartDataItem> options = new();
+
+    protected override void OnParametersSet()
+    {
+        options = new ApexChartOptions<ChartDataItem>
+        {
+            Theme = new Theme
+            {
+                Mode = Mode.Light,
+                Palette = PaletteType.Palette1
+            },
+            Chart = new Chart
+            {
+                Toolbar = new Toolbar
+                {
+                    Show = true,
+                    Tools = new Tools
+                    {
+                        Download = true
+                    }
+                }
+            },
+            PlotOptions = new PlotOptions
+            {
+                Bar = new PlotOptionsBar
+                {
+                    Horizontal = Horizontal,
+                    BorderRadius = 8,
+                    Distributed = true
+                }
+            },
+            Colors = new List<string>
+            {
+                "#4F46E5", // indigo-600
+                "#10B981", // emerald-500
+                "#F59E0B", // amber-500
+                "#EF4444", // red-500
+                "#8B5CF6", // violet-500
+                "#EC4899", // pink-500
+                "#06B6D4", // cyan-500
+                "#84CC16"  // lime-500
+            },
+            Xaxis = new XAxis
+            {
+                Labels = new XAxisLabels
+                {
+                    Rotate = Horizontal ? 0 : -45,
+                    RotateAlways = !Horizontal,
+                    Style = new AxisLabelStyle
+                    {
+                        FontSize = "12px"
+                    }
+                }
+            },
+            Yaxis = new List<YAxis>
+            {
+                new YAxis
+                {
+                    Title = new AxisTitle
+                    {
+                        Text = YAxisLabel
+                    }
+                }
+            },
+            DataLabels = new DataLabels
+            {
+                Enabled = true,
+                Style = new DataLabelsStyle
+                {
+                    FontSize = "12px",
+                    FontWeight = "600"
+                }
+            },
+            Tooltip = new Tooltip
+            {
+                Enabled = true
+            },
+            Legend = new Legend
+            {
+                Show = false
+            }
+        };
+    }
+
+    public class ChartDataItem
+    {
+        public string Label { get; set; } = string.Empty;
+        public decimal Value { get; set; }
+    }
+}

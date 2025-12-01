@@ -1,0 +1,290 @@
+@using SMU.Components.Shared
+
+<div class="space-y-6">
+    <!-- Welcome Header -->
+    <div class="bg-gradient-to-r from-gray-800 to-gray-900 rounded-xl p-6 text-white">
+        <h1 class="text-2xl font-bold">Bine ai venit, @UserName!</h1>
+        <p class="mt-1 text-gray-300">Panou de administrare sistem SMU.</p>
+    </div>
+
+    <!-- System Health -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold text-gray-900">Stare Sistem</h3>
+            <span class="px-3 py-1 text-sm font-medium rounded-full @(SystemHealthy ? "bg-success-100 text-success-700" : "bg-danger-100 text-danger-700")">
+                @(SystemHealthy ? "Operational" : "Probleme detectate")
+            </span>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div class="p-4 bg-gray-50 rounded-lg">
+                <div class="flex items-center justify-between">
+                    <span class="text-sm text-gray-500">Database</span>
+                    <span class="w-3 h-3 rounded-full @(DbHealthy ? "bg-success-500" : "bg-danger-500")"></span>
+                </div>
+                <p class="mt-1 text-lg font-semibold text-gray-900">@(DbHealthy ? "Online" : "Offline")</p>
+            </div>
+            <div class="p-4 bg-gray-50 rounded-lg">
+                <div class="flex items-center justify-between">
+                    <span class="text-sm text-gray-500">Supabase</span>
+                    <span class="w-3 h-3 rounded-full @(SupabaseHealthy ? "bg-success-500" : "bg-danger-500")"></span>
+                </div>
+                <p class="mt-1 text-lg font-semibold text-gray-900">@(SupabaseHealthy ? "Conectat" : "Deconectat")</p>
+            </div>
+            <div class="p-4 bg-gray-50 rounded-lg">
+                <div class="flex items-center justify-between">
+                    <span class="text-sm text-gray-500">CPU Usage</span>
+                    <span class="text-xs text-gray-400">Server</span>
+                </div>
+                <p class="mt-1 text-lg font-semibold text-gray-900">@CpuUsage%</p>
+            </div>
+            <div class="p-4 bg-gray-50 rounded-lg">
+                <div class="flex items-center justify-between">
+                    <span class="text-sm text-gray-500">Memory</span>
+                    <span class="text-xs text-gray-400">Allocated</span>
+                </div>
+                <p class="mt-1 text-lg font-semibold text-gray-900">@MemoryUsage MB</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <StatsCard
+            Label="Total Utilizatori"
+            Value="@TotalUsers.ToString()"
+            Subtitle="conturi active"
+            IconType="users"
+            IconBgClass="bg-primary-100"
+            IconClass="text-primary-600"
+            ActionLink="/admin/utilizatori"
+            ActionText="Gestioneaza" />
+
+        <StatsCard
+            Label="Utilizatori Activi"
+            Value="@ActiveUsersToday.ToString()"
+            Subtitle="conectati astazi"
+            IconType="users"
+            IconBgClass="bg-success-100"
+            IconClass="text-success-600" />
+
+        <StatsCard
+            Label="Facultati"
+            Value="@TotalFaculties.ToString()"
+            Subtitle="@($"{TotalPrograms} programe de studiu")"
+            IconType="academic"
+            IconBgClass="bg-info-100"
+            IconClass="text-info-600"
+            ActionLink="/admin/facultati"
+            ActionText="Configureaza" />
+
+        <StatsCard
+            Label="Audit Logs"
+            Value="@AuditLogsToday.ToString()"
+            Subtitle="actiuni inregistrate astazi"
+            IconType="document"
+            IconBgClass="bg-warning-100"
+            IconClass="text-warning-600"
+            ActionLink="/admin/audit"
+            ActionText="Vezi loguri" />
+    </div>
+
+    <!-- Content Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- User Distribution -->
+        <div class="lg:col-span-2">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-100">
+                    <h3 class="text-lg font-semibold text-gray-900">Distributie Utilizatori per Rol</h3>
+                </div>
+                <div class="p-6">
+                    <div class="space-y-4">
+                        @foreach (var role in UsersByRole)
+                        {
+                            <div>
+                                <div class="flex justify-between items-center mb-1">
+                                    <span class="text-sm font-medium text-gray-700">@role.RoleName</span>
+                                    <span class="text-sm text-gray-500">@role.Count utilizatori</span>
+                                </div>
+                                <div class="w-full bg-gray-200 rounded-full h-3">
+                                    <div class="h-3 rounded-full @role.ColorClass transition-all duration-500" style="width: @role.Percentage%"></div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="space-y-6">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Actiuni Admin</h3>
+                <div class="space-y-3">
+                    <QuickActionButton
+                        Text="Adauga Utilizator"
+                        IconType="plus"
+                        Variant="primary"
+                        FullWidth="true"
+                        IsLink="true"
+                        Link="/admin/utilizatori/nou" />
+                    <QuickActionButton
+                        Text="Gestioneaza Roluri"
+                        IconType="settings"
+                        Variant="outline-primary"
+                        FullWidth="true"
+                        IsLink="true"
+                        Link="/admin/roluri" />
+                    <QuickActionButton
+                        Text="Configurare Facultati"
+                        IconType="edit"
+                        Variant="outline"
+                        FullWidth="true"
+                        IsLink="true"
+                        Link="/admin/facultati" />
+                    <QuickActionButton
+                        Text="Backup Database"
+                        IconType="download"
+                        Variant="outline"
+                        FullWidth="true"
+                        IsLink="true"
+                        Link="/admin/backup" />
+                </div>
+            </div>
+
+            <!-- System Info -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-100">
+                    <h3 class="text-lg font-semibold text-gray-900">Informatii Sistem</h3>
+                </div>
+                <div class="px-6 py-4 space-y-3 text-sm">
+                    <div class="flex justify-between">
+                        <span class="text-gray-500">Versiune</span>
+                        <span class="font-medium text-gray-900">SMU 3.0</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-500">Framework</span>
+                        <span class="font-medium text-gray-900">.NET 10 Blazor</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-500">Database</span>
+                        <span class="font-medium text-gray-900">PostgreSQL (Supabase)</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-500">Ultima actualizare</span>
+                        <span class="font-medium text-gray-900">@DateTime.Now.ToString("dd MMM yyyy")</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Audit Logs -->
+    <RecentActivityList
+        Title="Audit Log Recent"
+        Items="@RecentAuditLogs"
+        ViewAllLink="/admin/audit"
+        MaxItems="6"
+        EmptyMessage="Nu exista activitate recenta." />
+</div>
+
+@code {
+    [Parameter] public string UserName { get; set; } = "Admin";
+
+    // System Health
+    private bool SystemHealthy = true;
+    private bool DbHealthy = true;
+    private bool SupabaseHealthy = true;
+    private int CpuUsage = 23;
+    private int MemoryUsage = 512;
+
+    // Stats
+    private int TotalUsers = 542;
+    private int ActiveUsersToday = 87;
+    private int TotalFaculties = 5;
+    private int TotalPrograms = 18;
+    private int AuditLogsToday = 234;
+
+    // Data
+    private List<RoleDistributionDto> UsersByRole = new();
+    private List<RecentActivityList.ActivityItem> RecentAuditLogs = new();
+
+    protected override void OnInitialized()
+    {
+        LoadDashboardData();
+    }
+
+    private void LoadDashboardData()
+    {
+        // Demo role distribution
+        UsersByRole = new List<RoleDistributionDto>
+        {
+            new() { RoleName = "Studenti", Count = 485, Percentage = 89, ColorClass = "bg-primary-500" },
+            new() { RoleName = "Profesori", Count = 32, Percentage = 6, ColorClass = "bg-secondary-500" },
+            new() { RoleName = "Secretari", Count = 12, Percentage = 2, ColorClass = "bg-info-500" },
+            new() { RoleName = "Decani", Count = 5, Percentage = 1, ColorClass = "bg-warning-500" },
+            new() { RoleName = "Admini", Count = 3, Percentage = 1, ColorClass = "bg-danger-500" },
+            new() { RoleName = "Rector", Count = 1, Percentage = 0.2m, ColorClass = "bg-purple-500" }
+        };
+
+        // Demo audit logs
+        RecentAuditLogs = new List<RecentActivityList.ActivityItem>
+        {
+            new() {
+                Title = "Login reusit",
+                Description = "admin@rau.ro - IP: 192.168.1.100",
+                Timestamp = DateTime.Now.AddMinutes(-5),
+                Type = "user",
+                Badge = "Auth",
+                BadgeType = "success"
+            },
+            new() {
+                Title = "Nota adaugata",
+                Description = "Prof. Georgescu - Student: Popescu Maria, Nota: 9",
+                Timestamp = DateTime.Now.AddMinutes(-15),
+                Type = "grade",
+                Badge = "Create",
+                BadgeType = "info"
+            },
+            new() {
+                Title = "Student creat",
+                Description = "secretary@rau.ro - Vasilescu Ion (IF-301)",
+                Timestamp = DateTime.Now.AddMinutes(-30),
+                Type = "user",
+                Badge = "Create",
+                BadgeType = "success"
+            },
+            new() {
+                Title = "Cerere procesata",
+                Description = "secretary@rau.ro - Adeverinta #2024-145",
+                Timestamp = DateTime.Now.AddHours(-1),
+                Type = "document",
+                Badge = "Update",
+                BadgeType = "info"
+            },
+            new() {
+                Title = "Configurare modificata",
+                Description = "admin@rau.ro - Anul academic: 2024-2025",
+                Timestamp = DateTime.Now.AddHours(-2),
+                Type = "settings",
+                Badge = "Config",
+                BadgeType = "warning"
+            },
+            new() {
+                Title = "Backup creat",
+                Description = "System - backup_2024_12_01.sql (245 MB)",
+                Timestamp = DateTime.Now.AddHours(-6),
+                Type = "document",
+                Badge = "System",
+                BadgeType = "default"
+            }
+        };
+    }
+
+    private class RoleDistributionDto
+    {
+        public string RoleName { get; set; } = "";
+        public int Count { get; set; }
+        public decimal Percentage { get; set; }
+        public string ColorClass { get; set; } = "";
+    }
+}

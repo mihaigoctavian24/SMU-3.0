@@ -1,0 +1,108 @@
+@using ApexCharts
+
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+    @if (IsLoading)
+    {
+        <div class="flex justify-center items-center h-64">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+        </div>
+    }
+    else if (Data == null || !Data.Any())
+    {
+        <div class="flex flex-col items-center justify-center h-64 text-gray-400">
+            <svg class="w-12 h-12 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
+            </svg>
+            <p class="text-sm">Nu sunt date disponibile</p>
+        </div>
+    }
+    else
+    {
+        <ApexChart TItem="ChartDataSegment"
+                   Title="@Title"
+                   Options="options"
+                   Height="@Height">
+            <ApexPointSeries TItem="ChartDataSegment"
+                             Items="Data"
+                             Name="Distribution"
+                             SeriesType="SeriesType.Donut"
+                             XValue="e => e.Label"
+                             YAggregate="e => e.Sum(o => o.Value)"
+                             ShowDataLabels />
+        </ApexChart>
+    }
+</div>
+
+@code {
+    [Parameter] public string Title { get; set; } = "Donut Chart";
+    [Parameter] public List<ChartDataSegment> Data { get; set; } = new();
+    [Parameter] public int Height { get; set; } = 350;
+    [Parameter] public bool ShowLegend { get; set; } = true;
+    [Parameter] public bool IsLoading { get; set; } = false;
+
+    private ApexChartOptions<ChartDataSegment> options = new();
+
+    protected override void OnParametersSet()
+    {
+        var colors = Data?.Select(d => d.Color).Where(c => !string.IsNullOrEmpty(c)).ToList();
+
+        options = new ApexChartOptions<ChartDataSegment>
+        {
+            Theme = new Theme
+            {
+                Mode = Mode.Light,
+                Palette = PaletteType.Palette1
+            },
+            Chart = new Chart
+            {
+                Toolbar = new Toolbar
+                {
+                    Show = true,
+                    Tools = new Tools
+                    {
+                        Download = true
+                    }
+                }
+            },
+            Colors = colors?.Any() == true ? colors : new List<string>
+            {
+                "#4F46E5", // indigo-600
+                "#10B981", // emerald-500
+                "#F59E0B", // amber-500
+                "#EF4444", // red-500
+                "#8B5CF6", // violet-500
+                "#EC4899", // pink-500
+                "#06B6D4", // cyan-500
+                "#84CC16"  // lime-500
+            },
+            DataLabels = new DataLabels
+            {
+                Enabled = true,
+                Style = new DataLabelsStyle
+                {
+                    FontSize = "12px",
+                    FontWeight = "600"
+                }
+            },
+            Legend = new Legend
+            {
+                Show = ShowLegend,
+                Position = LegendPosition.Bottom,
+                HorizontalAlign = Align.Center,
+                FontSize = "14px"
+            },
+            Tooltip = new Tooltip
+            {
+                Enabled = true
+            }
+        };
+    }
+
+    public class ChartDataSegment
+    {
+        public string Label { get; set; } = string.Empty;
+        public decimal Value { get; set; }
+        public string? Color { get; set; }
+    }
+}

@@ -1,0 +1,447 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+
+  <!-- Navigation Menu Items -->
+  <data name="Dashboard" xml:space="preserve">
+    <value>Panou de Control</value>
+  </data>
+  <data name="Students" xml:space="preserve">
+    <value>Studenți</value>
+  </data>
+  <data name="Professors" xml:space="preserve">
+    <value>Profesori</value>
+  </data>
+  <data name="Grades" xml:space="preserve">
+    <value>Note</value>
+  </data>
+  <data name="Attendance" xml:space="preserve">
+    <value>Prezențe</value>
+  </data>
+  <data name="Schedule" xml:space="preserve">
+    <value>Orar</value>
+  </data>
+  <data name="Faculties" xml:space="preserve">
+    <value>Facultăți</value>
+  </data>
+  <data name="Programs" xml:space="preserve">
+    <value>Programe</value>
+  </data>
+  <data name="Groups" xml:space="preserve">
+    <value>Grupe</value>
+  </data>
+  <data name="Analytics" xml:space="preserve">
+    <value>Analitice</value>
+  </data>
+  <data name="Reports" xml:space="preserve">
+    <value>Rapoarte</value>
+  </data>
+  <data name="Export" xml:space="preserve">
+    <value>Export</value>
+  </data>
+  <data name="Admin" xml:space="preserve">
+    <value>Admin</value>
+  </data>
+  <data name="Settings" xml:space="preserve">
+    <value>Setări</value>
+  </data>
+  <data name="Profile" xml:space="preserve">
+    <value>Profil</value>
+  </data>
+  <data name="Logout" xml:space="preserve">
+    <value>Ieșire</value>
+  </data>
+
+  <!-- Common Actions -->
+  <data name="Save" xml:space="preserve">
+    <value>Salvează</value>
+  </data>
+  <data name="Cancel" xml:space="preserve">
+    <value>Anulează</value>
+  </data>
+  <data name="Delete" xml:space="preserve">
+    <value>Șterge</value>
+  </data>
+  <data name="Edit" xml:space="preserve">
+    <value>Editează</value>
+  </data>
+  <data name="Add" xml:space="preserve">
+    <value>Adaugă</value>
+  </data>
+  <data name="Search" xml:space="preserve">
+    <value>Caută</value>
+  </data>
+  <data name="Filter" xml:space="preserve">
+    <value>Filtrează</value>
+  </data>
+  <data name="Close" xml:space="preserve">
+    <value>Închide</value>
+  </data>
+  <data name="Submit" xml:space="preserve">
+    <value>Trimite</value>
+  </data>
+  <data name="Confirm" xml:space="preserve">
+    <value>Confirmă</value>
+  </data>
+  <data name="View" xml:space="preserve">
+    <value>Vizualizează</value>
+  </data>
+  <data name="Download" xml:space="preserve">
+    <value>Descarcă</value>
+  </data>
+  <data name="Upload" xml:space="preserve">
+    <value>Încarcă</value>
+  </data>
+  <data name="Print" xml:space="preserve">
+    <value>Printează</value>
+  </data>
+  <data name="Refresh" xml:space="preserve">
+    <value>Reîmprospătează</value>
+  </data>
+  <data name="Reset" xml:space="preserve">
+    <value>Resetează</value>
+  </data>
+
+  <!-- Status & States -->
+  <data name="Active" xml:space="preserve">
+    <value>Activ</value>
+  </data>
+  <data name="Inactive" xml:space="preserve">
+    <value>Inactiv</value>
+  </data>
+  <data name="Pending" xml:space="preserve">
+    <value>În așteptare</value>
+  </data>
+  <data name="Approved" xml:space="preserve">
+    <value>Aprobat</value>
+  </data>
+  <data name="Rejected" xml:space="preserve">
+    <value>Respins</value>
+  </data>
+  <data name="Completed" xml:space="preserve">
+    <value>Finalizat</value>
+  </data>
+  <data name="InProgress" xml:space="preserve">
+    <value>În progres</value>
+  </data>
+  <data name="Draft" xml:space="preserve">
+    <value>Ciornă</value>
+  </data>
+  <data name="Published" xml:space="preserve">
+    <value>Publicat</value>
+  </data>
+  <data name="Archived" xml:space="preserve">
+    <value>Arhivat</value>
+  </data>
+
+  <!-- Messages & Notifications -->
+  <data name="SuccessMessage" xml:space="preserve">
+    <value>Operațiune finalizată cu succes</value>
+  </data>
+  <data name="ErrorMessage" xml:space="preserve">
+    <value>A apărut o eroare</value>
+  </data>
+  <data name="WarningMessage" xml:space="preserve">
+    <value>Avertizare</value>
+  </data>
+  <data name="Loading" xml:space="preserve">
+    <value>Se încarcă...</value>
+  </data>
+  <data name="NoData" xml:space="preserve">
+    <value>Nu există date disponibile</value>
+  </data>
+  <data name="NoResults" xml:space="preserve">
+    <value>Nu au fost găsite rezultate</value>
+  </data>
+  <data name="ConfirmDelete" xml:space="preserve">
+    <value>Sunteți sigur că doriți să ștergeți acest element?</value>
+  </data>
+  <data name="ConfirmAction" xml:space="preserve">
+    <value>Sunteți sigur că doriți să continuați?</value>
+  </data>
+  <data name="SaveSuccess" xml:space="preserve">
+    <value>Datele au fost salvate cu succes</value>
+  </data>
+  <data name="DeleteSuccess" xml:space="preserve">
+    <value>Datele au fost șterse cu succes</value>
+  </data>
+  <data name="UpdateSuccess" xml:space="preserve">
+    <value>Datele au fost actualizate cu succes</value>
+  </data>
+
+  <!-- Form Labels & Fields -->
+  <data name="Name" xml:space="preserve">
+    <value>Nume</value>
+  </data>
+  <data name="FirstName" xml:space="preserve">
+    <value>Prenume</value>
+  </data>
+  <data name="LastName" xml:space="preserve">
+    <value>Nume de familie</value>
+  </data>
+  <data name="Email" xml:space="preserve">
+    <value>Email</value>
+  </data>
+  <data name="Password" xml:space="preserve">
+    <value>Parolă</value>
+  </data>
+  <data name="ConfirmPassword" xml:space="preserve">
+    <value>Confirmă parola</value>
+  </data>
+  <data name="Phone" xml:space="preserve">
+    <value>Telefon</value>
+  </data>
+  <data name="Address" xml:space="preserve">
+    <value>Adresă</value>
+  </data>
+  <data name="Faculty" xml:space="preserve">
+    <value>Facultate</value>
+  </data>
+  <data name="Program" xml:space="preserve">
+    <value>Program</value>
+  </data>
+  <data name="Group" xml:space="preserve">
+    <value>Grupă</value>
+  </data>
+  <data name="Year" xml:space="preserve">
+    <value>An</value>
+  </data>
+  <data name="Semester" xml:space="preserve">
+    <value>Semestru</value>
+  </data>
+  <data name="Course" xml:space="preserve">
+    <value>Curs</value>
+  </data>
+  <data name="Date" xml:space="preserve">
+    <value>Data</value>
+  </data>
+  <data name="StartDate" xml:space="preserve">
+    <value>Data de început</value>
+  </data>
+  <data name="EndDate" xml:space="preserve">
+    <value>Data de sfârșit</value>
+  </data>
+  <data name="Description" xml:space="preserve">
+    <value>Descriere</value>
+  </data>
+  <data name="Status" xml:space="preserve">
+    <value>Status</value>
+  </data>
+  <data name="Type" xml:space="preserve">
+    <value>Tip</value>
+  </data>
+  <data name="Role" xml:space="preserve">
+    <value>Rol</value>
+  </data>
+
+  <!-- Validation Messages -->
+  <data name="Required" xml:space="preserve">
+    <value>Acest câmp este obligatoriu</value>
+  </data>
+  <data name="InvalidEmail" xml:space="preserve">
+    <value>Adresa de email este invalidă</value>
+  </data>
+  <data name="PasswordTooShort" xml:space="preserve">
+    <value>Parola trebuie să aibă cel puțin 8 caractere</value>
+  </data>
+  <data name="PasswordMismatch" xml:space="preserve">
+    <value>Parolele nu coincid</value>
+  </data>
+  <data name="InvalidFormat" xml:space="preserve">
+    <value>Format invalid</value>
+  </data>
+  <data name="MinLength" xml:space="preserve">
+    <value>Lungimea minimă este de {0} caractere</value>
+  </data>
+  <data name="MaxLength" xml:space="preserve">
+    <value>Lungimea maximă este de {0} caractere</value>
+  </data>
+  <data name="InvalidValue" xml:space="preserve">
+    <value>Valoare invalidă</value>
+  </data>
+
+  <!-- User Roles -->
+  <data name="RoleStudent" xml:space="preserve">
+    <value>Student</value>
+  </data>
+  <data name="RoleProfessor" xml:space="preserve">
+    <value>Profesor</value>
+  </data>
+  <data name="RoleSecretary" xml:space="preserve">
+    <value>Secretar</value>
+  </data>
+  <data name="RoleDean" xml:space="preserve">
+    <value>Decan</value>
+  </data>
+  <data name="RoleRector" xml:space="preserve">
+    <value>Rector</value>
+  </data>
+  <data name="RoleAdmin" xml:space="preserve">
+    <value>Administrator</value>
+  </data>
+
+  <!-- Grade Related -->
+  <data name="Grade" xml:space="preserve">
+    <value>Notă</value>
+  </data>
+  <data name="GradeValue" xml:space="preserve">
+    <value>Valoare notă</value>
+  </data>
+  <data name="GradeType" xml:space="preserve">
+    <value>Tip notă</value>
+  </data>
+  <data name="GradeDate" xml:space="preserve">
+    <value>Data notei</value>
+  </data>
+  <data name="ExamGrade" xml:space="preserve">
+    <value>Notă examen</value>
+  </data>
+  <data name="ProjectGrade" xml:space="preserve">
+    <value>Notă proiect</value>
+  </data>
+  <data name="HomeworkGrade" xml:space="preserve">
+    <value>Notă temă</value>
+  </data>
+  <data name="FinalGrade" xml:space="preserve">
+    <value>Notă finală</value>
+  </data>
+
+  <!-- Attendance Related -->
+  <data name="Present" xml:space="preserve">
+    <value>Prezent</value>
+  </data>
+  <data name="Absent" xml:space="preserve">
+    <value>Absent</value>
+  </data>
+  <data name="Late" xml:space="preserve">
+    <value>Întârziere</value>
+  </data>
+  <data name="Excused" xml:space="preserve">
+    <value>Motivat</value>
+  </data>
+  <data name="AttendanceRate" xml:space="preserve">
+    <value>Rată de prezență</value>
+  </data>
+
+  <!-- Document Requests -->
+  <data name="DocumentRequest" xml:space="preserve">
+    <value>Cerere document</value>
+  </data>
+  <data name="RequestType" xml:space="preserve">
+    <value>Tip cerere</value>
+  </data>
+  <data name="RequestStatus" xml:space="preserve">
+    <value>Status cerere</value>
+  </data>
+  <data name="RequestDate" xml:space="preserve">
+    <value>Data cererii</value>
+  </data>
+
+  <!-- UI Elements -->
+  <data name="SearchPlaceholder" xml:space="preserve">
+    <value>Caută studenți, cursuri...</value>
+  </data>
+  <data name="SelectLanguage" xml:space="preserve">
+    <value>Selectează limba</value>
+  </data>
+  <data name="CollapseSidebar" xml:space="preserve">
+    <value>Restrânge sidebar</value>
+  </data>
+  <data name="ExpandSidebar" xml:space="preserve">
+    <value>Extinde sidebar</value>
+  </data>
+  <data name="Notifications" xml:space="preserve">
+    <value>Notificări</value>
+  </data>
+  <data name="NoNotifications" xml:space="preserve">
+    <value>Nu aveți notificări noi</value>
+  </data>
+
+  <!-- Time & Date -->
+  <data name="Today" xml:space="preserve">
+    <value>Astăzi</value>
+  </data>
+  <data name="Yesterday" xml:space="preserve">
+    <value>Ieri</value>
+  </data>
+  <data name="Week" xml:space="preserve">
+    <value>Săptămână</value>
+  </data>
+  <data name="Month" xml:space="preserve">
+    <value>Lună</value>
+  </data>
+
+  <!-- Academic Terms -->
+  <data name="AcademicYear" xml:space="preserve">
+    <value>An universitar</value>
+  </data>
+  <data name="StudyYear" xml:space="preserve">
+    <value>An de studiu</value>
+  </data>
+  <data name="Credits" xml:space="preserve">
+    <value>Credite</value>
+  </data>
+  <data name="Average" xml:space="preserve">
+    <value>Medie</value>
+  </data>
+  <data name="Total" xml:space="preserve">
+    <value>Total</value>
+  </data>
+</root>

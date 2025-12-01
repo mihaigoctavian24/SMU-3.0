@@ -1,0 +1,253 @@
+@using SMU.Components.Shared
+
+<div class="space-y-6">
+    <!-- Welcome Header -->
+    <div class="bg-gradient-to-r from-purple-600 to-purple-700 rounded-xl p-6 text-white">
+        <h1 class="text-2xl font-bold">Buna ziua, Decan @UserName!</h1>
+        <p class="mt-1 text-purple-100">Iata un sumar al indicatorilor facultatii.</p>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <StatsCard
+            Label="Total Studenti"
+            Value="@TotalStudents.ToString()"
+            Subtitle="inscrisi in facultate"
+            IconType="users"
+            IconBgClass="bg-primary-100"
+            IconClass="text-primary-600"
+            ShowTrend="true"
+            TrendValue="@StudentsTrend" />
+
+        <StatsCard
+            Label="Media Facultate"
+            Value="@FacultyAverage.ToString("0.00")"
+            Subtitle="medie generala"
+            IconType="academic"
+            IconBgClass="bg-success-100"
+            IconClass="text-success-600"
+            ShowTrend="true"
+            TrendValue="@AverageTrend" />
+
+        <StatsCard
+            Label="Rata Promovare"
+            Value="@(PassRate.ToString("0") + "%")"
+            Subtitle="sesiunea curenta"
+            IconType="attendance"
+            IconBgClass="bg-info-100"
+            IconClass="text-info-600" />
+
+        <StatsCard
+            Label="Note Pending"
+            Value="@PendingApprovals.ToString()"
+            Subtitle="@(PendingApprovals > 0 ? "necesita aprobare" : "nicio nota")"
+            IconType="grades"
+            IconBgClass="@(PendingApprovals > 0 ? "bg-warning-100" : "bg-gray-100")"
+            IconClass="@(PendingApprovals > 0 ? "text-warning-600" : "text-gray-600")"
+            ActionLink="/note/aprobare"
+            ActionText="Aproba note" />
+    </div>
+
+    <!-- Content Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Grade Approvals -->
+        <div class="lg:col-span-2">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+                    <h3 class="text-lg font-semibold text-gray-900">Note in Asteptare</h3>
+                    <a href="/note/aprobare" class="text-sm font-medium text-primary-600 hover:text-primary-700">Vezi toate</a>
+                </div>
+                @if (PendingGradesList.Any())
+                {
+                    <div class="divide-y divide-gray-100">
+                        @foreach (var grade in PendingGradesList.Take(5))
+                        {
+                            <div class="px-6 py-4 hover:bg-gray-50 transition-colors">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex-1">
+                                        <div class="flex items-center gap-2">
+                                            <h4 class="font-medium text-gray-900">@grade.StudentName</h4>
+                                            <span class="px-2 py-0.5 text-xs font-medium rounded-full bg-primary-100 text-primary-700">
+                                                @grade.Grade
+                                            </span>
+                                        </div>
+                                        <p class="text-sm text-gray-500 mt-1">@grade.CourseName - @grade.ExamType</p>
+                                        <p class="text-xs text-gray-400 mt-1">Prof. @grade.ProfessorName</p>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <button class="p-2 text-success-600 hover:bg-success-50 rounded-lg transition-colors" title="Aproba">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                            </svg>
+                                        </button>
+                                        <button class="p-2 text-danger-600 hover:bg-danger-50 rounded-lg transition-colors" title="Respinge">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                    @if (PendingApprovals > 5)
+                    {
+                        <div class="px-6 py-4 bg-gray-50 border-t border-gray-100 text-center">
+                            <a href="/note/aprobare" class="text-sm font-medium text-primary-600 hover:text-primary-700">
+                                Vezi toate cele @PendingApprovals note in asteptare
+                            </a>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="px-6 py-12 text-center">
+                        <svg class="w-12 h-12 mx-auto text-success-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        <p class="text-gray-500">Toate notele au fost aprobate</p>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Quick Actions & Stats -->
+        <div class="space-y-6">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Actiuni Rapide</h3>
+                <div class="space-y-3">
+                    <QuickActionButton
+                        Text="Aproba Note"
+                        IconType="check"
+                        Variant="primary"
+                        FullWidth="true"
+                        IsLink="true"
+                        Link="/note/aprobare" />
+                    <QuickActionButton
+                        Text="Raport Facultate"
+                        IconType="view"
+                        Variant="outline-primary"
+                        FullWidth="true"
+                        IsLink="true"
+                        Link="/rapoarte/facultate" />
+                    <QuickActionButton
+                        Text="Statistici Programe"
+                        IconType="view"
+                        Variant="outline"
+                        FullWidth="true"
+                        IsLink="true"
+                        Link="/rapoarte/programe" />
+                </div>
+            </div>
+
+            <!-- Program Statistics -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-100">
+                    <h3 class="text-lg font-semibold text-gray-900">Statistici pe Programe</h3>
+                </div>
+                <div class="px-6 py-4 space-y-4">
+                    @foreach (var program in ProgramStats)
+                    {
+                        <div>
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="text-sm font-medium text-gray-700">@program.Name</span>
+                                <span class="text-sm text-gray-500">@program.Students studenti</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2">
+                                <div class="h-2 rounded-full @program.ColorClass" style="width: @program.Percentage%"></div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- At-Risk Students Alert -->
+    @if (AtRiskStudents > 0)
+    {
+        <div class="bg-danger-50 border border-danger-200 rounded-xl p-6">
+            <div class="flex items-start gap-4">
+                <div class="flex-shrink-0">
+                    <svg class="w-6 h-6 text-danger-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                    </svg>
+                </div>
+                <div class="flex-1">
+                    <h4 class="font-semibold text-danger-800">Studenti la Risc</h4>
+                    <p class="mt-1 text-sm text-danger-700">
+                        @AtRiskStudents studenti au media sub 5.00 sau prezenta sub 50%.
+                        Se recomanda interventia pentru prevenirea abandonului.
+                    </p>
+                    <a href="/studenti/risc" class="mt-3 inline-flex items-center text-sm font-medium text-danger-700 hover:text-danger-800">
+                        Vezi lista completa
+                        <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                        </svg>
+                    </a>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public string UserName { get; set; } = "";
+
+    // Stats
+    private int TotalStudents = 485;
+    private decimal StudentsTrend = 3.2m;
+    private decimal FacultyAverage = 7.85m;
+    private decimal AverageTrend = 1.5m;
+    private decimal PassRate = 87.5m;
+    private int PendingApprovals = 12;
+    private int AtRiskStudents = 8;
+
+    // Data
+    private List<PendingGradeDto> PendingGradesList = new();
+    private List<ProgramStatDto> ProgramStats = new();
+
+    protected override void OnInitialized()
+    {
+        LoadDashboardData();
+    }
+
+    private void LoadDashboardData()
+    {
+        // Demo pending grades
+        PendingGradesList = new List<PendingGradeDto>
+        {
+            new() { StudentName = "Popescu Maria", CourseName = "Programare Web", Grade = 9, ExamType = "Examen", ProfessorName = "Ion Georgescu" },
+            new() { StudentName = "Ionescu Andrei", CourseName = "Baze de Date", Grade = 8, ExamType = "Examen", ProfessorName = "Ana Marinescu" },
+            new() { StudentName = "Popa Elena", CourseName = "Algoritmi", Grade = 10, ExamType = "Laborator", ProfessorName = "Mihai Stanescu" },
+            new() { StudentName = "Munteanu Dan", CourseName = "POO", Grade = 7, ExamType = "Partial", ProfessorName = "Ion Georgescu" },
+            new() { StudentName = "Stan Alexandru", CourseName = "Retele", Grade = 6, ExamType = "Examen", ProfessorName = "Cristian Popa" }
+        };
+
+        // Demo program stats
+        ProgramStats = new List<ProgramStatDto>
+        {
+            new() { Name = "Informatica", Students = 245, Percentage = 50, ColorClass = "bg-primary-500" },
+            new() { Name = "CTI", Students = 145, Percentage = 30, ColorClass = "bg-secondary-500" },
+            new() { Name = "Matematica-Info", Students = 65, Percentage = 13, ColorClass = "bg-success-500" },
+            new() { Name = "IS", Students = 30, Percentage = 7, ColorClass = "bg-warning-500" }
+        };
+    }
+
+    private class PendingGradeDto
+    {
+        public string StudentName { get; set; } = "";
+        public string CourseName { get; set; } = "";
+        public int Grade { get; set; }
+        public string ExamType { get; set; } = "";
+        public string ProfessorName { get; set; } = "";
+    }
+
+    private class ProgramStatDto
+    {
+        public string Name { get; set; } = "";
+        public int Students { get; set; }
+        public int Percentage { get; set; }
+        public string ColorClass { get; set; } = "";
+    }
+}

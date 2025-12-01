@@ -1,0 +1,434 @@
+@page "/export"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.JSInterop
+@using SMU.Services
+@using SMU.Data.Entities
+@using System.Security.Claims
+@attribute [Authorize]
+@inject IExportService ExportService
+@inject IJSRuntime JS
+@inject AuthenticationStateProvider AuthStateProvider
+
+<PageTitle>Export - SMU</PageTitle>
+
+<div class="space-y-6">
+    <!-- Header -->
+    <div>
+        <h1 class="text-2xl font-bold text-gray-900">Export Documente și Date</h1>
+        <p class="mt-1 text-sm text-gray-500">Generează și descarcă documente PDF și fișiere Excel</p>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="flex items-center justify-center py-12">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+        </div>
+    }
+    else
+    {
+        <!-- Student Documents Section -->
+        @if (userRole == UserRole.Student)
+        {
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                    <svg class="w-5 h-5 mr-2 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    Documente Student
+                </h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Situație Școlară -->
+                    <div class="border border-gray-200 rounded-lg p-4 hover:border-primary-300 transition-colors">
+                        <h3 class="font-medium text-gray-900 mb-2">Situație Școlară</h3>
+                        <p class="text-sm text-gray-600 mb-4">Document cuprinzător cu toate notele, creditele și media generală</p>
+                        <button @onclick="DownloadSituatieScolara"
+                                disabled="@exportingPdf"
+                                class="w-full btn-primary justify-center">
+                            @if (exportingPdf)
+                            {
+                                <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                <span>Generare PDF...</span>
+                            }
+                            else
+                            {
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                </svg>
+                                <span>Descarcă PDF</span>
+                            }
+                        </button>
+                    </div>
+
+                    <!-- Adeverință Student -->
+                    <div class="border border-gray-200 rounded-lg p-4 hover:border-primary-300 transition-colors">
+                        <h3 class="font-medium text-gray-900 mb-2">Adeverință Student</h3>
+                        <p class="text-sm text-gray-600 mb-2">Document oficial care atestă calitatea de student</p>
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Scop adeverință</label>
+                            <select @bind="certificatePurpose" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
+                                <option value="Bursa">Pentru bursă</option>
+                                <option value="Angajare">Pentru angajare</option>
+                                <option value="Calatorie">Pentru călătorie</option>
+                                <option value="Altele">Altele</option>
+                            </select>
+                        </div>
+                        <button @onclick="DownloadAdeverinta"
+                                disabled="@exportingPdf"
+                                class="w-full btn-primary justify-center">
+                            @if (exportingPdf)
+                            {
+                                <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                <span>Generare PDF...</span>
+                            }
+                            else
+                            {
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                </svg>
+                                <span>Descarcă PDF</span>
+                            }
+                        </button>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <!-- Data Export Section (Secretary, Dean, Admin) -->
+        @if (userRole == UserRole.Secretary || userRole == UserRole.Dean || userRole == UserRole.Admin)
+        {
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                    <svg class="w-5 h-5 mr-2 text-success-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                    </svg>
+                    Export Date (Excel)
+                </h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <!-- Export Students -->
+                    <div class="border border-gray-200 rounded-lg p-4 hover:border-success-300 transition-colors">
+                        <h3 class="font-medium text-gray-900 mb-2">Export Studenți</h3>
+                        <p class="text-sm text-gray-600 mb-4">Listă completă cu toți studenții înscriși</p>
+                        <button @onclick="DownloadStudentsExcel"
+                                disabled="@exportingExcel"
+                                class="w-full btn-outline justify-center">
+                            @if (exportingExcel)
+                            {
+                                <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-600 mr-2"></div>
+                                <span>Generare Excel...</span>
+                            }
+                            else
+                            {
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                </svg>
+                                <span>Descarcă Excel</span>
+                            }
+                        </button>
+                    </div>
+
+                    <!-- Export Grades -->
+                    <div class="border border-gray-200 rounded-lg p-4 hover:border-success-300 transition-colors">
+                        <h3 class="font-medium text-gray-900 mb-2">Export Note</h3>
+                        <p class="text-sm text-gray-600 mb-4">Toate notele înregistrate în sistem</p>
+                        <button @onclick="DownloadGradesExcel"
+                                disabled="@exportingExcel"
+                                class="w-full btn-outline justify-center">
+                            @if (exportingExcel)
+                            {
+                                <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-600 mr-2"></div>
+                                <span>Generare Excel...</span>
+                            }
+                            else
+                            {
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                </svg>
+                                <span>Descarcă Excel</span>
+                            }
+                        </button>
+                    </div>
+
+                    <!-- Export Attendance -->
+                    <div class="border border-gray-200 rounded-lg p-4 hover:border-success-300 transition-colors">
+                        <h3 class="font-medium text-gray-900 mb-2">Export Prezențe</h3>
+                        <p class="text-sm text-gray-600 mb-4">Istoric complet al prezențelor</p>
+                        <button @onclick="DownloadAttendanceExcel"
+                                disabled="@exportingExcel"
+                                class="w-full btn-outline justify-center">
+                            @if (exportingExcel)
+                            {
+                                <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-600 mr-2"></div>
+                                <span>Generare Excel...</span>
+                            }
+                            else
+                            {
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                </svg>
+                                <span>Descarcă Excel</span>
+                            }
+                        </button>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <!-- Reports Section (Dean, Rector, Admin) -->
+        @if (userRole == UserRole.Dean || userRole == UserRole.Rector || userRole == UserRole.Admin)
+        {
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                    <svg class="w-5 h-5 mr-2 text-info-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    Rapoarte (PDF)
+                </h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Course Catalog -->
+                    <div class="border border-gray-200 rounded-lg p-4 hover:border-info-300 transition-colors">
+                        <h3 class="font-medium text-gray-900 mb-2">Catalog Note Curs</h3>
+                        <p class="text-sm text-gray-600 mb-4">Raport cu toate notele pentru un curs specific</p>
+                        <p class="text-xs text-gray-500 mb-3">Disponibil din pagina cursului</p>
+                        <a href="/note" class="w-full btn-outline justify-center inline-flex items-center">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+                            </svg>
+                            <span>Mergi la Note</span>
+                        </a>
+                    </div>
+
+                    <!-- Faculty Report -->
+                    <div class="border border-gray-200 rounded-lg p-4 hover:border-info-300 transition-colors">
+                        <h3 class="font-medium text-gray-900 mb-2">Raport Facultate</h3>
+                        <p class="text-sm text-gray-600 mb-4">Statistici și analize la nivel de facultate</p>
+                        <p class="text-xs text-gray-500 mb-3">Disponibil din pagina facultății</p>
+                        <a href="/facultati" class="w-full btn-outline justify-center inline-flex items-center">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                            </svg>
+                            <span>Mergi la Facultăți</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+</div>
+
+<!-- Success Toast -->
+@if (showSuccessToast)
+{
+    <div class="fixed bottom-4 right-4 bg-success-600 text-white px-6 py-3 rounded-lg shadow-lg flex items-center space-x-2 animate-slide-up z-50">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+        </svg>
+        <span>@successMessage</span>
+    </div>
+}
+
+<!-- Error Toast -->
+@if (showErrorToast)
+{
+    <div class="fixed bottom-4 right-4 bg-red-600 text-white px-6 py-3 rounded-lg shadow-lg flex items-center space-x-2 animate-slide-up z-50">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+        <span>@errorMessage</span>
+    </div>
+}
+
+@code {
+    private bool isLoading = true;
+    private bool exportingPdf = false;
+    private bool exportingExcel = false;
+    private bool showSuccessToast = false;
+    private bool showErrorToast = false;
+    private string successMessage = "";
+    private string errorMessage = "";
+
+    private UserRole userRole;
+    private Guid? currentUserId;
+    private string certificatePurpose = "Bursa";
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+
+            if (user.Identity?.IsAuthenticated == true)
+            {
+                var roleClaim = user.FindFirst("Role")?.Value ?? user.FindFirst(ClaimTypes.Role)?.Value;
+                if (Enum.TryParse<UserRole>(roleClaim, out var role))
+                {
+                    userRole = role;
+                }
+
+                var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (Guid.TryParse(userIdClaim, out var userId))
+                {
+                    currentUserId = userId;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading user: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    // Student Documents
+    private async Task DownloadSituatieScolara()
+    {
+        if (currentUserId == null) return;
+
+        exportingPdf = true;
+        StateHasChanged();
+
+        try
+        {
+            var pdfBytes = await ExportService.ExportSituatieScolara(currentUserId.Value);
+            await DownloadFile(pdfBytes, $"Situatie_Scolara_{DateTime.Now:yyyyMMdd}.pdf", "application/pdf");
+            ShowSuccess("Situație școlară generată cu succes!");
+        }
+        catch (Exception ex)
+        {
+            ShowError($"Eroare la generarea documentului: {ex.Message}");
+        }
+        finally
+        {
+            exportingPdf = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task DownloadAdeverinta()
+    {
+        if (currentUserId == null) return;
+
+        exportingPdf = true;
+        StateHasChanged();
+
+        try
+        {
+            var pdfBytes = await ExportService.ExportAdeverintaStudent(currentUserId.Value, certificatePurpose);
+            await DownloadFile(pdfBytes, $"Adeverinta_Student_{DateTime.Now:yyyyMMdd}.pdf", "application/pdf");
+            ShowSuccess("Adeverință generată cu succes!");
+        }
+        catch (Exception ex)
+        {
+            ShowError($"Eroare la generarea adeverinței: {ex.Message}");
+        }
+        finally
+        {
+            exportingPdf = false;
+            StateHasChanged();
+        }
+    }
+
+    // Excel Exports
+    private async Task DownloadStudentsExcel()
+    {
+        exportingExcel = true;
+        StateHasChanged();
+
+        try
+        {
+            var excelBytes = await ExportService.ExportStudentsToExcel();
+            await DownloadFile(excelBytes, $"Studenti_{DateTime.Now:yyyyMMdd}.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+            ShowSuccess("Export studenți generat cu succes!");
+        }
+        catch (Exception ex)
+        {
+            ShowError($"Eroare la export: {ex.Message}");
+        }
+        finally
+        {
+            exportingExcel = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task DownloadGradesExcel()
+    {
+        exportingExcel = true;
+        StateHasChanged();
+
+        try
+        {
+            var excelBytes = await ExportService.ExportGradesToExcel();
+            await DownloadFile(excelBytes, $"Note_{DateTime.Now:yyyyMMdd}.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+            ShowSuccess("Export note generat cu succes!");
+        }
+        catch (Exception ex)
+        {
+            ShowError($"Eroare la export: {ex.Message}");
+        }
+        finally
+        {
+            exportingExcel = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task DownloadAttendanceExcel()
+    {
+        exportingExcel = true;
+        StateHasChanged();
+
+        try
+        {
+            var excelBytes = await ExportService.ExportAttendanceToExcel();
+            await DownloadFile(excelBytes, $"Prezente_{DateTime.Now:yyyyMMdd}.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+            ShowSuccess("Export prezențe generat cu succes!");
+        }
+        catch (Exception ex)
+        {
+            ShowError($"Eroare la export: {ex.Message}");
+        }
+        finally
+        {
+            exportingExcel = false;
+            StateHasChanged();
+        }
+    }
+
+    // Helper Methods
+    private async Task DownloadFile(byte[] fileBytes, string fileName, string contentType)
+    {
+        var base64 = Convert.ToBase64String(fileBytes);
+        await JS.InvokeVoidAsync("fileDownload.downloadFromByteArray", fileName, contentType, base64);
+    }
+
+    private void ShowSuccess(string message)
+    {
+        successMessage = message;
+        showSuccessToast = true;
+        StateHasChanged();
+
+        Task.Delay(3000).ContinueWith(_ =>
+        {
+            showSuccessToast = false;
+            InvokeAsync(StateHasChanged);
+        });
+    }
+
+    private void ShowError(string message)
+    {
+        errorMessage = message;
+        showErrorToast = true;
+        StateHasChanged();
+
+        Task.Delay(5000).ContinueWith(_ =>
+        {
+            showErrorToast = false;
+            InvokeAsync(StateHasChanged);
+        });
+    }
+}

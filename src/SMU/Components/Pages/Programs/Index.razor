@@ -1,0 +1,376 @@
+@page "/programe"
+@using Microsoft.AspNetCore.Authorization
+@using SMU.Services
+@using SMU.Services.DTOs
+@using SMU.Data.Entities
+@attribute [Authorize(Policy = "CanManagePrograms")]
+@inject IProgramService ProgramService
+@inject IFacultyService FacultyService
+@inject NavigationManager Navigation
+
+<PageTitle>Programe de Studiu - SMU</PageTitle>
+
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">Programe de Studiu</h1>
+            <p class="mt-1 text-sm text-gray-500">Gestionează programele de studiu din universitate</p>
+        </div>
+        <a href="/programe/nou" class="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+            </svg>
+            <span>Adaugă Program</span>
+        </a>
+    </div>
+
+    <!-- Filters & Search -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <!-- Search -->
+            <div class="md:col-span-2">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Căutare</label>
+                <input type="text"
+                       @bind="searchTerm"
+                       @bind:event="oninput"
+                       @onkeyup="HandleSearchKeyUp"
+                       placeholder="Nume sau cod program..."
+                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+            </div>
+
+            <!-- Faculty Filter -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Facultate</label>
+                <select @bind="selectedFacultyId" @bind:after="ApplyFilters" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                    <option value="">Toate facultățile</option>
+                    @foreach (var faculty in faculties)
+                    {
+                        <option value="@faculty.Id">@faculty.Name</option>
+                    }
+                </select>
+            </div>
+
+            <!-- Status Filter -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                <select @bind="selectedStatus" @bind:after="ApplyFilters" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                    <option value="">Toate statusurile</option>
+                    <option value="true">Activ</option>
+                    <option value="false">Inactiv</option>
+                </select>
+            </div>
+
+            <!-- Export -->
+            <div class="flex items-end">
+                <button @onclick="ExportToCSV" class="w-full px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors flex items-center justify-center space-x-2">
+                    <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    <span>Export CSV</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Programs Table -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        @if (isLoading)
+        {
+            <div class="flex items-center justify-center py-12">
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+            </div>
+        }
+        else if (programs.Items.Any())
+        {
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-gray-50 border-b border-gray-100">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" @onclick='() => SortBy("Name")'>
+                                Nume
+                                @if (sortColumn == "Name")
+                                {
+                                    <span class="ml-1">@(sortAscending ? "↑" : "↓")</span>
+                                }
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cod</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Facultate</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Durată</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tip</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Grupe</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acțiuni</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        @foreach (var program in programs.Items)
+                        {
+                            <tr class="hover:bg-gray-50 transition-colors">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                    @program.Name
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    @program.Code
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    @program.FacultyName
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    @program.DurationYears ani
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    @GetProgramTypeText(program.Type)
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    @program.GroupsCount
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="px-2 py-1 text-xs font-medium rounded-full @(program.IsActive ? "bg-success-100 text-success-700" : "bg-gray-100 text-gray-700")">
+                                        @(program.IsActive ? "Activ" : "Inactiv")
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
+                                    <a href="/programe/@program.Id" class="text-primary-600 hover:text-primary-900">Vezi</a>
+                                    <a href="/programe/@program.Id/editare" class="text-gray-600 hover:text-gray-900">Editează</a>
+                                    <button @onclick="() => ConfirmDelete(program.Id)" class="text-red-600 hover:text-red-900">Șterge</button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            <div class="px-6 py-4 border-t border-gray-100 flex items-center justify-between">
+                <div class="flex items-center space-x-2">
+                    <span class="text-sm text-gray-700">
+                        Afișează
+                    </span>
+                    <select @bind="pageSize" @bind:after="ApplyFilters" class="px-3 py-1 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500">
+                        <option value="10">10</option>
+                        <option value="25">25</option>
+                        <option value="50">50</option>
+                    </select>
+                    <span class="text-sm text-gray-700">
+                        din @programs.TotalCount programe
+                    </span>
+                </div>
+
+                <div class="flex items-center space-x-2">
+                    <button @onclick="PreviousPage"
+                            disabled="@(!programs.HasPreviousPage)"
+                            class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                        Anterior
+                    </button>
+                    <span class="text-sm text-gray-700">
+                        Pagina @programs.Page din @programs.TotalPages
+                    </span>
+                    <button @onclick="NextPage"
+                            disabled="@(!programs.HasNextPage)"
+                            class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                        Următorul
+                    </button>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="px-6 py-12 text-center">
+                <svg class="w-12 h-12 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                </svg>
+                <p class="text-gray-500">Nu au fost găsite programe de studiu</p>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+@if (showDeleteModal)
+{
+    <div class="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50" @onclick="CancelDelete">
+        <div class="bg-white rounded-xl shadow-xl max-w-md w-full mx-4 p-6" @onclick:stopPropagation>
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Confirmare Ștergere</h3>
+            <p class="text-gray-600 mb-6">Ești sigur că vrei să ștergi acest program de studiu? Statusul va fi schimbat în "Inactiv".</p>
+            <div class="flex space-x-3 justify-end">
+                <button @onclick="CancelDelete" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors">
+                    Anulează
+                </button>
+                <button @onclick="DeleteProgram" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium transition-colors">
+                    Șterge
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private PagedResult<StudyProgramListDto> programs = new();
+    private List<FacultyListDto> faculties = new();
+    private bool isLoading = true;
+
+    // Filters
+    private string searchTerm = "";
+    private string selectedFacultyId = "";
+    private string selectedStatus = "";
+    private int currentPage = 1;
+    private int pageSize = 25;
+
+    // Sorting
+    private string sortColumn = "Name";
+    private bool sortAscending = true;
+
+    // Delete modal
+    private bool showDeleteModal = false;
+    private Guid programToDelete = Guid.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadFacultiesForFilter();
+        await LoadPrograms();
+    }
+
+    private async Task LoadFacultiesForFilter()
+    {
+        var facultiesResult = await FacultyService.GetAllAsync(new FacultyFilter { IsActive = true }, 1, 100);
+        faculties = facultiesResult.Items;
+    }
+
+    private async Task LoadPrograms()
+    {
+        isLoading = true;
+        StateHasChanged();
+
+        var filter = new StudyProgramFilter
+        {
+            Search = string.IsNullOrWhiteSpace(searchTerm) ? null : searchTerm,
+            FacultyId = string.IsNullOrWhiteSpace(selectedFacultyId) ? null : Guid.Parse(selectedFacultyId),
+            IsActive = string.IsNullOrWhiteSpace(selectedStatus) ? null : bool.Parse(selectedStatus)
+        };
+
+        programs = await ProgramService.GetAllAsync(filter, currentPage, pageSize);
+
+        // Apply client-side sorting if needed
+        if (!string.IsNullOrEmpty(sortColumn))
+        {
+            programs.Items = sortColumn switch
+            {
+                "Name" => sortAscending
+                    ? programs.Items.OrderBy(p => p.Name).ToList()
+                    : programs.Items.OrderByDescending(p => p.Name).ToList(),
+                _ => programs.Items
+            };
+        }
+
+        isLoading = false;
+        StateHasChanged();
+    }
+
+    private System.Threading.Timer? searchTimer;
+
+    private void HandleSearchKeyUp()
+    {
+        searchTimer?.Dispose();
+        searchTimer = new System.Threading.Timer(async _ =>
+        {
+            currentPage = 1;
+            await InvokeAsync(async () => await LoadPrograms());
+        }, null, 500, Timeout.Infinite);
+    }
+
+    private async Task ApplyFilters()
+    {
+        currentPage = 1;
+        await LoadPrograms();
+    }
+
+    private async Task SortBy(string column)
+    {
+        if (sortColumn == column)
+        {
+            sortAscending = !sortAscending;
+        }
+        else
+        {
+            sortColumn = column;
+            sortAscending = true;
+        }
+        await LoadPrograms();
+    }
+
+    private async Task NextPage()
+    {
+        if (programs.HasNextPage)
+        {
+            currentPage++;
+            await LoadPrograms();
+        }
+    }
+
+    private async Task PreviousPage()
+    {
+        if (programs.HasPreviousPage)
+        {
+            currentPage--;
+            await LoadPrograms();
+        }
+    }
+
+    private void ConfirmDelete(Guid id)
+    {
+        programToDelete = id;
+        showDeleteModal = true;
+    }
+
+    private void CancelDelete()
+    {
+        showDeleteModal = false;
+        programToDelete = Guid.Empty;
+    }
+
+    private async Task DeleteProgram()
+    {
+        var result = await ProgramService.DeleteAsync(programToDelete);
+        showDeleteModal = false;
+        programToDelete = Guid.Empty;
+
+        if (result.Succeeded)
+        {
+            await LoadPrograms();
+        }
+    }
+
+    private async Task ExportToCSV()
+    {
+        var filter = new StudyProgramFilter
+        {
+            Search = string.IsNullOrWhiteSpace(searchTerm) ? null : searchTerm,
+            FacultyId = string.IsNullOrWhiteSpace(selectedFacultyId) ? null : Guid.Parse(selectedFacultyId),
+            IsActive = string.IsNullOrWhiteSpace(selectedStatus) ? null : bool.Parse(selectedStatus)
+        };
+
+        var allPrograms = await ProgramService.ExportAsync(filter);
+
+        var csv = "Nume,Cod,Facultate,Durată,Tip,Grupe,Status\n";
+        foreach (var program in allPrograms)
+        {
+            csv += $"{program.Name},{program.Code},{program.FacultyName},{program.DurationYears} ani,{GetProgramTypeText(program.Type)},{program.GroupsCount},{(program.IsActive ? "Activ" : "Inactiv")}\n";
+        }
+
+        Console.WriteLine($"CSV Export: {allPrograms.Count} programe");
+    }
+
+    private string GetProgramTypeText(ProgramType type) => type switch
+    {
+        ProgramType.Bachelor => "Licență",
+        ProgramType.Master => "Master",
+        ProgramType.PhD => "Doctorat",
+        _ => type.ToString()
+    };
+
+    public void Dispose()
+    {
+        searchTimer?.Dispose();
+    }
+}

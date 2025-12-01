@@ -1,0 +1,437 @@
+@page "/orar/gestionare"
+@using SMU.Services
+@using SMU.Services.DTOs
+@using SMU.Data.Entities
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.JSInterop
+@inject IScheduleService ScheduleService
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+@attribute [Authorize(Policy = "CanManageStudents")]
+
+<PageTitle>Gestionare Orar - SMU</PageTitle>
+
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">Gestionare Orar</h1>
+            <p class="mt-1 text-sm text-gray-600">Adaugă, editează sau șterge intrări în orar</p>
+        </div>
+        <div class="flex gap-3">
+            <button @onclick='() => Navigation.NavigateTo("/orar")' class="btn btn-secondary">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                </svg>
+                Înapoi la Orar
+            </button>
+            <button @onclick="ShowAddForm" class="btn btn-primary">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                </svg>
+                Adaugă Intrare
+            </button>
+        </div>
+    </div>
+
+    <!-- Filter Section -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Grupă</label>
+                <select @bind="selectedGroupId" @bind:after="LoadScheduleEntries"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                    <option value="">Selectează grupa</option>
+                    @foreach (var group in groups)
+                    {
+                        <option value="@group.Id">@group.Name - @group.ProgramName (An @group.Year)</option>
+                    }
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- Schedule Entries List -->
+    @if (isLoading)
+    {
+        <div class="flex items-center justify-center py-12">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+        </div>
+    }
+    else if (!string.IsNullOrEmpty(selectedGroupId))
+    {
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-gray-50 border-b border-gray-200">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Zi</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Oră</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Curs</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tip</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sală</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Profesor</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acțiuni</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        @if (!scheduleEntries.Any())
+                        {
+                            <tr>
+                                <td colspan="7" class="px-6 py-12 text-center text-sm text-gray-500">
+                                    Nu există intrări în orar pentru grupa selectată.
+                                </td>
+                            </tr>
+                        }
+                        else
+                        {
+                            @foreach (var entry in scheduleEntries.OrderBy(e => e.DayOfWeek).ThenBy(e => e.StartTime))
+                            {
+                                <tr class="hover:bg-gray-50 transition-colors">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">@entry.DayName</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                        @entry.StartTime.ToString(@"hh\:mm") - @entry.EndTime.ToString(@"hh\:mm")
+                                    </td>
+                                    <td class="px-6 py-4 text-sm text-gray-900">@entry.CourseName</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="@GetTypeBadgeClass(entry.Type)">@entry.TypeLabel</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">@(entry.Room ?? "-")</td>
+                                    <td class="px-6 py-4 text-sm text-gray-600">@entry.ProfessorName</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                        <button @onclick="() => ShowEditForm(entry)" class="text-primary-600 hover:text-primary-900 mr-3">
+                                            Editează
+                                        </button>
+                                        <button @onclick="() => DeleteEntry(entry.Id)" class="text-danger-600 hover:text-danger-900">
+                                            Șterge
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center">
+            <svg class="w-12 h-12 text-gray-400 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+            </svg>
+            <p class="text-sm text-gray-600">Selectează o grupă pentru a vizualiza și gestiona intrările în orar</p>
+        </div>
+    }
+</div>
+
+<!-- Add/Edit Modal -->
+@if (showFormModal)
+{
+    <div class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div class="p-6 border-b border-gray-200">
+                <h2 class="text-xl font-semibold text-gray-900">
+                    @(editingEntry == null ? "Adaugă Intrare în Orar" : "Editează Intrare în Orar")
+                </h2>
+            </div>
+
+            <div class="p-6">
+                @if (!string.IsNullOrEmpty(errorMessage))
+                {
+                    <div class="mb-4 p-4 bg-danger-50 border border-danger-200 rounded-lg">
+                        <p class="text-sm text-danger-800">@errorMessage</p>
+                    </div>
+                }
+
+                @if (!string.IsNullOrEmpty(conflictMessage))
+                {
+                    <div class="mb-4 p-4 bg-warning-50 border border-warning-200 rounded-lg">
+                        <p class="text-sm text-warning-800">@conflictMessage</p>
+                    </div>
+                }
+
+                <div class="space-y-4">
+                    @if (editingEntry == null)
+                    {
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Grupă *</label>
+                            <select @bind="formDto.GroupId"
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                                <option value="">Selectează grupa</option>
+                                @foreach (var group in groups)
+                                {
+                                    <option value="@group.Id">@group.Name - @group.ProgramName (An @group.Year)</option>
+                                }
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Curs *</label>
+                            <select @bind="formDto.CourseId"
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                                <option value="">Selectează cursul</option>
+                                @foreach (var course in courses)
+                                {
+                                    <option value="@course.Id">@course.Name (@course.Code) - @course.ProfessorName</option>
+                                }
+                            </select>
+                        </div>
+                    }
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Zi *</label>
+                        <select @bind="formDayOfWeek"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                            <option value="1">Luni</option>
+                            <option value="2">Marți</option>
+                            <option value="3">Miercuri</option>
+                            <option value="4">Joi</option>
+                            <option value="5">Vineri</option>
+                        </select>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Oră Început *</label>
+                            <input type="time" value="@formStartTime" @onchange="e => formStartTime = e.Value?.ToString() ?? string.Empty"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent" />
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Oră Sfârșit *</label>
+                            <input type="time" value="@formEndTime" @onchange="e => formEndTime = e.Value?.ToString() ?? string.Empty"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent" />
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Sală</label>
+                        <input type="text" @bind="formDto.Room" placeholder="ex: A101"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent" />
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Tip *</label>
+                        <select @bind="formDto.Type"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                            <option value="Curs">Curs</option>
+                            <option value="Seminar">Seminar</option>
+                            <option value="Laborator">Laborator</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-6 border-t border-gray-200 flex justify-end gap-3">
+                <button @onclick="HideFormModal" class="btn btn-secondary" disabled="@isSaving">
+                    Anulează
+                </button>
+                <button @onclick="SaveEntry" class="btn btn-primary" disabled="@isSaving">
+                    @if (isSaving)
+                    {
+                        <span class="flex items-center">
+                            <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Se salvează...
+                        </span>
+                    }
+                    else
+                    {
+                        <text>Salvează</text>
+                    }
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private bool isLoading = true;
+    private bool isSaving = false;
+    private bool showFormModal = false;
+    private string selectedGroupId = "";
+    private string errorMessage = "";
+    private string conflictMessage = "";
+
+    private List<GroupOptionDto> groups = new();
+    private List<CourseOptionDto> courses = new();
+    private List<ScheduleEntryDto> scheduleEntries = new();
+
+    private ScheduleEntryDto? editingEntry;
+    private CreateScheduleEntryDto formDto = new();
+    private string formDayOfWeek = "1";
+    private string formStartTime = "08:00";
+    private string formEndTime = "10:00";
+
+    protected override async Task OnInitializedAsync()
+    {
+        groups = await ScheduleService.GetGroupOptionsAsync();
+        courses = await ScheduleService.GetCourseOptionsAsync();
+        isLoading = false;
+    }
+
+    private async Task LoadScheduleEntries()
+    {
+        if (string.IsNullOrEmpty(selectedGroupId))
+        {
+            scheduleEntries = new List<ScheduleEntryDto>();
+            return;
+        }
+
+        isLoading = true;
+        scheduleEntries = await ScheduleService.GetByGroupAsync(Guid.Parse(selectedGroupId));
+        isLoading = false;
+    }
+
+    private void ShowAddForm()
+    {
+        editingEntry = null;
+        formDto = new CreateScheduleEntryDto
+        {
+            GroupId = string.IsNullOrEmpty(selectedGroupId) ? Guid.Empty : Guid.Parse(selectedGroupId),
+            Type = "Curs"
+        };
+        formDayOfWeek = "1";
+        formStartTime = "08:00";
+        formEndTime = "10:00";
+        errorMessage = "";
+        conflictMessage = "";
+        showFormModal = true;
+    }
+
+    private void ShowEditForm(ScheduleEntryDto entry)
+    {
+        editingEntry = entry;
+        formDto = new CreateScheduleEntryDto
+        {
+            CourseId = entry.CourseId,
+            GroupId = entry.GroupId,
+            DayOfWeek = entry.DayOfWeek,
+            StartTime = entry.StartTime,
+            EndTime = entry.EndTime,
+            Room = entry.Room,
+            Type = entry.Type
+        };
+        formDayOfWeek = entry.DayOfWeek.ToString();
+        formStartTime = entry.StartTime.ToString(@"hh\:mm");
+        formEndTime = entry.EndTime.ToString(@"hh\:mm");
+        errorMessage = "";
+        conflictMessage = "";
+        showFormModal = true;
+    }
+
+    private void HideFormModal()
+    {
+        showFormModal = false;
+        editingEntry = null;
+        errorMessage = "";
+        conflictMessage = "";
+    }
+
+    private async Task SaveEntry()
+    {
+        errorMessage = "";
+        conflictMessage = "";
+
+        // Validation
+        if (editingEntry == null && (formDto.CourseId == Guid.Empty || formDto.GroupId == Guid.Empty))
+        {
+            errorMessage = "Cursul și grupa sunt obligatorii.";
+            return;
+        }
+
+        // Parse times
+        if (!TimeOnly.TryParse(formStartTime, out var startTime) || !TimeOnly.TryParse(formEndTime, out var endTime))
+        {
+            errorMessage = "Formatul orei este invalid.";
+            return;
+        }
+
+        if (endTime <= startTime)
+        {
+            errorMessage = "Ora de sfârșit trebuie să fie după ora de început.";
+            return;
+        }
+
+        // Update DTO
+        formDto.DayOfWeek = int.Parse(formDayOfWeek);
+        formDto.StartTime = startTime;
+        formDto.EndTime = endTime;
+
+        // Check for conflicts
+        var conflict = await ScheduleService.CheckConflictAsync(
+            editingEntry?.Id,
+            formDto.DayOfWeek,
+            formDto.StartTime,
+            formDto.EndTime,
+            formDto.Room);
+
+        if (conflict.HasConflict)
+        {
+            conflictMessage = conflict.ConflictMessage;
+            return;
+        }
+
+        isSaving = true;
+
+        ServiceResult result;
+        if (editingEntry == null)
+        {
+            var createResult = await ScheduleService.CreateAsync(formDto);
+            result = createResult.Succeeded ? ServiceResult.Success() : ServiceResult.Failed(createResult.ErrorMessage ?? "Eroare la creare");
+        }
+        else
+        {
+            var updateDto = new UpdateScheduleEntryDto
+            {
+                DayOfWeek = formDto.DayOfWeek,
+                StartTime = formDto.StartTime,
+                EndTime = formDto.EndTime,
+                Room = formDto.Room,
+                Type = formDto.Type
+            };
+            result = await ScheduleService.UpdateAsync(editingEntry.Id, updateDto);
+        }
+
+        isSaving = false;
+
+        if (result.Succeeded)
+        {
+            HideFormModal();
+            await LoadScheduleEntries();
+        }
+        else
+        {
+            errorMessage = result.ErrorMessage ?? "A apărut o eroare.";
+        }
+    }
+
+    private async Task DeleteEntry(Guid id)
+    {
+        if (!await JSRuntime.InvokeAsync<bool>("confirm", "Sigur doriți să ștergeți această intrare din orar?"))
+            return;
+
+        var result = await ScheduleService.DeleteAsync(id);
+        if (result.Succeeded)
+        {
+            await LoadScheduleEntries();
+        }
+        else
+        {
+            errorMessage = result.ErrorMessage ?? "A apărut o eroare la ștergere.";
+        }
+    }
+
+    private string GetTypeBadgeClass(string type)
+    {
+        return type switch
+        {
+            "Curs" => "px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-700",
+            "Seminar" => "px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-700",
+            "Laborator" => "px-2 py-1 text-xs font-medium rounded-full bg-purple-100 text-purple-700",
+            _ => "px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-700"
+        };
+    }
+}

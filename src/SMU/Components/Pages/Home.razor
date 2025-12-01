@@ -1,7 +1,39 @@
-﻿@page "/"
+@page "/"
+@using Microsoft.AspNetCore.Components.Authorization
+@inject NavigationManager Navigation
 
-<PageTitle>Home</PageTitle>
+<PageTitle>SMU - Sistem Management Universitar</PageTitle>
 
-<h1>Hello, world!</h1>
+<AuthorizeView>
+    <Authorized>
+        @* Redirect authenticated users to dashboard *@
+    </Authorized>
+    <NotAuthorized>
+        @* Redirect to login *@
+    </NotAuthorized>
+</AuthorizeView>
 
-Welcome to your new app.
+@code {
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthState { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (AuthState != null)
+        {
+            var state = await AuthState;
+            if (state.User.Identity?.IsAuthenticated == true)
+            {
+                Navigation.NavigateTo("/dashboard", replace: true);
+            }
+            else
+            {
+                Navigation.NavigateTo("/login", replace: true);
+            }
+        }
+        else
+        {
+            Navigation.NavigateTo("/login", replace: true);
+        }
+    }
+}

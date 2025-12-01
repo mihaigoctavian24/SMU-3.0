@@ -1,0 +1,374 @@
+@page "/grupe"
+@using Microsoft.AspNetCore.Authorization
+@using SMU.Services
+@using SMU.Services.DTOs
+@using SMU.Data.Entities
+@attribute [Authorize(Policy = "CanManageGroups")]
+@inject IGroupService GroupService
+@inject IProgramService ProgramService
+@inject NavigationManager Navigation
+
+<PageTitle>Grupe - SMU</PageTitle>
+
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">Grupe</h1>
+            <p class="mt-1 text-sm text-gray-500">Gestionează grupele din universitate</p>
+        </div>
+        <a href="/grupe/nou" class="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+            </svg>
+            <span>Adaugă Grupă</span>
+        </a>
+    </div>
+
+    <!-- Filters & Search -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <!-- Search -->
+            <div class="md:col-span-2">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Căutare</label>
+                <input type="text"
+                       @bind="searchTerm"
+                       @bind:event="oninput"
+                       @onkeyup="HandleSearchKeyUp"
+                       placeholder="Nume grupă..."
+                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+            </div>
+
+            <!-- Program Filter -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Program</label>
+                <select @bind="selectedProgramId" @bind:after="ApplyFilters" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                    <option value="">Toate programele</option>
+                    @foreach (var program in programs)
+                    {
+                        <option value="@program.Id">@program.Name</option>
+                    }
+                </select>
+            </div>
+
+            <!-- Status Filter -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                <select @bind="selectedStatus" @bind:after="ApplyFilters" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                    <option value="">Toate statusurile</option>
+                    <option value="true">Activ</option>
+                    <option value="false">Inactiv</option>
+                </select>
+            </div>
+
+            <!-- Export -->
+            <div class="flex items-end">
+                <button @onclick="ExportToCSV" class="w-full px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors flex items-center justify-center space-x-2">
+                    <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    <span>Export CSV</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Groups Table -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        @if (isLoading)
+        {
+            <div class="flex items-center justify-center py-12">
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+            </div>
+        }
+        else if (groups.Items.Any())
+        {
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-gray-50 border-b border-gray-100">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" @onclick='() => SortBy("Name")'>
+                                Nume
+                                @if (sortColumn == "Name")
+                                {
+                                    <span class="ml-1">@(sortAscending ? "↑" : "↓")</span>
+                                }
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">An</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Program</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Facultate</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Studenți</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Capacitate</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acțiuni</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        @foreach (var group in groups.Items)
+                        {
+                            <tr class="hover:bg-gray-50 transition-colors">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                    @group.Name
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    Anul @group.Year
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    @group.ProgramName
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    @group.FacultyName
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    @group.StudentsCount
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    <div class="flex items-center space-x-2">
+                                        <span>@group.MaxStudents</span>
+                                        @if (group.StudentsCount >= group.MaxStudents)
+                                        {
+                                            <span class="px-2 py-1 text-xs font-medium rounded-full bg-warning-100 text-warning-700">Complet</span>
+                                        }
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="px-2 py-1 text-xs font-medium rounded-full @(group.IsActive ? "bg-success-100 text-success-700" : "bg-gray-100 text-gray-700")">
+                                        @(group.IsActive ? "Activ" : "Inactiv")
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
+                                    <a href="/grupe/@group.Id" class="text-primary-600 hover:text-primary-900">Vezi</a>
+                                    <a href="/grupe/@group.Id/editare" class="text-gray-600 hover:text-gray-900">Editează</a>
+                                    <button @onclick="() => ConfirmDelete(group.Id)" class="text-red-600 hover:text-red-900">Șterge</button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            <div class="px-6 py-4 border-t border-gray-100 flex items-center justify-between">
+                <div class="flex items-center space-x-2">
+                    <span class="text-sm text-gray-700">
+                        Afișează
+                    </span>
+                    <select @bind="pageSize" @bind:after="ApplyFilters" class="px-3 py-1 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500">
+                        <option value="10">10</option>
+                        <option value="25">25</option>
+                        <option value="50">50</option>
+                    </select>
+                    <span class="text-sm text-gray-700">
+                        din @groups.TotalCount grupe
+                    </span>
+                </div>
+
+                <div class="flex items-center space-x-2">
+                    <button @onclick="PreviousPage"
+                            disabled="@(!groups.HasPreviousPage)"
+                            class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                        Anterior
+                    </button>
+                    <span class="text-sm text-gray-700">
+                        Pagina @groups.Page din @groups.TotalPages
+                    </span>
+                    <button @onclick="NextPage"
+                            disabled="@(!groups.HasNextPage)"
+                            class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                        Următorul
+                    </button>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="px-6 py-12 text-center">
+                <svg class="w-12 h-12 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                </svg>
+                <p class="text-gray-500">Nu au fost găsite grupe</p>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+@if (showDeleteModal)
+{
+    <div class="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50" @onclick="CancelDelete">
+        <div class="bg-white rounded-xl shadow-xl max-w-md w-full mx-4 p-6" @onclick:stopPropagation>
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Confirmare Ștergere</h3>
+            <p class="text-gray-600 mb-6">Ești sigur că vrei să ștergi această grupă? Statusul va fi schimbat în "Inactiv".</p>
+            <div class="flex space-x-3 justify-end">
+                <button @onclick="CancelDelete" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors">
+                    Anulează
+                </button>
+                <button @onclick="DeleteGroup" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium transition-colors">
+                    Șterge
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private PagedResult<GroupListDto> groups = new();
+    private List<StudyProgramListDto> programs = new();
+    private bool isLoading = true;
+
+    // Filters
+    private string searchTerm = "";
+    private string selectedProgramId = "";
+    private string selectedStatus = "";
+    private int currentPage = 1;
+    private int pageSize = 25;
+
+    // Sorting
+    private string sortColumn = "Name";
+    private bool sortAscending = true;
+
+    // Delete modal
+    private bool showDeleteModal = false;
+    private Guid groupToDelete = Guid.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadProgramsForFilter();
+        await LoadGroups();
+    }
+
+    private async Task LoadProgramsForFilter()
+    {
+        var programsResult = await ProgramService.GetAllAsync(new StudyProgramFilter { IsActive = true }, 1, 100);
+        programs = programsResult.Items;
+    }
+
+    private async Task LoadGroups()
+    {
+        isLoading = true;
+        StateHasChanged();
+
+        var filter = new GroupFilter
+        {
+            Search = string.IsNullOrWhiteSpace(searchTerm) ? null : searchTerm,
+            ProgramId = string.IsNullOrWhiteSpace(selectedProgramId) ? null : Guid.Parse(selectedProgramId),
+            IsActive = string.IsNullOrWhiteSpace(selectedStatus) ? null : bool.Parse(selectedStatus)
+        };
+
+        groups = await GroupService.GetAllAsync(filter, currentPage, pageSize);
+
+        // Apply client-side sorting if needed
+        if (!string.IsNullOrEmpty(sortColumn))
+        {
+            groups.Items = sortColumn switch
+            {
+                "Name" => sortAscending
+                    ? groups.Items.OrderBy(g => g.Name).ToList()
+                    : groups.Items.OrderByDescending(g => g.Name).ToList(),
+                _ => groups.Items
+            };
+        }
+
+        isLoading = false;
+        StateHasChanged();
+    }
+
+    private System.Threading.Timer? searchTimer;
+
+    private void HandleSearchKeyUp()
+    {
+        searchTimer?.Dispose();
+        searchTimer = new System.Threading.Timer(async _ =>
+        {
+            currentPage = 1;
+            await InvokeAsync(async () => await LoadGroups());
+        }, null, 500, Timeout.Infinite);
+    }
+
+    private async Task ApplyFilters()
+    {
+        currentPage = 1;
+        await LoadGroups();
+    }
+
+    private async Task SortBy(string column)
+    {
+        if (sortColumn == column)
+        {
+            sortAscending = !sortAscending;
+        }
+        else
+        {
+            sortColumn = column;
+            sortAscending = true;
+        }
+        await LoadGroups();
+    }
+
+    private async Task NextPage()
+    {
+        if (groups.HasNextPage)
+        {
+            currentPage++;
+            await LoadGroups();
+        }
+    }
+
+    private async Task PreviousPage()
+    {
+        if (groups.HasPreviousPage)
+        {
+            currentPage--;
+            await LoadGroups();
+        }
+    }
+
+    private void ConfirmDelete(Guid id)
+    {
+        groupToDelete = id;
+        showDeleteModal = true;
+    }
+
+    private void CancelDelete()
+    {
+        showDeleteModal = false;
+        groupToDelete = Guid.Empty;
+    }
+
+    private async Task DeleteGroup()
+    {
+        var result = await GroupService.DeleteAsync(groupToDelete);
+        showDeleteModal = false;
+        groupToDelete = Guid.Empty;
+
+        if (result.Succeeded)
+        {
+            await LoadGroups();
+        }
+    }
+
+    private async Task ExportToCSV()
+    {
+        var filter = new GroupFilter
+        {
+            Search = string.IsNullOrWhiteSpace(searchTerm) ? null : searchTerm,
+            ProgramId = string.IsNullOrWhiteSpace(selectedProgramId) ? null : Guid.Parse(selectedProgramId),
+            IsActive = string.IsNullOrWhiteSpace(selectedStatus) ? null : bool.Parse(selectedStatus)
+        };
+
+        var allGroups = await GroupService.ExportAsync(filter);
+
+        var csv = "Nume,An,Program,Facultate,Studenți,Capacitate,Status\n";
+        foreach (var group in allGroups)
+        {
+            csv += $"{group.Name},Anul {group.Year},{group.ProgramName},{group.FacultyName},{group.StudentsCount},{group.MaxStudents},{(group.IsActive ? "Activ" : "Inactiv")}\n";
+        }
+
+        Console.WriteLine($"CSV Export: {allGroups.Count} grupe");
+    }
+
+    public void Dispose()
+    {
+        searchTimer?.Dispose();
+    }
+}

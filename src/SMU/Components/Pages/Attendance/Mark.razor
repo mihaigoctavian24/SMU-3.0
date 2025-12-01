@@ -1,0 +1,425 @@
+@page "/prezente/marcheaza"
+@using SMU.Services
+@using SMU.Data.Entities
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@inject IAttendanceService AttendanceService
+@inject AuthService AuthService
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Navigation
+@attribute [Authorize(Policy = "CanManageGrades")]
+
+<PageTitle>Marchează Prezență - SMU</PageTitle>
+
+<div class="max-w-6xl mx-auto space-y-6">
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">Marchează Prezență</h1>
+            <p class="mt-1 text-sm text-gray-600">Înregistrează prezența studenților la curs</p>
+        </div>
+        <a href="/prezente" class="text-sm text-primary-600 hover:text-primary-700 font-medium">
+            ← Înapoi la Prezențe
+        </a>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="flex items-center justify-center py-12">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+        </div>
+    }
+    else
+    {
+        <!-- Progress Steps -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <div class="@GetStepClass(1)">
+                        <span class="text-sm font-medium">1. Curs</span>
+                    </div>
+                    <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                    </svg>
+                    <div class="@GetStepClass(2)">
+                        <span class="text-sm font-medium">2. Dată</span>
+                    </div>
+                    <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                    </svg>
+                    <div class="@GetStepClass(3)">
+                        <span class="text-sm font-medium">3. Studenți</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step Content -->
+        @if (currentStep == 1)
+        {
+            <!-- Step 1: Select Course -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                <h2 class="text-lg font-semibold text-gray-900 mb-4">Selectează Cursul</h2>
+                <div class="space-y-3">
+                    @if (!courses.Any())
+                    {
+                        <div class="text-center py-8">
+                            <p class="text-gray-500">Nu aveți cursuri asociate.</p>
+                        </div>
+                    }
+                    else
+                    {
+                        @foreach (var course in courses)
+                        {
+                            <button @onclick="() => SelectCourse(course)"
+                                    class="w-full p-4 border-2 rounded-lg text-left transition-all hover:border-primary-300 hover:bg-primary-50 @(selectedCourse?.Id == course.Id ? "border-primary-600 bg-primary-50" : "border-gray-200")">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <div class="font-semibold text-gray-900">@course.Name</div>
+                                        <div class="text-sm text-gray-600 mt-1">
+                                            Cod: @course.Code | An @course.Year, Sem. @course.Semester
+                                        </div>
+                                    </div>
+                                    @if (selectedCourse?.Id == course.Id)
+                                    {
+                                        <svg class="w-6 h-6 text-primary-600" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                                        </svg>
+                                    }
+                                </div>
+                            </button>
+                        }
+                    }
+                </div>
+                @if (selectedCourse != null)
+                {
+                    <div class="mt-6 flex justify-end">
+                        <button @onclick="NextStep" class="btn btn-primary">
+                            Continuă
+                            <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                            </svg>
+                        </button>
+                    </div>
+                }
+            </div>
+        }
+        else if (currentStep == 2)
+        {
+            <!-- Step 2: Select Date -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                <h2 class="text-lg font-semibold text-gray-900 mb-4">Selectează Data</h2>
+                <div class="max-w-md">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Dată</label>
+                    <input type="date" @bind="selectedDate" max="@DateTime.Now.ToString("yyyy-MM-dd")"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent" />
+                    <p class="mt-2 text-sm text-gray-600">
+                        Cursul selectat: <span class="font-medium">@selectedCourse?.Name</span>
+                    </p>
+                </div>
+                <div class="mt-6 flex gap-3">
+                    <button @onclick="PreviousStep" class="btn btn-outline">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                        </svg>
+                        Înapoi
+                    </button>
+                    <button @onclick="LoadStudents" class="btn btn-primary" disabled="@(selectedDate == null)">
+                        Continuă
+                        <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        }
+        else if (currentStep == 3)
+        {
+            <!-- Step 3: Mark Attendance -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                <div class="flex items-center justify-between mb-6">
+                    <div>
+                        <h2 class="text-lg font-semibold text-gray-900">Marchează Prezența Studenților</h2>
+                        <p class="text-sm text-gray-600 mt-1">
+                            @selectedCourse?.Name - @selectedDate?.ToString("dd.MM.yyyy")
+                        </p>
+                    </div>
+                    <div class="flex gap-2">
+                        <button @onclick="() => MarkAll(AttendanceStatus.Present)" class="text-sm px-3 py-1 bg-success-100 text-success-700 rounded-lg hover:bg-success-200">
+                            Toți Prezenți
+                        </button>
+                        <button @onclick="() => MarkAll(AttendanceStatus.Absent)" class="text-sm px-3 py-1 bg-danger-100 text-danger-700 rounded-lg hover:bg-danger-200">
+                            Toți Absenți
+                        </button>
+                    </div>
+                </div>
+
+                @if (isLoadingStudents)
+                {
+                    <div class="flex items-center justify-center py-12">
+                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+                    </div>
+                }
+                else if (!students.Any())
+                {
+                    <div class="text-center py-8">
+                        <p class="text-gray-500">Nu există studenți înscriși la acest curs.</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead class="bg-gray-50 border-b border-gray-200">
+                                <tr>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Student</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nr. Matricol</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Grupă</th>
+                                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Status</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Notă</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                @foreach (var student in students)
+                                {
+                                    <tr class="hover:bg-gray-50">
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
+                                            @student.StudentName
+                                        </td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
+                                            @student.StudentNumber
+                                        </td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
+                                            @student.GroupName
+                                        </td>
+                                        <td class="px-4 py-3">
+                                            <div class="flex justify-center gap-2">
+                                                <button @onclick="() => SetStatus(student, AttendanceStatus.Present)"
+                                                        class="px-3 py-1 text-xs font-medium rounded-full transition-all @(GetStudentStatus(student) == AttendanceStatus.Present ? "bg-success-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-success-100 hover:text-success-700")">
+                                                    Prezent
+                                                </button>
+                                                <button @onclick="() => SetStatus(student, AttendanceStatus.Absent)"
+                                                        class="px-3 py-1 text-xs font-medium rounded-full transition-all @(GetStudentStatus(student) == AttendanceStatus.Absent ? "bg-danger-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-danger-100 hover:text-danger-700")">
+                                                    Absent
+                                                </button>
+                                                <button @onclick="() => SetStatus(student, AttendanceStatus.Excused)"
+                                                        class="px-3 py-1 text-xs font-medium rounded-full transition-all @(GetStudentStatus(student) == AttendanceStatus.Excused ? "bg-info-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-info-100 hover:text-info-700")">
+                                                    Motivat
+                                                </button>
+                                            </div>
+                                        </td>
+                                        <td class="px-4 py-3">
+                                            <input type="text" @bind="attendanceNotes[student.StudentId]"
+                                                   placeholder="Opțional"
+                                                   class="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-primary-500 focus:border-transparent" />
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="mt-6 flex gap-3">
+                        <button @onclick="PreviousStep" class="btn btn-outline">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                            </svg>
+                            Înapoi
+                        </button>
+                        <button @onclick="SaveAttendance" class="btn btn-primary" disabled="@isSaving">
+                            @if (isSaving)
+                            {
+                                <span>Se salvează...</span>
+                            }
+                            else
+                            {
+                                <span>Salvează Prezența</span>
+                            }
+                        </button>
+                    </div>
+                }
+            </div>
+        }
+
+        <!-- Success Message -->
+        @if (showSuccess)
+        {
+            <div class="fixed bottom-4 right-4 bg-success-600 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-3">
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                </svg>
+                <span>Prezența a fost salvată cu succes!</span>
+            </div>
+        }
+
+        <!-- Error Message -->
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="fixed bottom-4 right-4 bg-danger-600 text-white px-6 py-3 rounded-lg shadow-lg">
+                @errorMessage
+            </div>
+        }
+    }
+</div>
+
+@code {
+    private bool isLoading = true;
+    private bool isLoadingStudents = false;
+    private bool isSaving = false;
+    private bool showSuccess = false;
+    private string? errorMessage;
+
+    private Guid? currentProfessorId;
+    private int currentStep = 1;
+
+    private List<CourseDto> courses = new();
+    private CourseDto? selectedCourse;
+    private DateOnly? selectedDate = DateOnly.FromDateTime(DateTime.Now);
+    private List<StudentInCourseDto> students = new();
+
+    private Dictionary<Guid, AttendanceStatus> attendanceStatuses = new();
+    private Dictionary<Guid, string> attendanceNotes = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            var appUser = await AuthService.GetCurrentUserAsync(user);
+            if (appUser?.Professor != null)
+            {
+                currentProfessorId = appUser.Professor.Id;
+                courses = await AttendanceService.GetProfessorCoursesAsync(currentProfessorId.Value);
+            }
+        }
+
+        isLoading = false;
+    }
+
+    private void SelectCourse(CourseDto course)
+    {
+        selectedCourse = course;
+    }
+
+    private void NextStep()
+    {
+        currentStep++;
+    }
+
+    private void PreviousStep()
+    {
+        currentStep--;
+    }
+
+    private async Task LoadStudents()
+    {
+        if (selectedCourse == null || selectedDate == null) return;
+
+        currentStep = 3;
+        isLoadingStudents = true;
+
+        students = await AttendanceService.GetStudentsInCourseAsync(selectedCourse.Id);
+
+        // Load existing attendance if any
+        var existingAttendances = await AttendanceService.GetByCourseDateAsync(selectedCourse.Id, selectedDate.Value);
+
+        attendanceStatuses.Clear();
+        attendanceNotes.Clear();
+
+        foreach (var student in students)
+        {
+            var existing = existingAttendances.FirstOrDefault(a => a.StudentId == student.StudentId);
+            if (existing != null)
+            {
+                attendanceStatuses[student.StudentId] = existing.Status;
+                if (!string.IsNullOrEmpty(existing.Notes))
+                {
+                    attendanceNotes[student.StudentId] = existing.Notes;
+                }
+            }
+            else
+            {
+                attendanceStatuses[student.StudentId] = AttendanceStatus.Absent;
+            }
+        }
+
+        isLoadingStudents = false;
+    }
+
+    private void SetStatus(StudentInCourseDto student, AttendanceStatus status)
+    {
+        attendanceStatuses[student.StudentId] = status;
+    }
+
+    private AttendanceStatus GetStudentStatus(StudentInCourseDto student)
+    {
+        return attendanceStatuses.GetValueOrDefault(student.StudentId, AttendanceStatus.Absent);
+    }
+
+    private void MarkAll(AttendanceStatus status)
+    {
+        foreach (var student in students)
+        {
+            attendanceStatuses[student.StudentId] = status;
+        }
+    }
+
+    private async Task SaveAttendance()
+    {
+        if (selectedCourse == null || selectedDate == null || !currentProfessorId.HasValue)
+        {
+            errorMessage = "Date incomplete pentru salvare.";
+            return;
+        }
+
+        isSaving = true;
+        errorMessage = null;
+
+        try
+        {
+            var bulkDto = new BulkAttendanceDto
+            {
+                CourseId = selectedCourse.Id,
+                Date = selectedDate.Value,
+                Attendances = students.Select(s => new StudentAttendanceDto
+                {
+                    StudentId = s.StudentId,
+                    Status = GetStudentStatus(s),
+                    Notes = attendanceNotes.GetValueOrDefault(s.StudentId)
+                }).ToList()
+            };
+
+            var result = await AttendanceService.BulkMarkAsync(bulkDto, currentProfessorId.Value);
+
+            if (result.Succeeded)
+            {
+                showSuccess = true;
+                await Task.Delay(2000);
+                Navigation.NavigateTo("/prezente");
+            }
+            else
+            {
+                errorMessage = result.ErrorMessage ?? "Eroare la salvarea prezenței.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = "Eroare la salvarea prezenței: " + ex.Message;
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private string GetStepClass(int step)
+    {
+        if (step == currentStep)
+            return "px-4 py-2 bg-primary-600 text-white rounded-lg";
+        if (step < currentStep)
+            return "px-4 py-2 bg-success-100 text-success-700 rounded-lg";
+        return "px-4 py-2 bg-gray-100 text-gray-600 rounded-lg";
+    }
+}

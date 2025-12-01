@@ -1,0 +1,276 @@
+@page "/studenti/{id:guid}"
+@using Microsoft.AspNetCore.Authorization
+@using SMU.Services
+@using SMU.Services.DTOs
+@using SMU.Data.Entities
+@attribute [Authorize(Policy = "CanManageStudents")]
+@inject IStudentService StudentService
+@inject NavigationManager Navigation
+
+<PageTitle>Detalii Student - SMU</PageTitle>
+
+@if (isLoading)
+{
+    <div class="flex items-center justify-center py-12">
+        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+    </div>
+}
+else if (student == null)
+{
+    <div class="text-center py-12">
+        <p class="text-gray-500">Studentul nu a fost găsit</p>
+        <button @onclick='() => Navigation.NavigateTo("/studenti")' class="mt-4 text-primary-600 hover:text-primary-700">
+            Înapoi la Studenți
+        </button>
+    </div>
+}
+else
+{
+    <div class="space-y-6">
+        <!-- Header -->
+        <div>
+            <button @onclick='() => Navigation.NavigateTo("/studenti")' class="text-gray-600 hover:text-gray-900 mb-4 flex items-center space-x-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                </svg>
+                <span>Înapoi la Studenți</span>
+            </button>
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-900">Detalii Student</h1>
+                    <p class="mt-1 text-sm text-gray-500">Informații complete despre student</p>
+                </div>
+                <div class="flex space-x-3">
+                    <a href="/studenti/@Id/editare" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors flex items-center space-x-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                        </svg>
+                        <span>Editează</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Student Info Card -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="p-6">
+                <div class="flex items-start space-x-6">
+                    <!-- Profile Photo -->
+                    <div class="flex-shrink-0">
+                        @if (!string.IsNullOrEmpty(student.ProfileImageUrl))
+                        {
+                            <img src="@student.ProfileImageUrl" alt="@student.FullName" class="w-24 h-24 rounded-full object-cover">
+                        }
+                        else
+                        {
+                            <div class="w-24 h-24 rounded-full bg-primary-100 flex items-center justify-center">
+                                <span class="text-3xl font-bold text-primary-600">
+                                    @GetInitials(student.FullName)
+                                </span>
+                            </div>
+                        }
+                    </div>
+
+                    <!-- Info -->
+                    <div class="flex-1 grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <h2 class="text-xl font-bold text-gray-900 mb-4">@student.FullName</h2>
+                            <dl class="space-y-3">
+                                <div>
+                                    <dt class="text-xs font-medium text-gray-500">Email</dt>
+                                    <dd class="text-sm text-gray-900 mt-1">@student.Email</dd>
+                                </div>
+                                <div>
+                                    <dt class="text-xs font-medium text-gray-500">Nr. Matricol</dt>
+                                    <dd class="text-sm text-gray-900 mt-1 font-mono">@student.StudentNumber</dd>
+                                </div>
+                                <div>
+                                    <dt class="text-xs font-medium text-gray-500">Status</dt>
+                                    <dd class="mt-1">
+                                        <span class="px-2 py-1 text-xs font-medium rounded-full @GetStatusClass(student.Status)">
+                                            @GetStatusText(student.Status)
+                                        </span>
+                                    </dd>
+                                </div>
+                            </dl>
+                        </div>
+
+                        <div>
+                            <h3 class="text-sm font-semibold text-gray-900 mb-4">Informații Academice</h3>
+                            <dl class="space-y-3">
+                                <div>
+                                    <dt class="text-xs font-medium text-gray-500">Facultate</dt>
+                                    <dd class="text-sm text-gray-900 mt-1">@student.FacultyName</dd>
+                                </div>
+                                <div>
+                                    <dt class="text-xs font-medium text-gray-500">Program</dt>
+                                    <dd class="text-sm text-gray-900 mt-1">@student.ProgramName</dd>
+                                </div>
+                                <div>
+                                    <dt class="text-xs font-medium text-gray-500">Grupă</dt>
+                                    <dd class="text-sm text-gray-900 mt-1">@student.GroupName (An @student.Year)</dd>
+                                </div>
+                                <div>
+                                    <dt class="text-xs font-medium text-gray-500">Data Înscrierii</dt>
+                                    <dd class="text-sm text-gray-900 mt-1">@student.EnrollmentDate.ToString("dd.MM.yyyy")</dd>
+                                </div>
+                                <div>
+                                    <dt class="text-xs font-medium text-gray-500">Bursă</dt>
+                                    <dd class="text-sm text-gray-900 mt-1">@(student.ScholarshipHolder ? "Da" : "Nu")</dd>
+                                </div>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                <div class="flex items-center space-x-4">
+                    <div class="flex-shrink-0 w-12 h-12 bg-success-100 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-success-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-gray-500">Medie Generală</p>
+                        <p class="text-2xl font-bold text-gray-900">
+                            @(student.AverageGrade.HasValue ? student.AverageGrade.Value.ToString("0.00") : "N/A")
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                <div class="flex items-center space-x-4">
+                    <div class="flex-shrink-0 w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-gray-500">Rată Prezență</p>
+                        <p class="text-2xl font-bold text-gray-900">@student.AttendanceRate.ToString("0")%</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                <div class="flex items-center space-x-4">
+                    <div class="flex-shrink-0 w-12 h-12 bg-info-100 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-info-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-gray-500">Credite</p>
+                        <p class="text-2xl font-bold text-gray-900">@student.TotalCredits</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                <div class="flex items-center space-x-4">
+                    <div class="flex-shrink-0 w-12 h-12 bg-warning-100 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-warning-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-gray-500">Note</p>
+                        <p class="text-2xl font-bold text-gray-900">@student.GradesCount</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Acțiuni Rapide</h3>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <a href="/studenti/@Id/editare" class="flex flex-col items-center justify-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                    <svg class="w-8 h-8 text-gray-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                    </svg>
+                    <span class="text-sm font-medium text-gray-900">Editează</span>
+                </a>
+
+                <button @onclick="NavigateToTransfer" class="flex flex-col items-center justify-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                    <svg class="w-8 h-8 text-gray-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+                    </svg>
+                    <span class="text-sm font-medium text-gray-900">Transfer Grupă</span>
+                </button>
+
+                <button @onclick="NavigateToGrades" class="flex flex-col items-center justify-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                    <svg class="w-8 h-8 text-gray-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/>
+                    </svg>
+                    <span class="text-sm font-medium text-gray-900">Vezi Note</span>
+                </button>
+
+                <button @onclick="NavigateToAttendance" class="flex flex-col items-center justify-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                    <svg class="w-8 h-8 text-gray-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                    </svg>
+                    <span class="text-sm font-medium text-gray-900">Vezi Prezențe</span>
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private StudentDetailDto? student;
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadStudent();
+    }
+
+    private async Task LoadStudent()
+    {
+        isLoading = true;
+        student = await StudentService.GetByIdAsync(Id);
+        isLoading = false;
+    }
+
+    private string GetInitials(string fullName)
+    {
+        var parts = fullName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length >= 2)
+        {
+            return $"{parts[0][0]}{parts[^1][0]}".ToUpper();
+        }
+        return fullName.Length > 0 ? fullName.Substring(0, Math.Min(2, fullName.Length)).ToUpper() : "??";
+    }
+
+    private string GetStatusClass(StudentStatus status) => status switch
+    {
+        StudentStatus.Active => "bg-success-100 text-success-700",
+        StudentStatus.Inactive => "bg-gray-100 text-gray-700",
+        StudentStatus.Graduated => "bg-info-100 text-info-700",
+        StudentStatus.Suspended => "bg-warning-100 text-warning-700",
+        StudentStatus.Expelled => "bg-red-100 text-red-700",
+        _ => "bg-gray-100 text-gray-700"
+    };
+
+    private string GetStatusText(StudentStatus status) => status switch
+    {
+        StudentStatus.Active => "Activ",
+        StudentStatus.Inactive => "Inactiv",
+        StudentStatus.Graduated => "Absolvent",
+        StudentStatus.Suspended => "Suspendat",
+        StudentStatus.Expelled => "Exmatriculat",
+        _ => status.ToString()
+    };
+
+    private void NavigateToTransfer() => Navigation.NavigateTo($"/studenti/{Id}/transfer");
+    private void NavigateToGrades() => Navigation.NavigateTo($"/note?studentId={Id}");
+    private void NavigateToAttendance() => Navigation.NavigateTo($"/prezente?studentId={Id}");
+}

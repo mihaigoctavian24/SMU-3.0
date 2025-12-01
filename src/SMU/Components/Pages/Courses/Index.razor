@@ -1,0 +1,373 @@
+@page "/cursuri"
+@using SMU.Data.Entities
+@using SMU.Models
+@using SMU.Services
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Identity
+@using System.Security.Claims
+@inject ICourseService CourseService
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthStateProvider
+@inject UserManager<ApplicationUser> UserManager
+@attribute [Authorize]
+
+<PageTitle>Cursuri - SMU</PageTitle>
+
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">Cursuri</h1>
+            <p class="mt-1 text-sm text-gray-600">@GetSubtitle()</p>
+        </div>
+        @if (CanManageCourses)
+        {
+            <button @onclick="NavigateToCreate"
+                    class="inline-flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                Adaugă Curs
+            </button>
+        }
+    </div>
+
+    <!-- Filters -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            <!-- Search -->
+            <div class="lg:col-span-2">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Caută</label>
+                <input type="text"
+                       @bind="searchTerm"
+                       @bind:event="oninput"
+                       @onkeyup="OnSearchChanged"
+                       placeholder="Nume sau cod curs..."
+                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent" />
+            </div>
+
+            <!-- Year Filter -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">An</label>
+                <select @bind="selectedYear" @bind:after="ApplyFilters"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                    <option value="">Toți anii</option>
+                    <option value="1">Anul 1</option>
+                    <option value="2">Anul 2</option>
+                    <option value="3">Anul 3</option>
+                    <option value="4">Anul 4</option>
+                </select>
+            </div>
+
+            <!-- Semester Filter -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Semestru</label>
+                <select @bind="selectedSemester" @bind:after="ApplyFilters"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                    <option value="">Ambele</option>
+                    <option value="1">Semestrul 1</option>
+                    <option value="2">Semestrul 2</option>
+                </select>
+            </div>
+
+            <!-- Status Filter -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                <select @bind="selectedStatus" @bind:after="ApplyFilters"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                    <option value="">Toate</option>
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- Courses Grid -->
+    @if (isLoading)
+    {
+        <div class="text-center py-12">
+            <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+            <p class="mt-4 text-gray-600">Se încarcă cursurile...</p>
+        </div>
+    }
+    else if (!filteredCourses.Any())
+    {
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
+            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+            </svg>
+            <h3 class="mt-4 text-lg font-medium text-gray-900">Niciun curs găsit</h3>
+            <p class="mt-2 text-sm text-gray-500">@GetEmptyMessage()</p>
+        </div>
+    }
+    else
+    {
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cod</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nume</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Profesor</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Credite</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">An/Sem</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Studenți</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acțiuni</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        @foreach (var course in filteredCourses)
+                        {
+                            <tr class="hover:bg-gray-50 transition-colors">
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="text-sm font-mono font-medium text-gray-900">@course.Code</span>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <div class="text-sm font-medium text-gray-900">@course.Name</div>
+                                    <div class="text-sm text-gray-500">@course.ProgramName</div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="text-sm text-gray-900">@course.ProfessorName</span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-700">
+                                        @course.Credits ECTS
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="flex items-center space-x-2">
+                                        <span class="text-sm text-gray-900">An @course.Year</span>
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium @GetSemesterBadgeClass(course.Semester)">
+                                            S@course.Semester
+                                        </span>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="text-sm text-gray-900">@course.StudentsCount</span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium @(course.IsActive ? "bg-success-100 text-success-700" : "bg-gray-100 text-gray-700")">
+                                        @(course.IsActive ? "Activ" : "Inactiv")
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
+                                    <button @onclick="() => NavigateToDetails(course.Id)"
+                                            class="text-primary-600 hover:text-primary-900">
+                                        Vezi
+                                    </button>
+                                    @if (CanManageCourses)
+                                    {
+                                        <button @onclick="() => NavigateToEdit(course.Id)"
+                                                class="text-info-600 hover:text-info-900">
+                                            Editează
+                                        </button>
+                                        @if (course.IsActive)
+                                        {
+                                            <button @onclick="() => DeleteCourse(course.Id)"
+                                                    class="text-danger-600 hover:text-danger-900">
+                                                Dezactivează
+                                            </button>
+                                        }
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Results Count -->
+        <div class="text-sm text-gray-600 text-center">
+            Afișare @filteredCourses.Count cursuri
+        </div>
+    }
+</div>
+
+@code {
+    private List<CourseListDto> courses = new();
+    private List<CourseListDto> filteredCourses = new();
+    private bool isLoading = true;
+    private bool CanManageCourses = false;
+    private UserRole? currentUserRole;
+    private Guid? currentProfessorId;
+
+    private string searchTerm = "";
+    private string selectedYear = "";
+    private string selectedSemester = "";
+    private string selectedStatus = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUserRole();
+        await LoadCourses();
+    }
+
+    private async Task LoadUserRole()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            var appUser = await UserManager.GetUserAsync(user);
+            if (appUser != null)
+            {
+                currentUserRole = appUser.Role;
+                CanManageCourses = appUser.Role == UserRole.Secretary ||
+                                   appUser.Role == UserRole.Dean ||
+                                   appUser.Role == UserRole.Admin;
+
+                // If professor, get their professor ID
+                if (appUser.Role == UserRole.Professor && appUser.Professor != null)
+                {
+                    currentProfessorId = appUser.Professor.Id;
+                }
+            }
+        }
+    }
+
+    private async Task LoadCourses()
+    {
+        isLoading = true;
+        try
+        {
+            var filter = new CourseFilter();
+
+            // Role-based filtering
+            if (currentUserRole == UserRole.Professor && currentProfessorId.HasValue)
+            {
+                // Professors only see their courses
+                filter.ProfessorId = currentProfessorId.Value;
+            }
+            else if (currentUserRole == UserRole.Student)
+            {
+                // Students see courses for their program/year
+                // This would require getting student's program - simplified for now
+                filter.IsActive = true;
+            }
+
+            courses = await CourseService.GetAllAsync(filter);
+            ApplyClientFilters();
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void ApplyFilters()
+    {
+        ApplyClientFilters();
+    }
+
+    private void ApplyClientFilters()
+    {
+        filteredCourses = courses.Where(c =>
+        {
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+            {
+                var search = searchTerm.ToLower();
+                if (!c.Name.ToLower().Contains(search) && !c.Code.ToLower().Contains(search))
+                    return false;
+            }
+
+            if (!string.IsNullOrWhiteSpace(selectedYear) && int.TryParse(selectedYear, out int year))
+            {
+                if (c.Year != year)
+                    return false;
+            }
+
+            if (!string.IsNullOrWhiteSpace(selectedSemester) && int.TryParse(selectedSemester, out int semester))
+            {
+                if (c.Semester != semester)
+                    return false;
+            }
+
+            if (!string.IsNullOrWhiteSpace(selectedStatus))
+            {
+                var isActive = selectedStatus == "active";
+                if (c.IsActive != isActive)
+                    return false;
+            }
+
+            return true;
+        }).ToList();
+    }
+
+    private System.Threading.Timer? searchTimer;
+
+    private void OnSearchChanged()
+    {
+        searchTimer?.Dispose();
+        searchTimer = new System.Threading.Timer(_ =>
+        {
+            InvokeAsync(() =>
+            {
+                ApplyFilters();
+                StateHasChanged();
+            });
+        }, null, 300, Timeout.Infinite);
+    }
+
+    private async Task DeleteCourse(Guid courseId)
+    {
+        if (confirm($"Sigur doriți să dezactivați acest curs?"))
+        {
+            var result = await CourseService.DeleteAsync(courseId);
+            if (result.Succeeded)
+            {
+                await LoadCourses();
+            }
+        }
+    }
+
+    private void NavigateToCreate() => Navigation.NavigateTo("/cursuri/nou");
+    private void NavigateToDetails(Guid id) => Navigation.NavigateTo($"/cursuri/{id}");
+    private void NavigateToEdit(Guid id) => Navigation.NavigateTo($"/cursuri/{id}/editare");
+
+    private string GetSemesterBadgeClass(int semester)
+    {
+        return semester == 1
+            ? "bg-info-100 text-info-700"
+            : "bg-success-100 text-success-700";
+    }
+
+    private string GetSubtitle()
+    {
+        return currentUserRole switch
+        {
+            UserRole.Professor => "Cursurile tale",
+            UserRole.Student => "Cursuri disponibile",
+            _ => "Gestionează cursurile din sistem"
+        };
+    }
+
+    private string GetEmptyMessage()
+    {
+        if (!string.IsNullOrWhiteSpace(searchTerm))
+            return "Încearcă să modifici filtrele de căutare.";
+
+        return currentUserRole switch
+        {
+            UserRole.Professor => "Nu ai cursuri asignate.",
+            UserRole.Student => "Nu există cursuri disponibile pentru programul tău.",
+            _ => "Nu există cursuri în sistem. Adaugă primul curs."
+        };
+    }
+
+    public void Dispose()
+    {
+        searchTimer?.Dispose();
+    }
+
+    private bool confirm(string message)
+    {
+        // In a real app, use a proper modal dialog
+        return true;
+    }
+}

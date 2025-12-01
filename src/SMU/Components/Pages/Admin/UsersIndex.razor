@@ -1,0 +1,425 @@
+@page "/admin/utilizatori"
+@using Microsoft.AspNetCore.Authorization
+@using SMU.Services
+@using SMU.Services.DTOs
+@using SMU.Data.Entities
+@attribute [Authorize(Policy = "CanManageUsers")]
+@inject IUserService UserService
+@inject NavigationManager Navigation
+
+<PageTitle>Utilizatori - SMU</PageTitle>
+
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">Utilizatori</h1>
+            <p class="mt-1 text-sm text-gray-500">Gestionează conturile utilizatorilor din sistem</p>
+        </div>
+        <a href="/admin/utilizatori/nou" class="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+            </svg>
+            <span>Adaugă Utilizator</span>
+        </a>
+    </div>
+
+    <!-- Filters & Search -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <!-- Search -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Căutare</label>
+                <input type="text"
+                       @bind="searchTerm"
+                       @bind:event="oninput"
+                       @onkeyup="HandleSearchKeyUp"
+                       placeholder="Nume sau email..."
+                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+            </div>
+
+            <!-- Role Filter -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Rol</label>
+                <select @bind="selectedRole" @bind:after="ApplyFilters" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                    <option value="">Toate rolurile</option>
+                    <option value="Admin">Administrator</option>
+                    <option value="Rector">Rector</option>
+                    <option value="Dean">Decan</option>
+                    <option value="Secretary">Secretar</option>
+                    <option value="Professor">Profesor</option>
+                    <option value="Student">Student</option>
+                </select>
+            </div>
+
+            <!-- Status Filter -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                <select @bind="selectedStatus" @bind:after="ApplyFilters" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                    <option value="">Toate statusurile</option>
+                    <option value="true">Activ</option>
+                    <option value="false">Inactiv</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- Users Table -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        @if (isLoading)
+        {
+            <div class="flex items-center justify-center py-12">
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+            </div>
+        }
+        else if (users.Any())
+        {
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-gray-50 border-b border-gray-100">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nume</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rol</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ultima Autentificare</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acțiuni</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        @foreach (var user in users)
+                        {
+                            <tr class="hover:bg-gray-50 transition-colors">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                    @user.FullName
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    @user.Email
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="px-2 py-1 text-xs font-medium rounded-full @GetRoleClass(user.Role)">
+                                        @user.RoleLabel
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="px-2 py-1 text-xs font-medium rounded-full @(user.IsActive ? "bg-success-100 text-success-700" : "bg-gray-100 text-gray-700")">
+                                        @(user.IsActive ? "Activ" : "Inactiv")
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    @(user.LastLoginAt.HasValue ? user.LastLoginAt.Value.ToString("dd.MM.yyyy HH:mm") : "Niciodată")
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
+                                    <a href="/admin/utilizatori/@user.Id/editare" class="text-primary-600 hover:text-primary-900">Editează</a>
+                                    @if (user.IsActive)
+                                    {
+                                        <button @onclick="() => ConfirmDeactivate(user.Id)" class="text-warning-600 hover:text-warning-900">Dezactivează</button>
+                                    }
+                                    else
+                                    {
+                                        <button @onclick="() => ConfirmActivate(user.Id)" class="text-success-600 hover:text-success-900">Activează</button>
+                                    }
+                                    <button @onclick="() => ShowResetPasswordModal(user.Id)" class="text-gray-600 hover:text-gray-900">Resetează Parolă</button>
+                                    <button @onclick="() => ShowChangeRoleModal(user.Id, user.Role)" class="text-info-600 hover:text-info-900">Schimbă Rol</button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- User Count -->
+            <div class="px-6 py-4 border-t border-gray-100">
+                <span class="text-sm text-gray-700">
+                    Total: @users.Count utilizatori
+                </span>
+            </div>
+        }
+        else
+        {
+            <div class="px-6 py-12 text-center">
+                <svg class="w-12 h-12 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+                </svg>
+                <p class="text-gray-500">Nu au fost găsiți utilizatori</p>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- Deactivate Confirmation Modal -->
+@if (showDeactivateModal)
+{
+    <div class="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50" @onclick="CancelAction">
+        <div class="bg-white rounded-xl shadow-xl max-w-md w-full mx-4 p-6" @onclick:stopPropagation>
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Confirmare Dezactivare</h3>
+            <p class="text-gray-600 mb-6">Ești sigur că vrei să dezactivezi acest utilizator? Acesta nu va mai putea accesa sistemul.</p>
+            <div class="flex space-x-3 justify-end">
+                <button @onclick="CancelAction" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors">
+                    Anulează
+                </button>
+                <button @onclick="DeactivateUser" class="px-4 py-2 bg-warning-600 text-white rounded-lg hover:bg-warning-700 font-medium transition-colors">
+                    Dezactivează
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Activate Confirmation Modal -->
+@if (showActivateModal)
+{
+    <div class="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50" @onclick="CancelAction">
+        <div class="bg-white rounded-xl shadow-xl max-w-md w-full mx-4 p-6" @onclick:stopPropagation>
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Confirmare Activare</h3>
+            <p class="text-gray-600 mb-6">Ești sigur că vrei să activezi acest utilizator? Acesta va putea accesa sistemul.</p>
+            <div class="flex space-x-3 justify-end">
+                <button @onclick="CancelAction" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors">
+                    Anulează
+                </button>
+                <button @onclick="ActivateUser" class="px-4 py-2 bg-success-600 text-white rounded-lg hover:bg-success-700 font-medium transition-colors">
+                    Activează
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Reset Password Modal -->
+@if (showResetPasswordModal)
+{
+    <div class="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50" @onclick="CancelAction">
+        <div class="bg-white rounded-xl shadow-xl max-w-md w-full mx-4 p-6" @onclick:stopPropagation>
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Resetare Parolă</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Parolă Nouă</label>
+                    <input type="password"
+                           @bind="newPassword"
+                           placeholder="Minimum 8 caractere"
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                </div>
+                @if (!string.IsNullOrEmpty(passwordError))
+                {
+                    <p class="text-sm text-red-600">@passwordError</p>
+                }
+            </div>
+            <div class="flex space-x-3 justify-end mt-6">
+                <button @onclick="CancelAction" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors">
+                    Anulează
+                </button>
+                <button @onclick="ResetPassword" class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium transition-colors">
+                    Resetează
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Change Role Modal -->
+@if (showChangeRoleModal)
+{
+    <div class="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50" @onclick="CancelAction">
+        <div class="bg-white rounded-xl shadow-xl max-w-md w-full mx-4 p-6" @onclick:stopPropagation>
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Schimbare Rol</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Rol Nou</label>
+                    <select @bind="newRole" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                        <option value="Admin">Administrator</option>
+                        <option value="Rector">Rector</option>
+                        <option value="Dean">Decan</option>
+                        <option value="Secretary">Secretar</option>
+                        <option value="Professor">Profesor</option>
+                        <option value="Student">Student</option>
+                    </select>
+                </div>
+            </div>
+            <div class="flex space-x-3 justify-end mt-6">
+                <button @onclick="CancelAction" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors">
+                    Anulează
+                </button>
+                <button @onclick="ChangeRole" class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium transition-colors">
+                    Schimbă Rol
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<UserDto> users = new();
+    private bool isLoading = true;
+
+    // Filters
+    private string searchTerm = "";
+    private string selectedRole = "";
+    private string selectedStatus = "";
+
+    // Modal states
+    private bool showDeactivateModal = false;
+    private bool showActivateModal = false;
+    private bool showResetPasswordModal = false;
+    private bool showChangeRoleModal = false;
+    private Guid selectedUserId = Guid.Empty;
+    private string newPassword = "";
+    private string newRole = "";
+    private string passwordError = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUsers();
+    }
+
+    private async Task LoadUsers()
+    {
+        isLoading = true;
+        StateHasChanged();
+
+        var filter = new UserFilter
+        {
+            Search = string.IsNullOrWhiteSpace(searchTerm) ? null : searchTerm,
+            Role = string.IsNullOrWhiteSpace(selectedRole) ? null : Enum.Parse<UserRole>(selectedRole),
+            IsActive = string.IsNullOrWhiteSpace(selectedStatus) ? null : bool.Parse(selectedStatus)
+        };
+
+        users = await UserService.GetAllAsync(filter);
+
+        isLoading = false;
+        StateHasChanged();
+    }
+
+    private System.Threading.Timer? searchTimer;
+
+    private void HandleSearchKeyUp()
+    {
+        searchTimer?.Dispose();
+        searchTimer = new System.Threading.Timer(async _ =>
+        {
+            await InvokeAsync(async () => await LoadUsers());
+        }, null, 500, Timeout.Infinite);
+    }
+
+    private async Task ApplyFilters()
+    {
+        await LoadUsers();
+    }
+
+    private void ConfirmDeactivate(Guid id)
+    {
+        selectedUserId = id;
+        showDeactivateModal = true;
+    }
+
+    private void ConfirmActivate(Guid id)
+    {
+        selectedUserId = id;
+        showActivateModal = true;
+    }
+
+    private void ShowResetPasswordModal(Guid id)
+    {
+        selectedUserId = id;
+        newPassword = "";
+        passwordError = "";
+        showResetPasswordModal = true;
+    }
+
+    private void ShowChangeRoleModal(Guid id, UserRole currentRole)
+    {
+        selectedUserId = id;
+        newRole = currentRole.ToString();
+        showChangeRoleModal = true;
+    }
+
+    private void CancelAction()
+    {
+        showDeactivateModal = false;
+        showActivateModal = false;
+        showResetPasswordModal = false;
+        showChangeRoleModal = false;
+        selectedUserId = Guid.Empty;
+        newPassword = "";
+        newRole = "";
+        passwordError = "";
+    }
+
+    private async Task DeactivateUser()
+    {
+        var result = await UserService.DeactivateAsync(selectedUserId);
+        CancelAction();
+
+        if (result.Succeeded)
+        {
+            await LoadUsers();
+        }
+    }
+
+    private async Task ActivateUser()
+    {
+        var result = await UserService.ActivateAsync(selectedUserId);
+        CancelAction();
+
+        if (result.Succeeded)
+        {
+            await LoadUsers();
+        }
+    }
+
+    private async Task ResetPassword()
+    {
+        if (string.IsNullOrWhiteSpace(newPassword))
+        {
+            passwordError = "Parola este obligatorie.";
+            return;
+        }
+
+        if (newPassword.Length < 8)
+        {
+            passwordError = "Parola trebuie să aibă minimum 8 caractere.";
+            return;
+        }
+
+        var result = await UserService.ResetPasswordAsync(selectedUserId, newPassword);
+        CancelAction();
+
+        if (!result.Succeeded)
+        {
+            // Handle error
+            Console.WriteLine($"Password reset failed: {result.ErrorMessage}");
+        }
+    }
+
+    private async Task ChangeRole()
+    {
+        if (string.IsNullOrWhiteSpace(newRole))
+        {
+            return;
+        }
+
+        var roleEnum = Enum.Parse<UserRole>(newRole);
+        var result = await UserService.ChangeRoleAsync(selectedUserId, roleEnum);
+        CancelAction();
+
+        if (result.Succeeded)
+        {
+            await LoadUsers();
+        }
+    }
+
+    private string GetRoleClass(UserRole role) => role switch
+    {
+        UserRole.Admin => "bg-red-100 text-red-700",
+        UserRole.Rector => "bg-purple-100 text-purple-700",
+        UserRole.Dean => "bg-info-100 text-info-700",
+        UserRole.Secretary => "bg-warning-100 text-warning-700",
+        UserRole.Professor => "bg-primary-100 text-primary-700",
+        UserRole.Student => "bg-success-100 text-success-700",
+        _ => "bg-gray-100 text-gray-700"
+    };
+
+    public void Dispose()
+    {
+        searchTimer?.Dispose();
+    }
+}

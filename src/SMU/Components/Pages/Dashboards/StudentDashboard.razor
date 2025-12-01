@@ -1,0 +1,294 @@
+@using SMU.Components.Shared
+@using SMU.Data
+@using SMU.Data.Entities
+@using Microsoft.EntityFrameworkCore
+@inject ApplicationDbContext DbContext
+
+<div class="space-y-6">
+    <!-- Welcome Header -->
+    <div class="bg-gradient-to-r from-primary-600 to-primary-700 rounded-xl p-6 text-white">
+        <h1 class="text-2xl font-bold">Bine ai venit, @UserName!</h1>
+        <p class="mt-1 text-primary-100">Iata un sumar al activitatii tale academice.</p>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <StatsCard
+            Label="Media Generala"
+            Value="@AverageGrade.ToString("0.00")"
+            Subtitle="@(TotalCredits > 0 ? $"{TotalCredits} credite acumulate" : "Nicio nota inregistrata")"
+            IconType="academic"
+            IconBgClass="bg-success-100"
+            IconClass="text-success-600"
+            ShowTrend="@(GradeTrend != 0)"
+            TrendValue="@GradeTrend"
+            ActionLink="/note"
+            ActionText="Vezi toate notele" />
+
+        <StatsCard
+            Label="Rata Prezenta"
+            Value="@(AttendanceRate.ToString("0") + "%")"
+            Subtitle="@(TotalClasses > 0 ? $"{PresentClasses}/{TotalClasses} ore" : "Nicio prezenta")"
+            IconType="attendance"
+            IconBgClass="bg-primary-100"
+            IconClass="text-primary-600"
+            ActionLink="/prezente"
+            ActionText="Vezi prezentele" />
+
+        <StatsCard
+            Label="Credite Acumulate"
+            Value="@TotalCredits.ToString()"
+            Subtitle="@($"din {RequiredCredits} necesare")"
+            IconType="book"
+            IconBgClass="bg-info-100"
+            IconClass="text-info-600" />
+
+        <StatsCard
+            Label="Note Recente"
+            Value="@RecentGradesCount.ToString()"
+            Subtitle="in ultimele 30 de zile"
+            IconType="grades"
+            IconBgClass="bg-warning-100"
+            IconClass="text-warning-600"
+            ActionLink="/note"
+            ActionText="Vezi notele" />
+    </div>
+
+    <!-- Content Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Recent Grades -->
+        <div class="lg:col-span-2">
+            <RecentActivityList
+                Title="Ultimele Note"
+                Items="@RecentGrades"
+                ViewAllLink="/note"
+                EmptyMessage="Nu ai note inregistrate inca." />
+        </div>
+
+        <!-- Quick Actions & Notifications -->
+        <div class="space-y-6">
+            <!-- Quick Actions -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Actiuni Rapide</h3>
+                <div class="space-y-3">
+                    <QuickActionButton
+                        Text="Vezi Orarul"
+                        IconType="calendar"
+                        Variant="outline-primary"
+                        FullWidth="true"
+                        IsLink="true"
+                        Link="/orar" />
+                    <QuickActionButton
+                        Text="Solicita Document"
+                        IconType="document"
+                        Variant="outline"
+                        FullWidth="true"
+                        IsLink="true"
+                        Link="/cereri/nou" />
+                    <QuickActionButton
+                        Text="Vezi Prezentele"
+                        IconType="check"
+                        Variant="outline"
+                        FullWidth="true"
+                        IsLink="true"
+                        Link="/prezente" />
+                </div>
+            </div>
+
+            <!-- Notifications -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-100">
+                    <h3 class="text-lg font-semibold text-gray-900">Notificari</h3>
+                </div>
+                @if (Notifications.Any())
+                {
+                    <ul class="divide-y divide-gray-100">
+                        @foreach (var notification in Notifications.Take(3))
+                        {
+                            <li class="px-6 py-4 hover:bg-gray-50">
+                                <div class="flex items-start space-x-3">
+                                    <div class="flex-shrink-0 w-2 h-2 mt-2 rounded-full @(notification.IsRead ? "bg-gray-300" : "bg-primary-500")"></div>
+                                    <div class="flex-1 min-w-0">
+                                        <p class="text-sm font-medium text-gray-900 truncate">@notification.Title</p>
+                                        <p class="text-xs text-gray-500 mt-1">@notification.CreatedAt.ToString("dd MMM, HH:mm")</p>
+                                    </div>
+                                </div>
+                            </li>
+                        }
+                    </ul>
+                }
+                else
+                {
+                    <div class="px-6 py-8 text-center">
+                        <svg class="w-10 h-10 mx-auto text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                        </svg>
+                        <p class="text-sm text-gray-500">Nu ai notificari noi</p>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Upcoming Schedule -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+            <h3 class="text-lg font-semibold text-gray-900">Orarul de Azi</h3>
+            <a href="/orar" class="text-sm font-medium text-primary-600 hover:text-primary-700">Vezi tot orarul</a>
+        </div>
+        @if (TodaySchedule.Any())
+        {
+            <div class="divide-y divide-gray-100">
+                @foreach (var entry in TodaySchedule)
+                {
+                    <div class="px-6 py-4 flex items-center space-x-4">
+                        <div class="flex-shrink-0 w-16 text-center">
+                            <span class="text-lg font-semibold text-gray-900">@entry.StartTime.ToString(@"hh\:mm")</span>
+                        </div>
+                        <div class="flex-shrink-0 h-12 w-1 rounded-full bg-primary-500"></div>
+                        <div class="flex-1">
+                            <p class="font-medium text-gray-900">@entry.CourseName</p>
+                            <p class="text-sm text-gray-500">@entry.Room - @entry.Type</p>
+                        </div>
+                        <div class="flex-shrink-0">
+                            <span class="px-3 py-1 text-xs font-medium rounded-full @GetScheduleTypeClass(entry.Type)">
+                                @entry.Type
+                            </span>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="px-6 py-12 text-center">
+                <svg class="w-12 h-12 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                </svg>
+                <p class="text-gray-500">Nu ai ore programate astazi</p>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public string UserName { get; set; } = "Student";
+
+    // Stats
+    private decimal AverageGrade = 0;
+    private decimal GradeTrend = 0;
+    private int TotalCredits = 0;
+    private int RequiredCredits = 180;
+    private decimal AttendanceRate = 0;
+    private int PresentClasses = 0;
+    private int TotalClasses = 0;
+    private int RecentGradesCount = 0;
+
+    // Data
+    private List<RecentActivityList.ActivityItem> RecentGrades = new();
+    private List<NotificationDto> Notifications = new();
+    private List<ScheduleEntryDto> TodaySchedule = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDashboardData();
+    }
+
+    private async Task LoadDashboardData()
+    {
+        // For now, we'll use demo data since we don't have a logged-in student context yet
+        // In production, this would query based on the authenticated user's student ID
+
+        // Demo stats
+        AverageGrade = 8.75m;
+        GradeTrend = 2.5m;
+        TotalCredits = 45;
+        AttendanceRate = 92;
+        PresentClasses = 46;
+        TotalClasses = 50;
+        RecentGradesCount = 3;
+
+        // Demo recent grades
+        RecentGrades = new List<RecentActivityList.ActivityItem>
+        {
+            new() {
+                Title = "Programare Orientata pe Obiecte",
+                Description = "Nota: 9 - Examen final",
+                Timestamp = DateTime.Now.AddDays(-2),
+                Type = "grade",
+                Badge = "9",
+                BadgeType = "success"
+            },
+            new() {
+                Title = "Baze de Date",
+                Description = "Nota: 8 - Proiect semestrial",
+                Timestamp = DateTime.Now.AddDays(-5),
+                Type = "grade",
+                Badge = "8",
+                BadgeType = "success"
+            },
+            new() {
+                Title = "Algoritmi si Structuri de Date",
+                Description = "Nota: 10 - Laborator",
+                Timestamp = DateTime.Now.AddDays(-7),
+                Type = "grade",
+                Badge = "10",
+                BadgeType = "success"
+            },
+            new() {
+                Title = "Matematica Discreta",
+                Description = "Nota: 7 - Examen partial",
+                Timestamp = DateTime.Now.AddDays(-10),
+                Type = "grade",
+                Badge = "7",
+                BadgeType = "warning"
+            }
+        };
+
+        // Demo notifications
+        Notifications = new List<NotificationDto>
+        {
+            new() { Title = "Nota noua la POO", CreatedAt = DateTime.Now.AddHours(-2), IsRead = false },
+            new() { Title = "Adeverinta aprobata", CreatedAt = DateTime.Now.AddDays(-1), IsRead = true },
+            new() { Title = "Modificare orar luni", CreatedAt = DateTime.Now.AddDays(-3), IsRead = true }
+        };
+
+        // Demo schedule for today
+        var dayOfWeek = DateTime.Now.DayOfWeek;
+        if (dayOfWeek != DayOfWeek.Saturday && dayOfWeek != DayOfWeek.Sunday)
+        {
+            TodaySchedule = new List<ScheduleEntryDto>
+            {
+                new() { StartTime = new TimeSpan(8, 0, 0), CourseName = "Programare Web", Room = "C308", Type = "Curs" },
+                new() { StartTime = new TimeSpan(10, 0, 0), CourseName = "Baze de Date", Room = "Lab 2", Type = "Laborator" },
+                new() { StartTime = new TimeSpan(14, 0, 0), CourseName = "Algoritmi", Room = "C201", Type = "Seminar" }
+            };
+        }
+
+        await Task.CompletedTask;
+    }
+
+    private string GetScheduleTypeClass(string type) => type switch
+    {
+        "Curs" => "bg-primary-100 text-primary-700",
+        "Laborator" => "bg-success-100 text-success-700",
+        "Seminar" => "bg-warning-100 text-warning-700",
+        _ => "bg-gray-100 text-gray-700"
+    };
+
+    // DTOs for dashboard
+    private class NotificationDto
+    {
+        public string Title { get; set; } = "";
+        public DateTime CreatedAt { get; set; }
+        public bool IsRead { get; set; }
+    }
+
+    private class ScheduleEntryDto
+    {
+        public TimeSpan StartTime { get; set; }
+        public string CourseName { get; set; } = "";
+        public string Room { get; set; } = "";
+        public string Type { get; set; } = "";
+    }
+}

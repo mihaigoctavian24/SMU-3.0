@@ -1,0 +1,315 @@
+is_global = true
+build_property.TargetFramework = net10.0
+build_property.TargetFramework = net10.0
+build_property.TargetPlatformMinVersion = 
+build_property.TargetPlatformMinVersion = 
+build_property.UsingMicrosoftNETSdkWeb = true
+build_property.UsingMicrosoftNETSdkWeb = true
+build_property.ProjectTypeGuids = 
+build_property.ProjectTypeGuids = 
+build_property.InvariantGlobalization = 
+build_property.InvariantGlobalization = 
+build_property.PlatformNeutralAssembly = 
+build_property.PlatformNeutralAssembly = 
+build_property.EnforceExtendedAnalyzerRules = 
+build_property.EnforceExtendedAnalyzerRules = 
+build_property._SupportedPlatformList = Linux,macOS,Windows
+build_property._SupportedPlatformList = Linux,macOS,Windows
+build_property.TargetFrameworkIdentifier = .NETCoreApp
+build_property.TargetFrameworkVersion = v10.0
+build_property.RootNamespace = SMU
+build_property.RootNamespace = SMU
+build_property.ProjectDir = /Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/
+build_property.EnableComHosting = 
+build_property.EnableGeneratedComInterfaceComImportInterop = 
+build_property.RazorLangVersion = 9.0
+build_property.SupportLocalizedComponentNames = 
+build_property.GenerateRazorMetadataSourceChecksumAttributes = 
+build_property.MSBuildProjectDirectory = /Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU
+build_property._RazorSourceGeneratorDebug = 
+build_property.EffectiveAnalysisLevelStyle = 10.0
+build_property.EnableCodeStyleSeverity = 
+
+[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/App.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9BcHAucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Layout/Header.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9MYXlvdXQvSGVhZGVyLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Layout/Sidebar.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9MYXlvdXQvU2lkZWJhci5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Pages/AccessDenied.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9BY2Nlc3NEZW5pZWQucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Pages/Admin/ActivityFeed.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9BZG1pbi9BY3Rpdml0eUZlZWQucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Pages/Admin/Roles.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9BZG1pbi9Sb2xlcy5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Pages/Admin/Users/Create.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9BZG1pbi9Vc2Vycy9DcmVhdGUucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Pages/Admin/Users/Edit.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9BZG1pbi9Vc2Vycy9FZGl0LnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Pages/Admin/UsersIndex.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9BZG1pbi9Vc2Vyc0luZGV4LnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Pages/Analytics/DeanAnalytics.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9BbmFseXRpY3MvRGVhbkFuYWx5dGljcy5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Pages/Analytics/ProfessorAnalytics.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9BbmFseXRpY3MvUHJvZmVzc29yQW5hbHl0aWNzLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Pages/Analytics/RectorAnalytics.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9BbmFseXRpY3MvUmVjdG9yQW5hbHl0aWNzLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Pages/Analytics/RiskDashboard.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9BbmFseXRpY3MvUmlza0Rhc2hib2FyZC5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Pages/Analytics/StudentAnalytics.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9BbmFseXRpY3MvU3R1ZGVudEFuYWx5dGljcy5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Pages/Analytics/TrendAnalysis.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9BbmFseXRpY3MvVHJlbmRBbmFseXNpcy5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Pages/Attendance/Index.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9BdHRlbmRhbmNlL0luZGV4LnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Pages/Attendance/Mark.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9BdHRlbmRhbmNlL01hcmsucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Pages/Courses/Create.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9Db3Vyc2VzL0NyZWF0ZS5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Pages/Courses/Details.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9Db3Vyc2VzL0RldGFpbHMucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Pages/Courses/Edit.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9Db3Vyc2VzL0VkaXQucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Pages/Courses/Index.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9Db3Vyc2VzL0luZGV4LnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Pages/Dashboard.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9EYXNoYm9hcmQucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Pages/Dashboards/AdminDashboard.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9EYXNoYm9hcmRzL0FkbWluRGFzaGJvYXJkLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Pages/Dashboards/DeanDashboard.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9EYXNoYm9hcmRzL0RlYW5EYXNoYm9hcmQucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Pages/Dashboards/ProfessorDashboard.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9EYXNoYm9hcmRzL1Byb2Zlc3NvckRhc2hib2FyZC5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Pages/Dashboards/RectorDashboard.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9EYXNoYm9hcmRzL1JlY3RvckRhc2hib2FyZC5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Pages/Dashboards/SecretaryDashboard.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9EYXNoYm9hcmRzL1NlY3JldGFyeURhc2hib2FyZC5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Pages/Dashboards/StudentDashboard.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9EYXNoYm9hcmRzL1N0dWRlbnREYXNoYm9hcmQucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Pages/Error.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9FcnJvci5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Pages/Export/History.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9FeHBvcnQvSGlzdG9yeS5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Pages/Export/Index.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9FeHBvcnQvSW5kZXgucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Pages/Faculties/Index.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9GYWN1bHRpZXMvSW5kZXgucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Pages/Grades/Add.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9HcmFkZXMvQWRkLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Pages/Grades/Approve.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9HcmFkZXMvQXBwcm92ZS5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Pages/Grades/Index.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9HcmFkZXMvSW5kZXgucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Pages/Groups/Index.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9Hcm91cHMvSW5kZXgucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Pages/Home.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9Ib21lLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Pages/Login.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9Mb2dpbi5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Pages/NotFound.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9Ob3RGb3VuZC5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Pages/Notifications/Index.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9Ob3RpZmljYXRpb25zL0luZGV4LnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Pages/Programs/Index.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9Qcm9ncmFtcy9JbmRleC5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Pages/Reports/Index.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9SZXBvcnRzL0luZGV4LnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Pages/Requests/Create.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9SZXF1ZXN0cy9DcmVhdGUucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Pages/Requests/Index.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9SZXF1ZXN0cy9JbmRleC5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Pages/Requests/Process.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9SZXF1ZXN0cy9Qcm9jZXNzLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Pages/Schedule/Index.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9TY2hlZHVsZS9JbmRleC5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Pages/Schedule/Manage.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9TY2hlZHVsZS9NYW5hZ2UucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Pages/Settings/Index.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9TZXR0aW5ncy9JbmRleC5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Pages/Students/Create.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9TdHVkZW50cy9DcmVhdGUucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Pages/Students/Details.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9TdHVkZW50cy9EZXRhaWxzLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Pages/Students/Edit.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9TdHVkZW50cy9FZGl0LnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Pages/Students/Index.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9TdHVkZW50cy9JbmRleC5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Routes.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9Sb3V0ZXMucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Shared/Charts/SmuBarChart.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9TaGFyZWQvQ2hhcnRzL1NtdUJhckNoYXJ0LnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Shared/Charts/SmuDonutChart.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9TaGFyZWQvQ2hhcnRzL1NtdURvbnV0Q2hhcnQucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Shared/Charts/SmuHeatmapChart.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9TaGFyZWQvQ2hhcnRzL1NtdUhlYXRtYXBDaGFydC5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Shared/Charts/SmuLineChart.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9TaGFyZWQvQ2hhcnRzL1NtdUxpbmVDaGFydC5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Shared/Charts/SmuRadarChart.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9TaGFyZWQvQ2hhcnRzL1NtdVJhZGFyQ2hhcnQucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Shared/CommandPalette.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9TaGFyZWQvQ29tbWFuZFBhbGV0dGUucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Shared/LanguageSelector.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9TaGFyZWQvTGFuZ3VhZ2VTZWxlY3Rvci5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Shared/NotificationBell.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9TaGFyZWQvTm90aWZpY2F0aW9uQmVsbC5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Shared/QuickActionButton.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9TaGFyZWQvUXVpY2tBY3Rpb25CdXR0b24ucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Shared/RecentActivityList.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9TaGFyZWQvUmVjZW50QWN0aXZpdHlMaXN0LnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Shared/ShortcutsHelpModal.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9TaGFyZWQvU2hvcnRjdXRzSGVscE1vZGFsLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Shared/StatsCard.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9TaGFyZWQvU3RhdHNDYXJkLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/_Imports.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9fSW1wb3J0cy5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Layout/MainLayout.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9MYXlvdXQvTWFpbkxheW91dC5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = b-qoiad7m832
+
+[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Layout/NavMenu.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9MYXlvdXQvTmF2TWVudS5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = b-x1wirq5um9
+
+[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Layout/ReconnectModal.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9MYXlvdXQvUmVjb25uZWN0TW9kYWwucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = b-34q466aa8a
+
+[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Resources/SharedResources.en.resx]
+build_metadata.AdditionalFiles.TargetPath = Resources/SharedResources.en.resx
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Resources/SharedResources.ro.resx]
+build_metadata.AdditionalFiles.TargetPath = Resources/SharedResources.ro.resx
+build_metadata.AdditionalFiles.CssScope = 

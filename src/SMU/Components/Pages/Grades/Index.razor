@@ -1,0 +1,369 @@
+@page "/note"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@attribute [Authorize]
+@using SMU.Data
+@using SMU.Data.Entities
+@using SMU.Services
+@using SMU.Services.DTOs
+@using Microsoft.EntityFrameworkCore
+@inject ApplicationDbContext DbContext
+@inject IGradeService GradeService
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+
+<div class="space-y-6">
+    <!-- Page Header -->
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">Notele Mele</h1>
+            <p class="mt-1 text-sm text-gray-600">
+                @if (CurrentRole == UserRole.Student)
+                {
+                    <text>Vizualizează toate notele tale</text>
+                }
+                else if (CurrentRole == UserRole.Professor)
+                {
+                    <text>Gestionează notele studenților</text>
+                }
+                else if (CurrentRole == UserRole.Dean)
+                {
+                    <text>Aprobă notele în așteptare</text>
+                }
+            </p>
+        </div>
+
+        @if (CurrentRole == UserRole.Professor || CurrentRole == UserRole.Dean || CurrentRole == UserRole.Admin)
+        {
+            <a href="/note/adauga" class="inline-flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg transition-colors">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                </svg>
+                Adaugă Notă
+            </a>
+        }
+    </div>
+
+    <!-- Filters (for Professor/Dean) -->
+    @if (CurrentRole == UserRole.Professor || CurrentRole == UserRole.Dean)
+    {
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Curs</label>
+                    <select @bind="SelectedCourseId" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                        <option value="">Toate cursurile</option>
+                        @foreach (var course in Courses)
+                        {
+                            <option value="@course.Id">@course.Name</option>
+                        }
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Semestru</label>
+                    <select @bind="SelectedSemester" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                        <option value="0">Toate semestrele</option>
+                        <option value="1">Semestrul 1</option>
+                        <option value="2">Semestrul 2</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                    <select @bind="SelectedStatus" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                        <option value="">Toate statusurile</option>
+                        <option value="Pending">În așteptare</option>
+                        <option value="Approved">Aprobat</option>
+                        <option value="Rejected">Respins</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="mt-4 flex justify-end">
+                <button @onclick="ApplyFilters" class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg transition-colors">
+                    Aplică Filtre
+                </button>
+            </div>
+        </div>
+    }
+
+    <!-- Grades Table -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        @if (IsLoading)
+        {
+            <div class="p-8 text-center">
+                <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+                <p class="mt-2 text-gray-600">Se încarcă...</p>
+            </div>
+        }
+        else if (FilteredGrades.Count == 0)
+        {
+            <div class="p-8 text-center text-gray-500">
+                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+                <p class="mt-2">Nu există note înregistrate.</p>
+            </div>
+        }
+        else
+        {
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            @if (CurrentRole != UserRole.Student)
+                            {
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student</th>
+                            }
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Curs</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nota</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tip</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                            @if (CurrentRole == UserRole.Professor || CurrentRole == UserRole.Dean)
+                            {
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acțiuni</th>
+                            }
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        @foreach (var grade in FilteredGrades)
+                        {
+                            <tr class="hover:bg-gray-50">
+                                @if (CurrentRole != UserRole.Student)
+                                {
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">@grade.StudentName</td>
+                                }
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm font-medium text-gray-900">@grade.CourseName</div>
+                                    <div class="text-sm text-gray-500">@grade.Credits credite • Sem. @grade.Semester</div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="@GetGradeBadgeClass(grade.Value)">
+                                        @grade.Value.ToString("0.00")
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">@GetGradeTypeLabel(grade.Type)</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">@grade.ExamDate.ToString("dd.MM.yyyy")</td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="@GetStatusBadgeClass(grade.Status)">
+                                        @GetStatusLabel(grade.Status)
+                                    </span>
+                                </td>
+                                @if (CurrentRole == UserRole.Professor || CurrentRole == UserRole.Dean)
+                                {
+                                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                        @if (grade.Status == GradeStatus.Pending && CurrentRole == UserRole.Professor)
+                                        {
+                                            <button @onclick="() => DeleteGrade(grade.Id)" class="text-danger-600 hover:text-danger-900 mr-3">Șterge</button>
+                                        }
+                                    </td>
+                                }
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Average Display (Student View) -->
+            @if (CurrentRole == UserRole.Student && StudentAverage != null)
+            {
+                <div class="px-6 py-4 bg-gray-50 border-t border-gray-200">
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm font-medium text-gray-700">Media Generală (ponderată cu credite):</span>
+                        <span class="text-xl font-bold @GetGradeBadgeClass(StudentAverage.WeightedAverage)">
+                            @StudentAverage.WeightedAverage.ToString("0.00")
+                        </span>
+                    </div>
+                    <div class="mt-1 text-sm text-gray-500">
+                        @StudentAverage.TotalCredits credite acumulate • @StudentAverage.CompletedCourses cursuri finalizate
+                    </div>
+                </div>
+            }
+        }
+    </div>
+</div>
+
+@code {
+    private List<GradeListDto> Grades = new();
+    private List<GradeListDto> FilteredGrades = new();
+    private List<Course> Courses = new();
+    private StudentAverageDto? StudentAverage;
+    private bool IsLoading = true;
+    private UserRole CurrentRole;
+    private Guid CurrentUserId;
+
+    // Filters
+    private string SelectedCourseId = "";
+    private int SelectedSemester = 0;
+    private string SelectedStatus = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            var userId = Guid.Parse(user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "");
+            var roleClaim = user.FindFirst("Role")?.Value;
+
+            CurrentUserId = userId;
+            CurrentRole = Enum.Parse<UserRole>(roleClaim ?? "Student");
+
+            await LoadData();
+        }
+    }
+
+    private async Task LoadData()
+    {
+        IsLoading = true;
+
+        if (CurrentRole == UserRole.Student)
+        {
+            var student = await DbContext.Students.FirstOrDefaultAsync(s => s.UserId == CurrentUserId);
+            if (student != null)
+            {
+                Grades = await GradeService.GetByStudentAsync(student.Id);
+                StudentAverage = await GradeService.GetStudentAverageAsync(student.Id);
+            }
+        }
+        else if (CurrentRole == UserRole.Professor)
+        {
+            var professor = await DbContext.Professors.FirstOrDefaultAsync(p => p.UserId == CurrentUserId);
+            if (professor != null)
+            {
+                Courses = await DbContext.Courses
+                    .Where(c => c.ProfessorId == professor.Id)
+                    .OrderBy(c => c.Name)
+                    .ToListAsync();
+
+                // Load all grades for professor's courses
+                var professorCourseIds = Courses.Select(c => c.Id).ToList();
+                Grades = await DbContext.Grades
+                    .Where(g => professorCourseIds.Contains(g.CourseId))
+                    .Include(g => g.Student)
+                        .ThenInclude(s => s.User)
+                    .Include(g => g.Course)
+                    .Include(g => g.EnteredBy)
+                    .OrderByDescending(g => g.ExamDate)
+                    .Select(g => new GradeListDto
+                    {
+                        Id = g.Id,
+                        StudentName = $"{g.Student.User.FirstName} {g.Student.User.LastName}",
+                        CourseName = g.Course.Name,
+                        Value = g.Value,
+                        Type = g.Type,
+                        Status = g.Status,
+                        ExamDate = g.ExamDate,
+                        EnteredByName = g.EnteredBy != null ? $"{g.EnteredBy.FirstName} {g.EnteredBy.LastName}" : null,
+                        Credits = g.Course.Credits,
+                        Semester = g.Course.Semester
+                    })
+                    .ToListAsync();
+            }
+        }
+        else if (CurrentRole == UserRole.Dean)
+        {
+            var professor = await DbContext.Professors
+                .Include(p => p.Faculty)
+                .FirstOrDefaultAsync(p => p.UserId == CurrentUserId);
+
+            if (professor?.FacultyId != null)
+            {
+                Grades = await GradeService.GetPendingForApprovalAsync(professor.FacultyId);
+
+                Courses = await DbContext.Courses
+                    .Where(c => c.Program.FacultyId == professor.FacultyId)
+                    .OrderBy(c => c.Name)
+                    .ToListAsync();
+            }
+        }
+
+        FilteredGrades = Grades;
+        IsLoading = false;
+    }
+
+    private void ApplyFilters()
+    {
+        FilteredGrades = Grades;
+
+        if (!string.IsNullOrEmpty(SelectedCourseId))
+        {
+            var courseId = Guid.Parse(SelectedCourseId);
+            FilteredGrades = FilteredGrades.Where(g => g.CourseName == Courses.First(c => c.Id == courseId).Name).ToList();
+        }
+
+        if (SelectedSemester > 0)
+        {
+            FilteredGrades = FilteredGrades.Where(g => g.Semester == SelectedSemester).ToList();
+        }
+
+        if (!string.IsNullOrEmpty(SelectedStatus))
+        {
+            var status = Enum.Parse<GradeStatus>(SelectedStatus);
+            FilteredGrades = FilteredGrades.Where(g => g.Status == status).ToList();
+        }
+    }
+
+    private async Task DeleteGrade(Guid gradeId)
+    {
+        var confirmed = await JS.InvokeAsync<bool>("confirm", "Sigur doriți să ștergeți această notă?");
+        if (confirmed)
+        {
+            var result = await GradeService.DeleteAsync(gradeId);
+            if (result.Succeeded)
+            {
+                await LoadData();
+            }
+        }
+    }
+
+    private string GetGradeBadgeClass(decimal value)
+    {
+        return value switch
+        {
+            >= 9 => "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-success-100 text-success-700",
+            >= 7 => "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-info-100 text-info-700",
+            >= 5 => "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-warning-100 text-warning-700",
+            _ => "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-danger-100 text-danger-700"
+        };
+    }
+
+    private string GetStatusBadgeClass(GradeStatus status)
+    {
+        return status switch
+        {
+            GradeStatus.Pending => "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-warning-100 text-warning-700",
+            GradeStatus.Approved => "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-success-100 text-success-700",
+            GradeStatus.Rejected => "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-danger-100 text-danger-700",
+            _ => "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700"
+        };
+    }
+
+    private string GetStatusLabel(GradeStatus status)
+    {
+        return status switch
+        {
+            GradeStatus.Pending => "În așteptare",
+            GradeStatus.Approved => "Aprobat",
+            GradeStatus.Rejected => "Respins",
+            _ => status.ToString()
+        };
+    }
+
+    private string GetGradeTypeLabel(GradeType type)
+    {
+        return type switch
+        {
+            GradeType.Exam => "Examen",
+            GradeType.Lab => "Laborator",
+            GradeType.Seminar => "Seminar",
+            GradeType.Project => "Proiect",
+            GradeType.Final => "Final",
+            _ => type.ToString()
+        };
+    }
+}

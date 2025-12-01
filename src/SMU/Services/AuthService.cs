@@ -88,6 +88,53 @@ public class AuthService
     {
         return await _userManager.IsInRoleAsync(user, role.ToString());
     }
+
+    public async Task<PasswordChangeResult> ChangePasswordAsync(ClaimsPrincipal principal, string currentPassword, string newPassword)
+    {
+        var user = await GetCurrentUserAsync(principal);
+
+        if (user == null)
+        {
+            _logger.LogWarning("Change password attempted for unauthenticated user");
+            return PasswordChangeResult.Failed("Utilizatorul nu este autentificat.");
+        }
+
+        var result = await _userManager.ChangePasswordAsync(user, currentPassword, newPassword);
+
+        if (result.Succeeded)
+        {
+            _logger.LogInformation("User {UserId} changed password successfully", user.Id);
+            return PasswordChangeResult.Success();
+        }
+
+        var errors = string.Join(", ", result.Errors.Select(e => e.Description));
+        _logger.LogWarning("Failed password change for user {UserId}: {Errors}", user.Id, errors);
+
+        return PasswordChangeResult.Failed(
+            result.Errors.Any(e => e.Code.Contains("Password"))
+                ? "Parola curentă este incorectă."
+                : errors
+        );
+    }
+
+    public async Task<UserRole?> GetUserRoleAsync(Guid userId)
+    {
+        var user = await _userManager.FindByIdAsync(userId.ToString());
+
+        if (user == null)
+        {
+            _logger.LogWarning("GetUserRole attempted for non-existent user: {UserId}", userId);
+            return null;
+        }
+
+        return user.Role;
+    }
+
+    public async Task<UserRole?> GetCurrentUserRoleAsync(ClaimsPrincipal principal)
+    {
+        var user = await GetCurrentUserAsync(principal);
+        return user?.Role;
+    }
 }
 
 public class AuthResult
@@ -113,5 +160,22 @@ public class AuthResult
     {
         Succeeded = false,
         RequiresTwoFactorAuth = true
+    };
+}
+
+public class PasswordChangeResult
+{
+    public bool Succeeded { get; private set; }
+    public string? ErrorMessage { get; private set; }
+
+    public static PasswordChangeResult Success() => new()
+    {
+        Succeeded = true
+    };
+
+    public static PasswordChangeResult Failed(string error) => new()
+    {
+        Succeeded = false,
+        ErrorMessage = error
     };
 }

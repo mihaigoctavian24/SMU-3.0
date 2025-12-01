@@ -1,0 +1,419 @@
+@page "/note/adauga"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@attribute [Authorize(Policy = "CanManageGrades")]
+@using SMU.Data
+@using SMU.Data.Entities
+@using SMU.Services
+@using SMU.Services.DTOs
+@using Microsoft.EntityFrameworkCore
+@inject ApplicationDbContext DbContext
+@inject IGradeService GradeService
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Navigation
+
+<div class="max-w-4xl mx-auto space-y-6">
+    <!-- Page Header -->
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">Adaugă Notă</h1>
+            <p class="mt-1 text-sm text-gray-600">Introdu notele pentru studenți</p>
+        </div>
+        <a href="/note" class="text-gray-600 hover:text-gray-900">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+        </a>
+    </div>
+
+    <!-- Mode Selector -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+        <div class="flex space-x-4">
+            <button @onclick="() => IsBulkMode = false"
+                    class="px-4 py-2 rounded-lg font-medium transition-colors @(!IsBulkMode ? "bg-primary-600 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200")">
+                Notă Individuală
+            </button>
+            <button @onclick="() => IsBulkMode = true"
+                    class="px-4 py-2 rounded-lg font-medium transition-colors @(IsBulkMode ? "bg-primary-600 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200")">
+                Note în Bulk
+            </button>
+        </div>
+    </div>
+
+    @if (ErrorMessage != null)
+    {
+        <div class="bg-danger-50 border border-danger-200 rounded-lg p-4">
+            <p class="text-sm text-danger-800">@ErrorMessage</p>
+        </div>
+    }
+
+    @if (SuccessMessage != null)
+    {
+        <div class="bg-success-50 border border-success-200 rounded-lg p-4">
+            <p class="text-sm text-success-800">@SuccessMessage</p>
+        </div>
+    }
+
+    <!-- Single Grade Form -->
+    @if (!IsBulkMode)
+    {
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+            <EditForm Model="@SingleGrade" OnValidSubmit="HandleSingleSubmit">
+                <div class="space-y-4">
+                    <!-- Course Selection -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Curs <span class="text-danger-500">*</span></label>
+                        <select @bind="SelectedCourseId" @bind:after="OnCourseChange" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                            <option value="">Selectează cursul...</option>
+                            @foreach (var course in ProfessorCourses)
+                            {
+                                <option value="@course.Id">@course.Name (@course.Code)</option>
+                            }
+                        </select>
+                    </div>
+
+                    <!-- Student Selection -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Student <span class="text-danger-500">*</span></label>
+                        <select @bind="SingleGrade.StudentId" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent" disabled="@(string.IsNullOrEmpty(SelectedCourseId))">
+                            <option value="">Selectează studentul...</option>
+                            @foreach (var student in CourseStudents)
+                            {
+                                <option value="@student.Id">@student.FullName (@student.StudentNumber)</option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Grade Value -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Nota (1-10) <span class="text-danger-500">*</span></label>
+                            <input type="number" @bind="SingleGrade.Value" step="0.01" min="1" max="10"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent" />
+                        </div>
+
+                        <!-- Grade Type -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Tip <span class="text-danger-500">*</span></label>
+                            <select @bind="SingleGrade.Type" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                                <option value="@GradeType.Exam">Examen</option>
+                                <option value="@GradeType.Lab">Laborator</option>
+                                <option value="@GradeType.Seminar">Seminar</option>
+                                <option value="@GradeType.Project">Proiect</option>
+                                <option value="@GradeType.Final">Final</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Exam Date -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Data Examenului</label>
+                        <input type="date" @bind="SingleGrade.ExamDate" @bind:format="yyyy-MM-dd"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent" />
+                    </div>
+
+                    <!-- Notes -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Observații</label>
+                        <textarea @bind="SingleGrade.Notes" rows="3"
+                                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"></textarea>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <div class="flex justify-end space-x-3">
+                        <a href="/note" class="px-4 py-2 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors">
+                            Anulează
+                        </a>
+                        <button type="submit" class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg transition-colors">
+                            Salvează Nota
+                        </button>
+                    </div>
+                </div>
+            </EditForm>
+        </div>
+    }
+    else
+    {
+        <!-- Bulk Grades Form -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+            <div class="space-y-4">
+                <!-- Course Selection -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Curs <span class="text-danger-500">*</span></label>
+                    <select @bind="BulkCourseId" @bind:after="OnBulkCourseChange" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                        <option value="">Selectează cursul...</option>
+                        @foreach (var course in ProfessorCourses)
+                        {
+                            <option value="@course.Id">@course.Name (@course.Code)</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Grade Type -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Tip Notă <span class="text-danger-500">*</span></label>
+                        <select @bind="BulkGradeType" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                            <option value="@GradeType.Exam">Examen</option>
+                            <option value="@GradeType.Lab">Laborator</option>
+                            <option value="@GradeType.Seminar">Seminar</option>
+                            <option value="@GradeType.Project">Proiect</option>
+                            <option value="@GradeType.Final">Final</option>
+                        </select>
+                    </div>
+
+                    <!-- Exam Date -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Data Examenului</label>
+                        <input type="date" @bind="BulkExamDate" @bind:format="yyyy-MM-dd"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent" />
+                    </div>
+                </div>
+
+                <!-- Students Table -->
+                @if (!string.IsNullOrEmpty(BulkCourseId))
+                {
+                    <div class="mt-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-3">Studenți</h3>
+                        <div class="overflow-x-auto border border-gray-200 rounded-lg">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Student</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nr. Matricol</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Notă (1-10)</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200">
+                                    @foreach (var student in BulkStudents)
+                                    {
+                                        <tr>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">@student.FullName</td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">@student.StudentNumber</td>
+                                            <td class="px-6 py-4 whitespace-nowrap">
+                                                <input type="number" @bind="student.GradeValue" step="0.01" min="1" max="10"
+                                                       class="w-24 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent" />
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end space-x-3 mt-4">
+                        <a href="/note" class="px-4 py-2 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors">
+                            Anulează
+                        </a>
+                        <button @onclick="HandleBulkSubmit" class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg transition-colors">
+                            Salvează Toate Notele
+                        </button>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private List<Course> ProfessorCourses = new();
+    private List<StudentDto> CourseStudents = new();
+    private List<BulkStudentGradeDto> BulkStudents = new();
+
+    private CreateGradeDto SingleGrade = new() { Type = GradeType.Exam, ExamDate = DateOnly.FromDateTime(DateTime.Today) };
+    private string SelectedCourseId = "";
+
+    private bool IsBulkMode = false;
+    private string BulkCourseId = "";
+    private GradeType BulkGradeType = GradeType.Exam;
+    private DateOnly BulkExamDate = DateOnly.FromDateTime(DateTime.Today);
+
+    private string? ErrorMessage;
+    private string? SuccessMessage;
+    private Guid CurrentUserId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            CurrentUserId = Guid.Parse(user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "");
+            await LoadProfessorCourses();
+        }
+    }
+
+    private async Task LoadProfessorCourses()
+    {
+        var professor = await DbContext.Professors.FirstOrDefaultAsync(p => p.UserId == CurrentUserId);
+        if (professor != null)
+        {
+            ProfessorCourses = await DbContext.Courses
+                .Where(c => c.ProfessorId == professor.Id && c.IsActive)
+                .OrderBy(c => c.Name)
+                .ToListAsync();
+        }
+    }
+
+    private async Task OnCourseChange()
+    {
+        if (!string.IsNullOrEmpty(SelectedCourseId))
+        {
+            var courseId = Guid.Parse(SelectedCourseId);
+            SingleGrade.CourseId = courseId;
+            await LoadCourseStudents(courseId);
+        }
+        else
+        {
+            CourseStudents.Clear();
+        }
+    }
+
+    private async Task OnBulkCourseChange()
+    {
+        if (!string.IsNullOrEmpty(BulkCourseId))
+        {
+            var courseId = Guid.Parse(BulkCourseId);
+            await LoadBulkStudents(courseId);
+        }
+        else
+        {
+            BulkStudents.Clear();
+        }
+    }
+
+    private async Task LoadCourseStudents(Guid courseId)
+    {
+        var course = await DbContext.Courses
+            .Include(c => c.Program)
+                .ThenInclude(p => p.Groups)
+                    .ThenInclude(g => g.Students)
+                        .ThenInclude(s => s.User)
+            .FirstOrDefaultAsync(c => c.Id == courseId);
+
+        if (course != null)
+        {
+            CourseStudents = course.Program.Groups
+                .Where(grp => grp.Year == course.Year)
+                .SelectMany(grp => grp.Students)
+                .Where(s => s.Status == StudentStatus.Active)
+                .Select(s => new StudentDto
+                {
+                    Id = s.Id,
+                    FullName = $"{s.User.FirstName} {s.User.LastName}",
+                    StudentNumber = s.StudentNumber
+                })
+                .OrderBy(s => s.FullName)
+                .ToList();
+        }
+    }
+
+    private async Task LoadBulkStudents(Guid courseId)
+    {
+        var course = await DbContext.Courses
+            .Include(c => c.Program)
+                .ThenInclude(p => p.Groups)
+                    .ThenInclude(g => g.Students)
+                        .ThenInclude(s => s.User)
+            .FirstOrDefaultAsync(c => c.Id == courseId);
+
+        if (course != null)
+        {
+            BulkStudents = course.Program.Groups
+                .Where(grp => grp.Year == course.Year)
+                .SelectMany(grp => grp.Students)
+                .Where(s => s.Status == StudentStatus.Active)
+                .Select(s => new BulkStudentGradeDto
+                {
+                    StudentId = s.Id,
+                    FullName = $"{s.User.FirstName} {s.User.LastName}",
+                    StudentNumber = s.StudentNumber,
+                    GradeValue = null
+                })
+                .OrderBy(s => s.FullName)
+                .ToList();
+        }
+    }
+
+    private async Task HandleSingleSubmit()
+    {
+        ErrorMessage = null;
+        SuccessMessage = null;
+
+        if (SingleGrade.StudentId == Guid.Empty || SingleGrade.CourseId == Guid.Empty)
+        {
+            ErrorMessage = "Vă rugăm să selectați cursul și studentul.";
+            return;
+        }
+
+        var result = await GradeService.CreateAsync(SingleGrade, CurrentUserId);
+
+        if (result.Succeeded)
+        {
+            SuccessMessage = "Nota a fost adăugată cu succes!";
+            SingleGrade = new() { Type = GradeType.Exam, ExamDate = DateOnly.FromDateTime(DateTime.Today) };
+            SelectedCourseId = "";
+            CourseStudents.Clear();
+            StateHasChanged();
+        }
+        else
+        {
+            ErrorMessage = result.ErrorMessage;
+        }
+    }
+
+    private async Task HandleBulkSubmit()
+    {
+        ErrorMessage = null;
+        SuccessMessage = null;
+
+        var gradesToCreate = BulkStudents
+            .Where(s => s.GradeValue.HasValue && s.GradeValue >= 1 && s.GradeValue <= 10)
+            .Select(s => new CreateGradeDto
+            {
+                StudentId = s.StudentId,
+                CourseId = Guid.Parse(BulkCourseId),
+                Value = s.GradeValue!.Value,
+                Type = BulkGradeType,
+                ExamDate = BulkExamDate,
+                Notes = null
+            })
+            .ToList();
+
+        if (gradesToCreate.Count == 0)
+        {
+            ErrorMessage = "Nu există note valide de adăugat.";
+            return;
+        }
+
+        var result = await GradeService.BulkCreateAsync(gradesToCreate, CurrentUserId);
+
+        if (result.Succeeded)
+        {
+            SuccessMessage = $"{gradesToCreate.Count} note au fost adăugate cu succes!";
+            BulkCourseId = "";
+            BulkStudents.Clear();
+            StateHasChanged();
+        }
+        else
+        {
+            ErrorMessage = result.ErrorMessage;
+        }
+    }
+
+    private class StudentDto
+    {
+        public Guid Id { get; set; }
+        public string FullName { get; set; } = string.Empty;
+        public string StudentNumber { get; set; } = string.Empty;
+    }
+
+    private class BulkStudentGradeDto
+    {
+        public Guid StudentId { get; set; }
+        public string FullName { get; set; } = string.Empty;
+        public string StudentNumber { get; set; } = string.Empty;
+        public decimal? GradeValue { get; set; }
+    }
+}

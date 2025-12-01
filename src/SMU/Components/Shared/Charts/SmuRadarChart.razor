@@ -1,0 +1,139 @@
+@using ApexCharts
+
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+    @if (IsLoading)
+    {
+        <div class="flex justify-center items-center h-64">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+        </div>
+    }
+    else if (Data == null || !Data.Any())
+    {
+        <div class="flex flex-col items-center justify-center h-64 text-gray-400">
+            <svg class="w-12 h-12 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
+            </svg>
+            <p class="text-sm">Nu sunt date disponibile</p>
+        </div>
+    }
+    else
+    {
+        <ApexChart TItem="ChartDataCategory"
+                   Title="@Title"
+                   Options="options"
+                   Height="@Height">
+            <ApexPointSeries TItem="ChartDataCategory"
+                             Items="Data"
+                             Name="Performance"
+                             SeriesType="SeriesType.Radar"
+                             XValue="e => e.Category"
+                             YAggregate="e => e.Average(o => o.Value)"
+                             ShowDataLabels />
+        </ApexChart>
+    }
+</div>
+
+@code {
+    [Parameter] public string Title { get; set; } = "Radar Chart";
+    [Parameter] public List<ChartDataCategory> Data { get; set; } = new();
+    [Parameter] public int Height { get; set; } = 400;
+    [Parameter] public bool IsLoading { get; set; } = false;
+
+    private ApexChartOptions<ChartDataCategory> options = new();
+
+    protected override void OnParametersSet()
+    {
+        options = new ApexChartOptions<ChartDataCategory>
+        {
+            Theme = new Theme
+            {
+                Mode = Mode.Light,
+                Palette = PaletteType.Palette1
+            },
+            Chart = new Chart
+            {
+                Toolbar = new Toolbar
+                {
+                    Show = true,
+                    Tools = new Tools
+                    {
+                        Download = true
+                    }
+                },
+                DropShadow = new DropShadow
+                {
+                    Enabled = true,
+                    Blur = 1,
+                    Left = 1,
+                    Top = 1,
+                    Opacity = 0.2
+                }
+            },
+            Colors = new List<string> { "#4F46E5" },
+            Stroke = new Stroke
+            {
+                Width = 2
+            },
+            Fill = new Fill
+            {
+                Opacity = 0.3
+            },
+            Markers = new Markers
+            {
+                Size = 4,
+                StrokeWidth = 2,
+                StrokeColors = new List<string> { "#fff" },
+                Hover = new MarkersHover
+                {
+                    Size = 6
+                }
+            },
+            Xaxis = new XAxis
+            {
+                Labels = new XAxisLabels
+                {
+                    Show = true,
+                    Style = new AxisLabelStyle
+                    {
+                        FontSize = "12px",
+                        FontWeight = "600"
+                    }
+                }
+            },
+            Yaxis = new List<YAxis>
+            {
+                new YAxis
+                {
+                    Show = true,
+                    Min = 0,
+                    Max = 10,
+                    TickAmount = 5
+                }
+            },
+            Tooltip = new Tooltip
+            {
+                Enabled = true
+            },
+            PlotOptions = new PlotOptions
+            {
+                Radar = new PlotOptionsRadar
+                {
+                    Size = 140,
+                    Polygons = new RadarPolygons
+                    {
+                        StrokeColors = "#e8e8e8",
+                        StrokeWidth = 1,
+                        ConnectorColors = "#e8e8e8"
+                    }
+                }
+            }
+        };
+    }
+
+    public class ChartDataCategory
+    {
+        public string Category { get; set; } = string.Empty;
+        public decimal Value { get; set; }
+    }
+}

@@ -1,0 +1,527 @@
+@page "/analytics/risk"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.EntityFrameworkCore
+@using SMU.Data
+@using SMU.Services
+@using SMU.Data.Entities
+@using SMU.Components.Shared
+@using SMU.Components.Shared.Charts
+@attribute [Authorize(Roles = "Dean,Rector,Admin")]
+
+<PageTitle>Tablou Risc Academic - SMU</PageTitle>
+
+<div class="min-h-screen bg-gray-50">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+
+        @if (isLoading)
+        {
+            <div class="flex items-center justify-center h-96">
+                <div class="animate-spin rounded-full h-16 w-16 border-b-4 border-indigo-600"></div>
+            </div>
+        }
+        else if (hasError)
+        {
+            <div class="bg-red-50 border border-red-200 rounded-lg p-6">
+                <div class="flex items-center gap-3 mb-2">
+                    <svg class="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <h3 class="text-lg font-semibold text-red-900">Eroare la incarcarea datelor</h3>
+                </div>
+                <p class="text-sm text-red-700">@errorMessage</p>
+                <button type="button" @onclick="LoadDataAsync"
+                        class="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    Incearca din nou
+                </button>
+            </div>
+        }
+        else
+        {
+            <!-- Header -->
+            <div class="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div class="flex items-center gap-3">
+                    <div class="rounded-md bg-red-100 p-3">
+                        <svg class="h-8 w-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h1 class="text-3xl font-bold text-gray-900">Tablou Risc Academic</h1>
+                        <p class="mt-2 text-sm text-gray-600">Sistem de alertare timpurie pentru studenti la risc</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-4">
+                    @if (isReactor || isAdmin)
+                    {
+                        <!-- Faculty Filter for Rector/Admin -->
+                        <div class="relative">
+                            <label for="faculty" class="sr-only">Selecteaza Facultatea</label>
+                            <select @bind="selectedFacultyId"
+                                    @bind:after="OnFacultyChanged"
+                                    id="faculty"
+                                    class="block w-full rounded-md border-gray-300 py-2 pl-3 pr-10 text-base focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm bg-white shadow-sm">
+                                <option value="">Toate Facultatile</option>
+                                @foreach (var faculty in faculties)
+                                {
+                                    <option value="@faculty.Id">@faculty.Name</option>
+                                }
+                            </select>
+                        </div>
+                    }
+
+                    <!-- Refresh Button -->
+                    <button type="button"
+                            @onclick="LoadDataAsync"
+                            disabled="@isLoading"
+                            class="inline-flex items-center gap-2 rounded-md bg-white px-4 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 disabled:opacity-50">
+                        <svg class="h-5 w-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        Actualizeaza
+                    </button>
+                </div>
+            </div>
+
+            <!-- KPI Cards Row -->
+            <div class="mb-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-5">
+                <!-- Total Monitored Students -->
+                <StatsCard Label="Total Studenti"
+                          Value="@riskDistribution.TotalStudents.ToString()"
+                          IconType="users"
+                          IconBgClass="bg-indigo-100"
+                          IconClass="text-indigo-600" />
+
+                <!-- Low Risk -->
+                <StatsCard Label="Risc Scazut"
+                          Value="@riskDistribution.LowRisk.ToString()"
+                          Subtitle="@($"{riskDistribution.LowRiskPercentage:F1}%")"
+                          IconType="attendance"
+                          IconBgClass="bg-green-100"
+                          IconClass="text-green-600" />
+
+                <!-- Medium Risk -->
+                <StatsCard Label="Risc Mediu"
+                          Value="@riskDistribution.MediumRisk.ToString()"
+                          Subtitle="@($"{riskDistribution.MediumRiskPercentage:F1}%")"
+                          IconType="warning"
+                          IconBgClass="bg-yellow-100"
+                          IconClass="text-yellow-600" />
+
+                <!-- High Risk -->
+                <StatsCard Label="Risc Ridicat"
+                          Value="@riskDistribution.HighRisk.ToString()"
+                          Subtitle="@($"{riskDistribution.HighRiskPercentage:F1}%")"
+                          IconType="warning"
+                          IconBgClass="bg-orange-100"
+                          IconClass="text-orange-600" />
+
+                <!-- Critical Risk -->
+                <StatsCard Label="Risc Critic"
+                          Value="@riskDistribution.CriticalRisk.ToString()"
+                          Subtitle="@($"{riskDistribution.CriticalRiskPercentage:F1}%")"
+                          IconType="warning"
+                          IconBgClass="bg-red-100"
+                          IconClass="text-red-600" />
+            </div>
+
+            <!-- Risk Distribution Chart -->
+            <div class="mb-8">
+                <SmuDonutChart Title="Distributie Niveluri Risc"
+                              Data="@riskChartData"
+                              IsLoading="@isLoading"
+                              Height="400" />
+            </div>
+
+            <!-- Early Warning List -->
+            <div class="bg-white shadow-sm rounded-lg border border-gray-200 p-6 mb-8">
+                <div class="mb-6 flex items-center justify-between">
+                    <div>
+                        <h2 class="text-lg font-semibold text-gray-900">Lista Alerta Timpurie - Top 20 Studenti la Risc</h2>
+                        <p class="mt-1 text-sm text-gray-600">Studenti cu risc ridicat sau critic care necesita interventie</p>
+                    </div>
+                    <div class="flex items-center gap-2 px-4 py-2 bg-red-50 rounded-lg">
+                        <svg class="h-5 w-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                        <span class="text-sm font-semibold text-red-900">@highRiskStudents.Count studenti</span>
+                    </div>
+                </div>
+
+                @if (highRiskStudents.Any())
+                {
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Grupa</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Scor Risc</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nivel</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Factori Principali</th>
+                                    <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actiuni</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                @foreach (var student in highRiskStudents)
+                                {
+                                    <tr class="hover:bg-gray-50">
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <div class="text-sm font-medium text-gray-900">@student.Student.User.FullName</div>
+                                            <div class="text-sm text-gray-500">@student.Student.StudentNumber</div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                            @(student.Student.Group?.Name ?? "Nealocata")
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <div class="text-sm font-semibold text-gray-900">@student.OverallScore / 100</div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            @GetRiskBadge(student.Level)
+                                        </td>
+                                        <td class="px-6 py-4">
+                                            <div class="text-sm text-gray-600 max-w-xs">
+                                                @GetTopRiskFactors(student)
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                            <div class="flex items-center justify-end gap-2">
+                                                <button type="button"
+                                                        @onclick="() => ViewStudentDetails(student.StudentId)"
+                                                        class="text-indigo-600 hover:text-indigo-900">
+                                                    Vezi Detalii
+                                                </button>
+                                                <button type="button"
+                                                        @onclick="() => NotifyStakeholders(student.StudentId)"
+                                                        class="text-amber-600 hover:text-amber-900">
+                                                    Notifica
+                                                </button>
+                                                <button type="button"
+                                                        @onclick="() => RecordIntervention(student.StudentId)"
+                                                        class="text-green-600 hover:text-green-900">
+                                                    Interventie
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <div class="text-center py-12 text-gray-500">
+                        <svg class="mx-auto h-12 w-12 mb-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <p class="text-sm">Nu exista studenti in risc ridicat sau critic</p>
+                    </div>
+                }
+            </div>
+
+            <!-- Active Alerts Section -->
+            <div class="bg-white shadow-sm rounded-lg border border-gray-200 p-6">
+                <div class="mb-6 flex items-center justify-between">
+                    <div>
+                        <h2 class="text-lg font-semibold text-gray-900">Alerte Active</h2>
+                        <p class="mt-1 text-sm text-gray-600">Alerte neconfirmate care necesita atentie</p>
+                    </div>
+                    <div class="flex items-center gap-2 px-3 py-1.5 bg-amber-50 rounded-lg">
+                        <svg class="h-4 w-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                        </svg>
+                        <span class="text-sm font-semibold text-amber-900">@activeAlerts.Count alerte</span>
+                    </div>
+                </div>
+
+                @if (activeAlerts.Any())
+                {
+                    <div class="space-y-4">
+                        @foreach (var alert in activeAlerts)
+                        {
+                            <div class="flex items-start gap-4 p-4 border border-gray-200 rounded-lg hover:bg-gray-50">
+                                <div class="flex-shrink-0 mt-1">
+                                    @GetAlertIcon(alert.RiskLevel)
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex items-center gap-3 mb-2">
+                                        <p class="text-sm font-semibold text-gray-900">@alert.Student.User.FullName</p>
+                                        @GetRiskBadge(alert.RiskLevel)
+                                        <span class="text-xs text-gray-500">@alert.AlertType</span>
+                                    </div>
+                                    <p class="text-sm text-gray-700 mb-2">@alert.Message</p>
+                                    <p class="text-xs text-gray-500">Creat: @alert.CreatedAt.ToString("dd MMM yyyy HH:mm")</p>
+                                </div>
+                                <div class="flex-shrink-0">
+                                    <button type="button"
+                                            @onclick="() => AcknowledgeAlert(alert.Id)"
+                                            class="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700">
+                                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                        </svg>
+                                        Confirma
+                                    </button>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="text-center py-12 text-gray-500">
+                        <svg class="mx-auto h-12 w-12 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <p class="text-sm">Nu exista alerte active</p>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    [Inject] private IRiskScoringService RiskScoringService { get; set; } = default!;
+    [Inject] private IAlertService AlertService { get; set; } = default!;
+    [Inject] private AuthenticationStateProvider AuthenticationStateProvider { get; set; } = default!;
+    [Inject] private ApplicationDbContext DbContext { get; set; } = default!;
+    [Inject] private NavigationManager NavigationManager { get; set; } = default!;
+
+    private bool isLoading = true;
+    private bool hasError = false;
+    private string errorMessage = string.Empty;
+    private bool isReactor = false;
+    private bool isAdmin = false;
+    private Guid? currentUserFacultyId = null;
+
+    // Faculty selection for Rector/Admin
+    private string selectedFacultyId = string.Empty;
+    private List<Faculty> faculties = new();
+
+    // Data
+    private RiskDistributionDto riskDistribution = new();
+    private List<StudentRiskScore> highRiskStudents = new();
+    private List<RiskAlert> activeAlerts = new();
+
+    // Chart Data
+    private List<SmuDonutChart.ChartDataSegment> riskChartData = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDataAsync();
+    }
+
+    private async Task LoadDataAsync()
+    {
+        isLoading = true;
+        hasError = false;
+        errorMessage = string.Empty;
+
+        try
+        {
+            // Get authenticated user info
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+
+            isReactor = user.IsInRole("Rector");
+            isAdmin = user.IsInRole("Admin");
+
+            // Get faculty ID for Dean
+            if (user.IsInRole("Dean") && !isReactor && !isAdmin)
+            {
+                var facultyIdClaim = user.FindFirst("FacultyId")?.Value;
+                if (!string.IsNullOrEmpty(facultyIdClaim) && Guid.TryParse(facultyIdClaim, out var facultyId))
+                {
+                    currentUserFacultyId = facultyId;
+                }
+            }
+
+            // Load faculties for Rector/Admin
+            if (isReactor || isAdmin)
+            {
+                faculties = await DbContext.Faculties
+                    .Where(f => f.IsActive)
+                    .OrderBy(f => f.Name)
+                    .ToListAsync();
+            }
+
+            // Determine which faculty to query
+            Guid? queryFacultyId = null;
+            if (currentUserFacultyId.HasValue)
+            {
+                // Dean can only see their faculty
+                queryFacultyId = currentUserFacultyId.Value;
+            }
+            else if (!string.IsNullOrEmpty(selectedFacultyId) && Guid.TryParse(selectedFacultyId, out var selectedId))
+            {
+                // Rector/Admin selected a specific faculty
+                queryFacultyId = selectedId;
+            }
+            // Otherwise queryFacultyId is null = all faculties
+
+            // Load risk distribution
+            riskDistribution = await RiskScoringService.GetRiskDistributionAsync(queryFacultyId);
+
+            // Load high-risk students (top 20)
+            highRiskStudents = await RiskScoringService.GetHighRiskStudentsAsync(queryFacultyId, limit: 20);
+
+            // Load active alerts
+            activeAlerts = await AlertService.GetActiveAlertsAsync(queryFacultyId);
+
+            // Prepare chart data
+            PrepareRiskChartData();
+        }
+        catch (Exception ex)
+        {
+            hasError = true;
+            errorMessage = $"Eroare la incarcarea datelor: {ex.Message}";
+            Console.WriteLine($"Error loading risk dashboard: {ex}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void PrepareRiskChartData()
+    {
+        riskChartData = new List<SmuDonutChart.ChartDataSegment>
+        {
+            new() { Label = "Risc Scazut", Value = riskDistribution.LowRisk, Color = "#10B981" },
+            new() { Label = "Risc Mediu", Value = riskDistribution.MediumRisk, Color = "#F59E0B" },
+            new() { Label = "Risc Ridicat", Value = riskDistribution.HighRisk, Color = "#FB923C" },
+            new() { Label = "Risc Critic", Value = riskDistribution.CriticalRisk, Color = "#EF4444" }
+        };
+    }
+
+    private async Task OnFacultyChanged()
+    {
+        await LoadDataAsync();
+    }
+
+    private RenderFragment GetRiskBadge(RiskLevel level) => level switch
+    {
+        RiskLevel.Low => @<span class="inline-flex items-center gap-1 rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-800">
+            <svg class="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+            </svg>
+            Scazut
+        </span>,
+
+        RiskLevel.Medium => @<span class="inline-flex items-center gap-1 rounded-full bg-yellow-100 px-3 py-1 text-xs font-semibold text-yellow-800">
+            <svg class="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+            </svg>
+            Mediu
+        </span>,
+
+        RiskLevel.High => @<span class="inline-flex items-center gap-1 rounded-full bg-orange-100 px-3 py-1 text-xs font-semibold text-orange-800">
+            <svg class="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+            </svg>
+            Ridicat
+        </span>,
+
+        RiskLevel.Critical => @<span class="inline-flex items-center gap-1 rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-800">
+            <svg class="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+            </svg>
+            Critic
+        </span>,
+
+        _ => @<span class="text-gray-500">-</span>
+    };
+
+    private RenderFragment GetAlertIcon(RiskLevel level)
+    {
+        var colorClass = level switch
+        {
+            RiskLevel.Critical => "text-red-600",
+            RiskLevel.High => "text-orange-600",
+            RiskLevel.Medium => "text-yellow-600",
+            _ => "text-green-600"
+        };
+
+        return @<svg class="h-6 w-6 @colorClass" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+        </svg>;
+    }
+
+    private string GetTopRiskFactors(StudentRiskScore riskScore)
+    {
+        var factors = new List<string>();
+
+        if (riskScore.GradeRiskFactor > 0.5m)
+            factors.Add("Note scazute");
+
+        if (riskScore.AttendanceRiskFactor > 0.5m)
+            factors.Add("Absente frecvente");
+
+        if (riskScore.TrendRiskFactor > 0.5m)
+            factors.Add("Trend descrescator");
+
+        if (riskScore.EngagementRiskFactor > 0.5m)
+            factors.Add("Engagement scazut");
+
+        return factors.Any() ? string.Join(", ", factors) : "N/A";
+    }
+
+    private void ViewStudentDetails(Guid studentId)
+    {
+        NavigationManager.NavigateTo($"/students/details/{studentId}");
+    }
+
+    private async Task NotifyStakeholders(Guid studentId)
+    {
+        try
+        {
+            // Create alert and notify stakeholders
+            var alert = await AlertService.CreateRiskAlertAsync(
+                studentId,
+                RiskLevel.High,
+                "ManualNotification",
+                "Notificare manuala de catre utilizator din Risk Dashboard");
+
+            await AlertService.NotifyStakeholdersAsync(alert.Id);
+
+            // Reload data
+            await LoadDataAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error notifying stakeholders: {ex.Message}");
+        }
+    }
+
+    private void RecordIntervention(Guid studentId)
+    {
+        // Navigate to intervention recording page (to be implemented)
+        NavigationManager.NavigateTo($"/students/intervention/{studentId}");
+    }
+
+    private async Task AcknowledgeAlert(Guid alertId)
+    {
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var userIdClaim = authState.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
+            if (!string.IsNullOrEmpty(userIdClaim) && Guid.TryParse(userIdClaim, out var userId))
+            {
+                await AlertService.AcknowledgeAlertAsync(alertId, userId);
+
+                // Reload data
+                await LoadDataAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error acknowledging alert: {ex.Message}");
+        }
+    }
+}

@@ -1,0 +1,374 @@
+@page "/notifications"
+@using SMU.Services
+@using SMU.Services.DTOs
+@using SMU.Data.Entities
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@inject INotificationService NotificationService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager Navigation
+@attribute [Authorize]
+
+<PageTitle>Notificări - SMU</PageTitle>
+
+<!-- Page Header -->
+<div class="mb-6">
+    <div class="flex items-center justify-between mb-2">
+        <h1 class="text-2xl font-bold text-gray-900">Notificări</h1>
+        @if (UnreadCount > 0)
+        {
+            <button @onclick="MarkAllAsRead"
+                    class="btn-secondary text-sm">
+                <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                </svg>
+                Marchează toate ca citite
+            </button>
+        }
+    </div>
+    <p class="text-gray-600">Vizualizați și gestionați toate notificările</p>
+</div>
+
+<!-- Filters -->
+<div class="card mb-6">
+    <div class="flex flex-wrap items-center gap-4">
+        <!-- Filter Tabs -->
+        <div class="flex gap-2">
+            <button @onclick="() => SetFilter(null)"
+                    class="px-4 py-2 text-sm font-medium rounded-lg transition-colors @(CurrentFilter == null ? "bg-primary-100 text-primary-700" : "text-gray-600 hover:bg-gray-100")">
+                Toate @(TotalCount > 0 ? $"({TotalCount})" : "")
+            </button>
+            <button @onclick="() => SetFilter(true)"
+                    class="px-4 py-2 text-sm font-medium rounded-lg transition-colors @(CurrentFilter == true ? "bg-primary-100 text-primary-700" : "text-gray-600 hover:bg-gray-100")">
+                Necitite @(UnreadCount > 0 ? $"({UnreadCount})" : "")
+            </button>
+        </div>
+
+        <!-- Type Filter -->
+        <div class="flex-1"></div>
+        <select @bind="SelectedType"
+                class="input max-w-xs">
+            <option value="">Toate tipurile</option>
+            <option value="@NotificationType.GradeAdded">Note noi</option>
+            <option value="@NotificationType.AttendanceMarked">Prezență</option>
+            <option value="@NotificationType.RequestUpdate">Cereri</option>
+            <option value="@NotificationType.Success">Succes</option>
+            <option value="@NotificationType.Warning">Avertismente</option>
+            <option value="@NotificationType.Info">Informații</option>
+        </select>
+    </div>
+</div>
+
+<!-- Notifications List -->
+<div class="card">
+    @if (IsLoading)
+    {
+        <div class="text-center py-12">
+            <div class="inline-block w-12 h-12 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin"></div>
+            <p class="text-gray-500 mt-4">Se încarcă notificările...</p>
+        </div>
+    }
+    else if (Notifications.Any())
+    {
+        <!-- Group by date -->
+        @foreach (var group in Notifications.GroupBy(n => n.CreatedAt.Date).OrderByDescending(g => g.Key))
+        {
+            <div class="mb-6 last:mb-0">
+                <!-- Date Header -->
+                <div class="flex items-center gap-3 mb-3 px-4">
+                    <h3 class="text-sm font-semibold text-gray-700">
+                        @GetDateLabel(group.Key)
+                    </h3>
+                    <div class="flex-1 h-px bg-gray-200"></div>
+                </div>
+
+                <!-- Notifications in this date group -->
+                @foreach (var notification in group)
+                {
+                    <div @onclick="() => HandleNotificationClick(notification)"
+                         class="flex items-start gap-4 p-4 border-b border-gray-100 last:border-b-0 hover:bg-gray-50 cursor-pointer transition-colors @(!notification.IsRead ? "bg-primary-50/30" : "")">
+
+                        <!-- Type Icon -->
+                        <div class="flex-shrink-0 mt-1">
+                            <span class="inline-flex items-center justify-center w-10 h-10 rounded-full text-lg @GetTypeColorClass(notification.Type)">
+                                @notification.TypeIcon
+                            </span>
+                        </div>
+
+                        <!-- Content -->
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-start justify-between gap-3">
+                                <div class="flex-1">
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <h4 class="text-sm font-semibold text-gray-900 @(!notification.IsRead ? "font-bold" : "")">
+                                            @notification.Title
+                                        </h4>
+                                        @if (!notification.IsRead)
+                                        {
+                                            <span class="w-2 h-2 bg-primary-500 rounded-full flex-shrink-0"></span>
+                                        }
+                                    </div>
+                                    <p class="text-sm text-gray-600 mb-2">
+                                        @notification.Message
+                                    </p>
+                                    <div class="flex items-center gap-3">
+                                        <span class="text-xs text-gray-500">@notification.TimeAgo</span>
+                                        <span class="text-xs px-2 py-1 rounded-full @GetTypeBadgeClass(notification.Type)">
+                                            @notification.TypeLabel
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <!-- Actions -->
+                                <div class="flex items-center gap-2 flex-shrink-0">
+                                    @if (!notification.IsRead)
+                                    {
+                                        <button @onclick:stopPropagation="true"
+                                                @onclick="() => MarkAsRead(notification)"
+                                                class="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded transition-colors"
+                                                title="Marchează ca citit">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                            </svg>
+                                        </button>
+                                    }
+                                    <button @onclick:stopPropagation="true"
+                                            @onclick="() => DeleteNotification(notification)"
+                                            class="p-1.5 text-gray-400 hover:text-danger-600 hover:bg-danger-50 rounded transition-colors"
+                                            title="Șterge">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+
+        <!-- Pagination -->
+        @if (PagedResult != null && PagedResult.TotalPages > 1)
+        {
+            <div class="flex items-center justify-between px-4 py-3 border-t border-gray-200">
+                <div class="text-sm text-gray-600">
+                    Pagina @PagedResult.Page din @PagedResult.TotalPages
+                    (@PagedResult.TotalCount @(PagedResult.TotalCount == 1 ? "notificare" : "notificări"))
+                </div>
+                <div class="flex gap-2">
+                    <button @onclick="PreviousPage"
+                            disabled="@(!PagedResult.HasPreviousPage)"
+                            class="btn-secondary text-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                        Înapoi
+                    </button>
+                    <button @onclick="NextPage"
+                            disabled="@(!PagedResult.HasNextPage)"
+                            class="btn-secondary text-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                        Următoarea
+                    </button>
+                </div>
+            </div>
+        }
+    }
+    else
+    {
+        <div class="text-center py-12">
+            <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/>
+            </svg>
+            <h3 class="text-lg font-medium text-gray-900 mb-2">Nu există notificări</h3>
+            <p class="text-gray-500">
+                @if (CurrentFilter == true)
+                {
+                    <text>Nu aveți notificări necitite în acest moment.</text>
+                }
+                else
+                {
+                    <text>Nu aveți nicio notificare.</text>
+                }
+            </p>
+        </div>
+    }
+</div>
+
+@code {
+    private List<NotificationDto> Notifications { get; set; } = new();
+    private PagedResult<NotificationDto>? PagedResult { get; set; }
+    private int CurrentPage { get; set; } = 1;
+    private int PageSize { get; set; } = 25;
+    private bool? CurrentFilter { get; set; }
+    private string SelectedType { get; set; } = "";
+    private int UnreadCount { get; set; }
+    private int TotalCount { get; set; }
+    private bool IsLoading { get; set; }
+    private Guid CurrentUserId { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var userIdClaim = authState.User.FindFirst(ClaimTypes.NameIdentifier);
+        if (userIdClaim != null && Guid.TryParse(userIdClaim.Value, out var userId))
+        {
+            CurrentUserId = userId;
+        }
+
+        await LoadNotifications();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await LoadNotifications();
+    }
+
+    private async Task LoadNotifications()
+    {
+        if (CurrentUserId == Guid.Empty) return;
+
+        IsLoading = true;
+        try
+        {
+            var filter = new NotificationFilter
+            {
+                UserId = CurrentUserId,
+                UnreadOnly = CurrentFilter ?? false,
+                Type = !string.IsNullOrEmpty(SelectedType) ? Enum.Parse<NotificationType>(SelectedType) : null
+            };
+
+            PagedResult = await NotificationService.GetPagedAsync(CurrentUserId, filter, CurrentPage, PageSize);
+            Notifications = PagedResult.Items;
+
+            // Update counts
+            UnreadCount = await NotificationService.GetUnreadCountAsync(CurrentUserId);
+            TotalCount = PagedResult.TotalCount;
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private async Task SetFilter(bool? unreadOnly)
+    {
+        CurrentFilter = unreadOnly;
+        CurrentPage = 1;
+        await LoadNotifications();
+    }
+
+    private async Task PreviousPage()
+    {
+        if (PagedResult?.HasPreviousPage == true)
+        {
+            CurrentPage--;
+            await LoadNotifications();
+        }
+    }
+
+    private async Task NextPage()
+    {
+        if (PagedResult?.HasNextPage == true)
+        {
+            CurrentPage++;
+            await LoadNotifications();
+        }
+    }
+
+    private async Task HandleNotificationClick(NotificationDto notification)
+    {
+        if (!notification.IsRead)
+        {
+            await MarkAsRead(notification);
+        }
+
+        if (!string.IsNullOrEmpty(notification.Link))
+        {
+            Navigation.NavigateTo(notification.Link);
+        }
+    }
+
+    private async Task MarkAsRead(NotificationDto notification)
+    {
+        var result = await NotificationService.MarkAsReadAsync(notification.Id);
+        if (result.Succeeded)
+        {
+            notification.IsRead = true;
+            UnreadCount = Math.Max(0, UnreadCount - 1);
+            StateHasChanged();
+        }
+    }
+
+    private async Task MarkAllAsRead()
+    {
+        var result = await NotificationService.MarkAllAsReadAsync(CurrentUserId);
+        if (result.Succeeded)
+        {
+            foreach (var notification in Notifications)
+            {
+                notification.IsRead = true;
+            }
+            UnreadCount = 0;
+            StateHasChanged();
+        }
+    }
+
+    private async Task DeleteNotification(NotificationDto notification)
+    {
+        var result = await NotificationService.DeleteAsync(notification.Id);
+        if (result.Succeeded)
+        {
+            Notifications.Remove(notification);
+            if (!notification.IsRead)
+            {
+                UnreadCount = Math.Max(0, UnreadCount - 1);
+            }
+            TotalCount--;
+            StateHasChanged();
+        }
+    }
+
+    private string GetDateLabel(DateTime date)
+    {
+        var today = DateTime.Today;
+        var yesterday = today.AddDays(-1);
+
+        if (date.Date == today)
+            return "Astăzi";
+        if (date.Date == yesterday)
+            return "Ieri";
+        if (date.Date > today.AddDays(-7))
+            return date.ToString("dddd, dd MMMM", new System.Globalization.CultureInfo("ro-RO"));
+
+        return date.ToString("dd MMMM yyyy", new System.Globalization.CultureInfo("ro-RO"));
+    }
+
+    private string GetTypeColorClass(NotificationType type)
+    {
+        return type switch
+        {
+            NotificationType.Info => "bg-blue-100 text-blue-600",
+            NotificationType.Success => "bg-green-100 text-green-600",
+            NotificationType.Warning => "bg-yellow-100 text-yellow-600",
+            NotificationType.Error => "bg-red-100 text-red-600",
+            NotificationType.GradeAdded => "bg-purple-100 text-purple-600",
+            NotificationType.AttendanceMarked => "bg-cyan-100 text-cyan-600",
+            NotificationType.RequestUpdate => "bg-indigo-100 text-indigo-600",
+            _ => "bg-gray-100 text-gray-600"
+        };
+    }
+
+    private string GetTypeBadgeClass(NotificationType type)
+    {
+        return type switch
+        {
+            NotificationType.Info => "bg-blue-50 text-blue-700",
+            NotificationType.Success => "bg-green-50 text-green-700",
+            NotificationType.Warning => "bg-yellow-50 text-yellow-700",
+            NotificationType.Error => "bg-red-50 text-red-700",
+            NotificationType.GradeAdded => "bg-purple-50 text-purple-700",
+            NotificationType.AttendanceMarked => "bg-cyan-50 text-cyan-700",
+            NotificationType.RequestUpdate => "bg-indigo-50 text-indigo-700",
+            _ => "bg-gray-50 text-gray-700"
+        };
+    }
+}

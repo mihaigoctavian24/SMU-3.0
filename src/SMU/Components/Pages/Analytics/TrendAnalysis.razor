@@ -1,0 +1,711 @@
+@page "/analytics/trends"
+@attribute [Authorize(Policy = "CanViewReports")]
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.EntityFrameworkCore
+@using SMU.Data
+@using SMU.Data.Entities
+@using SMU.Components.Shared.Charts
+@inject ApplicationDbContext DbContext
+@inject AuthenticationStateProvider AuthStateProvider
+
+<PageTitle>Analiza Tendințelor - SMU</PageTitle>
+
+<div class="space-y-6">
+    <!-- Header Section -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-900 flex items-center gap-3">
+                <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+                Analiza Tendințelor
+            </h1>
+            <p class="text-gray-600 mt-1">Evoluția indicatorilor academici în timp</p>
+        </div>
+
+        <div class="flex flex-col sm:flex-row gap-3">
+            <!-- Period Selector -->
+            <select @bind="selectedPeriod" @bind:after="LoadTrendData"
+                    class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                <option value="@AnalysisPeriod.LastMonth">Ultima lună</option>
+                <option value="@AnalysisPeriod.Last3Months">Ultimele 3 luni</option>
+                <option value="@AnalysisPeriod.Last6Months">Ultimele 6 luni</option>
+                <option value="@AnalysisPeriod.LastYear">Ultimul an</option>
+            </select>
+
+            <!-- Faculty Filter -->
+            <select @bind="selectedFacultyId" @bind:after="LoadTrendData"
+                    class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                <option value="">Toate facultățile</option>
+                @foreach (var faculty in faculties)
+                {
+                    <option value="@faculty.Id">@faculty.Name</option>
+                }
+            </select>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="flex items-center justify-center py-12">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        </div>
+    }
+    else
+    {
+        <!-- Trend Summary Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- Average Grade Trend -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">Trend Medie Note</p>
+                        <p class="text-2xl font-bold text-gray-900 mt-1">@averageGradeTrend.CurrentValue.ToString("F2")</p>
+                    </div>
+                    <div class="@GetTrendColorClass(averageGradeTrend.ChangePercent) p-3 rounded-full">
+                        @if (averageGradeTrend.ChangePercent >= 0)
+                        {
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                            </svg>
+                        }
+                        else
+                        {
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                            </svg>
+                        }
+                    </div>
+                </div>
+                <div class="mt-4 flex items-center gap-2">
+                    <span class="@GetTrendTextColorClass(averageGradeTrend.ChangePercent) text-sm font-semibold">
+                        @(averageGradeTrend.ChangePercent >= 0 ? "+" : "")@averageGradeTrend.ChangePercent.ToString("F1")%
+                    </span>
+                    <span class="text-gray-500 text-sm">față de perioada anterioară</span>
+                </div>
+            </div>
+
+            <!-- Attendance Trend -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">Trend Prezență</p>
+                        <p class="text-2xl font-bold text-gray-900 mt-1">@attendanceTrend.CurrentValue.ToString("F1")%</p>
+                    </div>
+                    <div class="@GetTrendColorClass(attendanceTrend.ChangePercent) p-3 rounded-full">
+                        @if (attendanceTrend.ChangePercent >= 0)
+                        {
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                            </svg>
+                        }
+                        else
+                        {
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                            </svg>
+                        }
+                    </div>
+                </div>
+                <div class="mt-4 flex items-center gap-2">
+                    <span class="@GetTrendTextColorClass(attendanceTrend.ChangePercent) text-sm font-semibold">
+                        @(attendanceTrend.ChangePercent >= 0 ? "+" : "")@attendanceTrend.ChangePercent.ToString("F1")%
+                    </span>
+                    <span class="text-gray-500 text-sm">față de perioada anterioară</span>
+                </div>
+            </div>
+
+            <!-- At-Risk Students Trend -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">Studenți la Risc</p>
+                        <p class="text-2xl font-bold text-gray-900 mt-1">@atRiskTrend.CurrentValue.ToString("F1")%</p>
+                    </div>
+                    <div class="@GetTrendColorClass(-atRiskTrend.ChangePercent) p-3 rounded-full">
+                        @if (atRiskTrend.ChangePercent <= 0)
+                        {
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                            </svg>
+                        }
+                        else
+                        {
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                            </svg>
+                        }
+                    </div>
+                </div>
+                <div class="mt-4 flex items-center gap-2">
+                    <span class="@GetTrendTextColorClass(-atRiskTrend.ChangePercent) text-sm font-semibold">
+                        @(atRiskTrend.ChangePercent >= 0 ? "+" : "")@atRiskTrend.ChangePercent.ToString("F1")%
+                    </span>
+                    <span class="text-gray-500 text-sm">față de perioada anterioară</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Metrics Evolution Chart -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <h2 class="text-xl font-semibold text-gray-900 mb-6">Evoluția Indicatorilor</h2>
+
+            @if (metricsChartData.Labels.Any())
+            {
+                <SmuLineChart
+                    Labels="@metricsChartData.Labels"
+                    Datasets="@metricsChartData.Datasets"
+                    Height="400" />
+            }
+            else
+            {
+                <div class="text-center py-12 text-gray-500">
+                    Nu există date disponibile pentru perioada selectată
+                </div>
+            }
+        </div>
+
+        <!-- Faculty/Program Comparison -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-xl font-semibold text-gray-900">Comparație Entități</h2>
+
+                <div class="flex gap-2">
+                    <button @onclick="() => SetComparisonType(ComparisonType.Faculties)"
+                            class="@(comparisonType == ComparisonType.Faculties ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-700") px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                        Facultăți
+                    </button>
+                    <button @onclick="() => SetComparisonType(ComparisonType.Programs)"
+                            class="@(comparisonType == ComparisonType.Programs ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-700") px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                        Programe
+                    </button>
+                </div>
+            </div>
+
+            @if (comparisonChartData.Labels.Any())
+            {
+                <SmuBarChart
+                    Labels="@comparisonChartData.Labels"
+                    Datasets="@comparisonChartData.Datasets"
+                    Height="350" />
+            }
+            else
+            {
+                <div class="text-center py-12 text-gray-500">
+                    Nu există date disponibile pentru comparație
+                </div>
+            }
+        </div>
+
+        <!-- Historical Data Table -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h2 class="text-xl font-semibold text-gray-900">Date Istorice</h2>
+            </div>
+
+            @if (historicalData.Any())
+            {
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th @onclick="() => SortHistoricalData(nameof(DailySnapshot.Date))"
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100">
+                                    <div class="flex items-center gap-2">
+                                        Data
+                                        @if (historicalSortColumn == nameof(DailySnapshot.Date))
+                                        {
+                                            <svg class="w-4 h-4 @(historicalSortAscending ? "" : "transform rotate-180")" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
+                                            </svg>
+                                        }
+                                    </div>
+                                </th>
+                                <th @onclick="() => SortHistoricalData(nameof(DailySnapshot.TotalStudents))"
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100">
+                                    <div class="flex items-center gap-2">
+                                        Studenți
+                                        @if (historicalSortColumn == nameof(DailySnapshot.TotalStudents))
+                                        {
+                                            <svg class="w-4 h-4 @(historicalSortAscending ? "" : "transform rotate-180")" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
+                                            </svg>
+                                        }
+                                    </div>
+                                </th>
+                                <th @onclick="() => SortHistoricalData(nameof(DailySnapshot.AverageGrade))"
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100">
+                                    <div class="flex items-center gap-2">
+                                        Media
+                                        @if (historicalSortColumn == nameof(DailySnapshot.AverageGrade))
+                                        {
+                                            <svg class="w-4 h-4 @(historicalSortAscending ? "" : "transform rotate-180")" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
+                                            </svg>
+                                        }
+                                    </div>
+                                </th>
+                                <th @onclick="() => SortHistoricalData(nameof(DailySnapshot.AttendanceRate))"
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100">
+                                    <div class="flex items-center gap-2">
+                                        Prezență
+                                        @if (historicalSortColumn == nameof(DailySnapshot.AttendanceRate))
+                                        {
+                                            <svg class="w-4 h-4 @(historicalSortAscending ? "" : "transform rotate-180")" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
+                                            </svg>
+                                        }
+                                    </div>
+                                </th>
+                                <th @onclick="() => SortHistoricalData(nameof(DailySnapshot.GradesSubmitted))"
+                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100">
+                                    <div class="flex items-center gap-2">
+                                        Note Introduse
+                                        @if (historicalSortColumn == nameof(DailySnapshot.GradesSubmitted))
+                                        {
+                                            <svg class="w-4 h-4 @(historicalSortAscending ? "" : "transform rotate-180")" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
+                                            </svg>
+                                        }
+                                    </div>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            @foreach (var snapshot in historicalData.Take(10))
+                            {
+                                <tr class="hover:bg-gray-50">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                        @snapshot.Date.ToString("dd.MM.yyyy")
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                        @snapshot.TotalStudents
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                        @(snapshot.AverageGrade?.ToString("F2") ?? "-")
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                        @(snapshot.AttendanceRate?.ToString("F1") ?? "-")%
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                        @snapshot.GradesSubmitted
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="text-center py-12 text-gray-500">
+                    Nu există date istorice disponibile
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private bool isLoading = true;
+    private List<Faculty> faculties = new();
+    private string? selectedFacultyId = null;
+    private AnalysisPeriod selectedPeriod = AnalysisPeriod.Last3Months;
+
+    // Trend data
+    private TrendMetric averageGradeTrend = new();
+    private TrendMetric attendanceTrend = new();
+    private TrendMetric atRiskTrend = new();
+
+    // Chart data
+    private ChartData metricsChartData = new();
+    private ChartData comparisonChartData = new();
+    private ComparisonType comparisonType = ComparisonType.Faculties;
+
+    // Historical data
+    private List<DailySnapshot> historicalData = new();
+    private string historicalSortColumn = nameof(DailySnapshot.Date);
+    private bool historicalSortAscending = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadFaculties();
+        await LoadTrendData();
+        isLoading = false;
+    }
+
+    private async Task LoadFaculties()
+    {
+        faculties = await DbContext.Faculties
+            .OrderBy(f => f.Name)
+            .ToListAsync();
+    }
+
+    private async Task LoadTrendData()
+    {
+        isLoading = true;
+        StateHasChanged();
+
+        var (startDate, endDate) = GetDateRange(selectedPeriod);
+
+        // Load snapshots for selected period
+        var startDateOnly = DateOnly.FromDateTime(startDate);
+        var endDateOnly = DateOnly.FromDateTime(endDate);
+
+        var query = DbContext.DailySnapshots
+            .Where(s => s.Date >= startDateOnly && s.Date <= endDateOnly);
+
+        if (!string.IsNullOrEmpty(selectedFacultyId) && Guid.TryParse(selectedFacultyId, out var facultyGuid))
+        {
+            query = query.Where(s => s.FacultyId == facultyGuid);
+        }
+
+        var snapshots = await query
+            .OrderBy(s => s.Date)
+            .ToListAsync();
+
+        // Calculate trends
+        CalculateTrends(snapshots);
+
+        // Prepare chart data
+        PrepareMetricsChartData(snapshots);
+
+        // Load comparison data
+        await LoadComparisonData(startDate, endDate);
+
+        // Load historical data
+        historicalData = snapshots.OrderByDescending(s => s.Date).ToList();
+        ApplyHistoricalSort();
+
+        isLoading = false;
+    }
+
+    private void CalculateTrends(List<DailySnapshot> snapshots)
+    {
+        if (snapshots.Count < 2)
+        {
+            averageGradeTrend = new TrendMetric();
+            attendanceTrend = new TrendMetric();
+            atRiskTrend = new TrendMetric();
+            return;
+        }
+
+        var firstSnapshot = snapshots.First();
+        var lastSnapshot = snapshots.Last();
+
+        // Average grade trend
+        averageGradeTrend = CalculateTrendMetric(
+            (double)(firstSnapshot.AverageGrade ?? 0),
+            (double)(lastSnapshot.AverageGrade ?? 0)
+        );
+
+        // Attendance trend
+        attendanceTrend = CalculateTrendMetric(
+            (double)(firstSnapshot.AttendanceRate ?? 0),
+            (double)(lastSnapshot.AttendanceRate ?? 0)
+        );
+
+        // At-risk students trend - Note: DailySnapshot doesn't have AtRiskStudents property
+        // We'll calculate it as students who are not active
+        var firstAtRisk = firstSnapshot.TotalStudents > 0
+            ? ((firstSnapshot.TotalStudents - firstSnapshot.ActiveStudents) * 100.0 / firstSnapshot.TotalStudents)
+            : 0;
+        var lastAtRisk = lastSnapshot.TotalStudents > 0
+            ? ((lastSnapshot.TotalStudents - lastSnapshot.ActiveStudents) * 100.0 / lastSnapshot.TotalStudents)
+            : 0;
+
+        atRiskTrend = CalculateTrendMetric(firstAtRisk, lastAtRisk);
+    }
+
+    private TrendMetric CalculateTrendMetric(double oldValue, double newValue)
+    {
+        var change = newValue - oldValue;
+        var changePercent = oldValue != 0 ? (change / oldValue * 100) : 0;
+
+        return new TrendMetric
+        {
+            PreviousValue = oldValue,
+            CurrentValue = newValue,
+            ChangePercent = changePercent
+        };
+    }
+
+    private void PrepareMetricsChartData(List<DailySnapshot> snapshots)
+    {
+        if (!snapshots.Any())
+        {
+            metricsChartData = new ChartData();
+            return;
+        }
+
+        metricsChartData = new ChartData
+        {
+            Labels = snapshots.Select(s => s.Date.ToString("dd.MM")).ToList(),
+            Datasets = new List<ChartDataset>
+            {
+                new()
+                {
+                    Label = "Media generală",
+                    Data = snapshots.Select(s => (double)(s.AverageGrade ?? 0)).ToList(),
+                    BorderColor = "rgb(59, 130, 246)",
+                    BackgroundColor = "rgba(59, 130, 246, 0.1)",
+                    Tension = 0.4
+                },
+                new()
+                {
+                    Label = "Rata prezență (%)",
+                    Data = snapshots.Select(s => (double)(s.AttendanceRate ?? 0)).ToList(),
+                    BorderColor = "rgb(34, 197, 94)",
+                    BackgroundColor = "rgba(34, 197, 94, 0.1)",
+                    Tension = 0.4
+                },
+                new()
+                {
+                    Label = "Studenți activi (%)",
+                    Data = snapshots.Select(s => s.TotalStudents > 0
+                        ? ((double)s.ActiveStudents * 100.0 / s.TotalStudents)
+                        : 0).ToList(),
+                    BorderColor = "rgb(168, 85, 247)",
+                    BackgroundColor = "rgba(168, 85, 247, 0.1)",
+                    Tension = 0.4
+                }
+            }
+        };
+    }
+
+    private async Task LoadComparisonData(DateTime startDate, DateTime endDate)
+    {
+        if (comparisonType == ComparisonType.Faculties)
+        {
+            await LoadFacultyComparison(startDate, endDate);
+        }
+        else
+        {
+            await LoadProgramComparison(startDate, endDate);
+        }
+    }
+
+    private async Task LoadFacultyComparison(DateTime startDate, DateTime endDate)
+    {
+        var startDateOnly = DateOnly.FromDateTime(startDate);
+        var endDateOnly = DateOnly.FromDateTime(endDate);
+
+        var facultyStats = await DbContext.DailySnapshots
+            .Where(s => s.Date >= startDateOnly && s.Date <= endDateOnly && s.FacultyId != null)
+            .GroupBy(s => s.FacultyId)
+            .Select(g => new
+            {
+                FacultyId = g.Key,
+                AvgGrade = g.Average(s => s.AverageGrade),
+                AvgAttendance = g.Average(s => s.AttendanceRate)
+            })
+            .ToListAsync();
+
+        var labels = new List<string>();
+        var avgGrades = new List<double>();
+        var avgAttendance = new List<double>();
+
+        foreach (var stat in facultyStats)
+        {
+            var faculty = faculties.FirstOrDefault(f => f.Id == stat.FacultyId);
+            if (faculty != null)
+            {
+                labels.Add(faculty.Code ?? faculty.Name);
+                avgGrades.Add((double)(stat.AvgGrade ?? 0));
+                avgAttendance.Add((double)(stat.AvgAttendance ?? 0));
+            }
+        }
+
+        comparisonChartData = new ChartData
+        {
+            Labels = labels,
+            Datasets = new List<ChartDataset>
+            {
+                new()
+                {
+                    Label = "Media generală",
+                    Data = avgGrades,
+                    BackgroundColor = "rgba(59, 130, 246, 0.8)",
+                    BorderColor = "rgb(59, 130, 246)",
+                    BorderWidth = 1
+                },
+                new()
+                {
+                    Label = "Rata prezență (%)",
+                    Data = avgAttendance,
+                    BackgroundColor = "rgba(34, 197, 94, 0.8)",
+                    BorderColor = "rgb(34, 197, 94)",
+                    BorderWidth = 1
+                }
+            }
+        };
+    }
+
+    private async Task LoadProgramComparison(DateTime startDate, DateTime endDate)
+    {
+        var startDateOnly = DateOnly.FromDateTime(startDate);
+        var endDateOnly = DateOnly.FromDateTime(endDate);
+
+        var programStats = await DbContext.DailySnapshots
+            .Where(s => s.Date >= startDateOnly && s.Date <= endDateOnly && s.ProgramId != null)
+            .GroupBy(s => s.ProgramId)
+            .Select(g => new
+            {
+                ProgramId = g.Key,
+                AvgGrade = g.Average(s => s.AverageGrade),
+                AvgAttendance = g.Average(s => s.AttendanceRate)
+            })
+            .ToListAsync();
+
+        var programs = await DbContext.Programs
+            .Where(p => programStats.Select(s => s.ProgramId).Contains(p.Id))
+            .ToListAsync();
+
+        var labels = new List<string>();
+        var avgGrades = new List<double>();
+        var avgAttendance = new List<double>();
+
+        foreach (var stat in programStats.Take(10))
+        {
+            var program = programs.FirstOrDefault(p => p.Id == stat.ProgramId);
+            if (program != null)
+            {
+                labels.Add(program.Name);
+                avgGrades.Add((double)(stat.AvgGrade ?? 0));
+                avgAttendance.Add((double)(stat.AvgAttendance ?? 0));
+            }
+        }
+
+        comparisonChartData = new ChartData
+        {
+            Labels = labels,
+            Datasets = new List<ChartDataset>
+            {
+                new()
+                {
+                    Label = "Media generală",
+                    Data = avgGrades,
+                    BackgroundColor = "rgba(59, 130, 246, 0.8)",
+                    BorderColor = "rgb(59, 130, 246)",
+                    BorderWidth = 1
+                },
+                new()
+                {
+                    Label = "Rata prezență (%)",
+                    Data = avgAttendance,
+                    BackgroundColor = "rgba(34, 197, 94, 0.8)",
+                    BorderColor = "rgb(34, 197, 94)",
+                    BorderWidth = 1
+                }
+            }
+        };
+    }
+
+    private async Task SetComparisonType(ComparisonType type)
+    {
+        comparisonType = type;
+        var (startDate, endDate) = GetDateRange(selectedPeriod);
+        await LoadComparisonData(startDate, endDate);
+    }
+
+    private void SortHistoricalData(string column)
+    {
+        if (historicalSortColumn == column)
+        {
+            historicalSortAscending = !historicalSortAscending;
+        }
+        else
+        {
+            historicalSortColumn = column;
+            historicalSortAscending = true;
+        }
+
+        ApplyHistoricalSort();
+    }
+
+    private void ApplyHistoricalSort()
+    {
+        historicalData = historicalSortColumn switch
+        {
+            nameof(DailySnapshot.Date) => historicalSortAscending
+                ? historicalData.OrderBy(s => s.Date).ToList()
+                : historicalData.OrderByDescending(s => s.Date).ToList(),
+            nameof(DailySnapshot.TotalStudents) => historicalSortAscending
+                ? historicalData.OrderBy(s => s.TotalStudents).ToList()
+                : historicalData.OrderByDescending(s => s.TotalStudents).ToList(),
+            nameof(DailySnapshot.AverageGrade) => historicalSortAscending
+                ? historicalData.OrderBy(s => s.AverageGrade).ToList()
+                : historicalData.OrderByDescending(s => s.AverageGrade).ToList(),
+            nameof(DailySnapshot.AttendanceRate) => historicalSortAscending
+                ? historicalData.OrderBy(s => s.AttendanceRate).ToList()
+                : historicalData.OrderByDescending(s => s.AttendanceRate).ToList(),
+            nameof(DailySnapshot.GradesSubmitted) => historicalSortAscending
+                ? historicalData.OrderBy(s => s.GradesSubmitted).ToList()
+                : historicalData.OrderByDescending(s => s.GradesSubmitted).ToList(),
+            _ => historicalData
+        };
+    }
+
+    private (DateTime startDate, DateTime endDate) GetDateRange(AnalysisPeriod period)
+    {
+        var endDate = DateTime.Today;
+        var startDate = period switch
+        {
+            AnalysisPeriod.LastMonth => endDate.AddMonths(-1),
+            AnalysisPeriod.Last3Months => endDate.AddMonths(-3),
+            AnalysisPeriod.Last6Months => endDate.AddMonths(-6),
+            AnalysisPeriod.LastYear => endDate.AddYears(-1),
+            _ => endDate.AddMonths(-3)
+        };
+
+        return (startDate, endDate);
+    }
+
+    private string GetTrendColorClass(double changePercent)
+    {
+        return changePercent >= 0 ? "bg-green-100 text-green-600" : "bg-red-100 text-red-600";
+    }
+
+    private string GetTrendTextColorClass(double changePercent)
+    {
+        return changePercent >= 0 ? "text-green-600" : "text-red-600";
+    }
+
+    private enum AnalysisPeriod
+    {
+        LastMonth,
+        Last3Months,
+        Last6Months,
+        LastYear
+    }
+
+    private enum ComparisonType
+    {
+        Faculties,
+        Programs
+    }
+
+    private class TrendMetric
+    {
+        public double PreviousValue { get; set; }
+        public double CurrentValue { get; set; }
+        public double ChangePercent { get; set; }
+    }
+
+    private class ChartData
+    {
+        public List<string> Labels { get; set; } = new();
+        public List<ChartDataset> Datasets { get; set; } = new();
+    }
+
+    private class ChartDataset
+    {
+        public string Label { get; set; } = "";
+        public List<double> Data { get; set; } = new();
+        public string BorderColor { get; set; } = "";
+        public string BackgroundColor { get; set; } = "";
+        public double Tension { get; set; }
+        public int BorderWidth { get; set; }
+    }
+}

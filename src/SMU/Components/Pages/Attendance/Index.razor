@@ -1,0 +1,414 @@
+@page "/prezente"
+@using SMU.Services
+@using SMU.Data.Entities
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@inject IAttendanceService AttendanceService
+@inject AuthService AuthService
+@inject AuthenticationStateProvider AuthStateProvider
+@attribute [Authorize]
+
+<PageTitle>Prezențe - SMU</PageTitle>
+
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">Prezențe</h1>
+            <p class="mt-1 text-sm text-gray-600">Monitorizare prezență la cursuri</p>
+        </div>
+        @if (currentUserRole == UserRole.Professor || currentUserRole == UserRole.Secretary ||
+             currentUserRole == UserRole.Dean || currentUserRole == UserRole.Admin)
+        {
+            <a href="/prezente/marcheaza" class="btn btn-primary">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                </svg>
+                Marchează Prezența
+            </a>
+        }
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="flex items-center justify-center py-12">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+        </div>
+    }
+    else if (currentUserRole == UserRole.Student)
+    {
+        <!-- Student View: Calendar -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Calendar -->
+            <div class="lg:col-span-2">
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                    <div class="flex items-center justify-between mb-6">
+                        <h2 class="text-lg font-semibold text-gray-900">
+                            @GetMonthName(currentMonth) @currentYear
+                        </h2>
+                        <div class="flex gap-2">
+                            <button @onclick="PreviousMonth" class="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                                <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                                </svg>
+                            </button>
+                            <button @onclick="NextMonth" class="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                                <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Calendar Grid -->
+                    <div class="grid grid-cols-7 gap-1">
+                        <!-- Weekday headers -->
+                        @foreach (var day in new[] { "Lun", "Mar", "Mie", "Joi", "Vin", "Sâm", "Dum" })
+                        {
+                            <div class="text-center py-2 text-xs font-medium text-gray-500">@day</div>
+                        }
+
+                        <!-- Calendar days -->
+                        @if (calendarData != null)
+                        {
+                            var firstDayOfMonth = new DateOnly(currentYear, currentMonth, 1);
+                            var dayOfWeek = (int)firstDayOfMonth.DayOfWeek;
+                            var offset = dayOfWeek == 0 ? 6 : dayOfWeek - 1;
+
+                            @for (int i = 0; i < offset; i++)
+                            {
+                                <div class="aspect-square"></div>
+                            }
+
+                            @foreach (var day in calendarData.Days)
+                            {
+                                <div class="aspect-square">
+                                    <button @onclick="() => SelectDay(day)"
+                                            class="w-full h-full p-1 rounded-lg transition-all @GetDayClass(day) @(selectedDay?.Date == day.Date ? "ring-2 ring-primary-500" : "")">
+                                        <div class="text-xs font-medium">@day.Date.Day</div>
+                                        @if (day.HasClasses)
+                                        {
+                                            <div class="flex justify-center gap-0.5 mt-0.5">
+                                                @foreach (var attendance in day.Attendances.Take(3))
+                                                {
+                                                    <div class="w-1 h-1 rounded-full @GetStatusDotClass(attendance.Status)"></div>
+                                                }
+                                            </div>
+                                        }
+                                    </button>
+                                </div>
+                            }
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats & Day Details -->
+            <div class="space-y-6">
+                <!-- Stats Card -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                    <h3 class="text-sm font-medium text-gray-900 mb-4">Statistici Generale</h3>
+                    @if (stats != null)
+                    {
+                        <div class="space-y-3">
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm text-gray-600">Total ore</span>
+                                <span class="text-sm font-semibold text-gray-900">@stats.TotalClasses</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm text-gray-600">Prezent</span>
+                                <span class="text-sm font-semibold text-success-600">@stats.Present</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm text-gray-600">Absent</span>
+                                <span class="text-sm font-semibold text-danger-600">@stats.Absent</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm text-gray-600">Motivat</span>
+                                <span class="text-sm font-semibold text-info-600">@stats.Excused</span>
+                            </div>
+                            <div class="pt-3 mt-3 border-t border-gray-100">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm font-medium text-gray-900">Rată prezență</span>
+                                    <span class="text-lg font-bold text-primary-600">@stats.AttendanceRate.ToString("0")%</span>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                <!-- Selected Day Details -->
+                @if (selectedDay != null && selectedDay.HasClasses)
+                {
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                        <h3 class="text-sm font-medium text-gray-900 mb-4">
+                            @selectedDay.Date.ToString("dd MMMM yyyy", new System.Globalization.CultureInfo("ro-RO"))
+                        </h3>
+                        <div class="space-y-3">
+                            @foreach (var attendance in selectedDay.Attendances)
+                            {
+                                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                    <div class="flex-1">
+                                        <div class="text-sm font-medium text-gray-900">@attendance.Course</div>
+                                    </div>
+                                    <span class="@GetStatusBadgeClass(attendance.Status)">
+                                        @GetStatusText(attendance.Status)
+                                    </span>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+    else
+    {
+        <!-- Professor/Staff View: List -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100">
+            <div class="p-6 border-b border-gray-100">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Curs</label>
+                        <select @bind="selectedCourseId" @bind:after="LoadAttendances"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                            <option value="">Toate cursurile</option>
+                            @foreach (var course in professorCourses)
+                            {
+                                <option value="@course.Id">@course.Name (@course.Code)</option>
+                            }
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Dată</label>
+                        <input type="date" @bind="filterDate" @bind:after="LoadAttendances"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent" />
+                    </div>
+                </div>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-gray-50 border-b border-gray-200">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nr. Matricol</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Curs</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dată</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Notă</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        @if (!attendanceList.Any())
+                        {
+                            <tr>
+                                <td colspan="6" class="px-6 py-12 text-center text-sm text-gray-500">
+                                    Nu există înregistrări de prezență pentru filtrele selectate.
+                                </td>
+                            </tr>
+                        }
+                        else
+                        {
+                            @foreach (var attendance in attendanceList)
+                            {
+                                <tr class="hover:bg-gray-50 transition-colors">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">@attendance.CourseName</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">-</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">@attendance.CourseName</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                        @attendance.Date.ToString("dd.MM.yyyy")
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="@GetStatusBadgeClass(attendance.Status)">
+                                            @GetStatusText(attendance.Status)
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4 text-sm text-gray-600">
+                                        @(attendance.Notes ?? "-")
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private bool isLoading = true;
+    private UserRole? currentUserRole;
+    private Guid? currentUserId;
+    private Guid? currentStudentId;
+    private Guid? currentProfessorId;
+
+    // Student view
+    private int currentYear = DateTime.Now.Year;
+    private int currentMonth = DateTime.Now.Month;
+    private CalendarMonthDto? calendarData;
+    private CalendarDayDto? selectedDay;
+    private AttendanceStatsDto? stats;
+
+    // Professor view
+    private List<CourseDto> professorCourses = new();
+    private string selectedCourseId = "";
+    private DateOnly? filterDate;
+    private List<AttendanceListDto> attendanceList = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            var appUser = await AuthService.GetCurrentUserAsync(user);
+            if (appUser != null)
+            {
+                currentUserRole = appUser.Role;
+                currentUserId = appUser.Id;
+
+                if (currentUserRole == UserRole.Student)
+                {
+                    currentStudentId = appUser.Student?.Id;
+                    if (currentStudentId.HasValue)
+                    {
+                        await LoadStudentData();
+                    }
+                }
+                else if (currentUserRole == UserRole.Professor)
+                {
+                    currentProfessorId = appUser.Professor?.Id;
+                    if (currentProfessorId.HasValue)
+                    {
+                        await LoadProfessorData();
+                    }
+                }
+            }
+        }
+
+        isLoading = false;
+    }
+
+    private async Task LoadStudentData()
+    {
+        if (!currentStudentId.HasValue) return;
+
+        calendarData = await AttendanceService.GetMonthlyCalendarAsync(
+            currentStudentId.Value, currentYear, currentMonth);
+
+        stats = await AttendanceService.GetStatsAsync(currentStudentId.Value, null);
+    }
+
+    private async Task LoadProfessorData()
+    {
+        if (!currentProfessorId.HasValue) return;
+
+        professorCourses = await AttendanceService.GetProfessorCoursesAsync(currentProfessorId.Value);
+        await LoadAttendances();
+    }
+
+    private async Task LoadAttendances()
+    {
+        // This would need more complex logic for professor view
+        // For now, keeping it simple
+        attendanceList = new List<AttendanceListDto>();
+    }
+
+    private async Task PreviousMonth()
+    {
+        if (currentMonth == 1)
+        {
+            currentMonth = 12;
+            currentYear--;
+        }
+        else
+        {
+            currentMonth--;
+        }
+
+        await LoadStudentData();
+        selectedDay = null;
+    }
+
+    private async Task NextMonth()
+    {
+        if (currentMonth == 12)
+        {
+            currentMonth = 1;
+            currentYear++;
+        }
+        else
+        {
+            currentMonth++;
+        }
+
+        await LoadStudentData();
+        selectedDay = null;
+    }
+
+    private void SelectDay(CalendarDayDto day)
+    {
+        selectedDay = day;
+    }
+
+    private string GetMonthName(int month)
+    {
+        return new DateTime(2000, month, 1).ToString("MMMM", new System.Globalization.CultureInfo("ro-RO"));
+    }
+
+    private string GetDayClass(CalendarDayDto day)
+    {
+        if (!day.HasClasses)
+            return "bg-gray-50 text-gray-400";
+
+        var allPresent = day.Attendances.All(a => a.Status == AttendanceStatus.Present);
+        var anyAbsent = day.Attendances.Any(a => a.Status == AttendanceStatus.Absent);
+        var allExcused = day.Attendances.All(a => a.Status == AttendanceStatus.Excused);
+
+        if (allPresent)
+            return "bg-success-100 text-success-700 hover:bg-success-200";
+        if (allExcused)
+            return "bg-info-100 text-info-700 hover:bg-info-200";
+        if (anyAbsent)
+            return "bg-danger-100 text-danger-700 hover:bg-danger-200";
+
+        return "bg-warning-100 text-warning-700 hover:bg-warning-200";
+    }
+
+    private string GetStatusDotClass(AttendanceStatus status)
+    {
+        return status switch
+        {
+            AttendanceStatus.Present => "bg-success-500",
+            AttendanceStatus.Absent => "bg-danger-500",
+            AttendanceStatus.Excused => "bg-info-500",
+            _ => "bg-gray-400"
+        };
+    }
+
+    private string GetStatusBadgeClass(AttendanceStatus status)
+    {
+        return status switch
+        {
+            AttendanceStatus.Present => "px-2 py-1 text-xs font-medium rounded-full bg-success-100 text-success-700",
+            AttendanceStatus.Absent => "px-2 py-1 text-xs font-medium rounded-full bg-danger-100 text-danger-700",
+            AttendanceStatus.Excused => "px-2 py-1 text-xs font-medium rounded-full bg-info-100 text-info-700",
+            _ => "px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-700"
+        };
+    }
+
+    private string GetStatusText(AttendanceStatus status)
+    {
+        return status switch
+        {
+            AttendanceStatus.Present => "Prezent",
+            AttendanceStatus.Absent => "Absent",
+            AttendanceStatus.Excused => "Motivat",
+            _ => "Necunoscut"
+        };
+    }
+}

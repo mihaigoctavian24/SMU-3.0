@@ -1,0 +1,133 @@
+@using SMU.Services
+@inject IKeyboardShortcutService KeyboardService
+
+<!-- Shortcuts Help Modal -->
+@if (IsVisible)
+{
+    <div class="fixed inset-0 z-50 overflow-y-auto" @onclick="Close">
+        <div class="flex min-h-screen items-center justify-center p-4">
+            <!-- Backdrop -->
+            <div class="fixed inset-0 bg-gray-900 bg-opacity-50 transition-opacity"></div>
+
+            <!-- Modal Content -->
+            <div class="relative bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[80vh] overflow-hidden"
+                 @onclick:stopPropagation="true">
+
+                <!-- Header -->
+                <div class="flex items-center justify-between p-6 border-b border-gray-200">
+                    <h2 class="text-2xl font-semibold text-gray-900">Keyboard Shortcuts</h2>
+                    <button @onclick="Close"
+                            class="text-gray-400 hover:text-gray-600 transition-colors">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Scrollable Content -->
+                <div class="overflow-y-auto max-h-[calc(80vh-140px)]">
+                    <div class="p-6 space-y-6">
+                        @foreach (var category in GetShortcutsByCategory())
+                        {
+                            <div>
+                                <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">
+                                    @category.Key
+                                </h3>
+                                <div class="space-y-2">
+                                    @foreach (var shortcut in category.Value)
+                                    {
+                                        <div class="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-gray-50 transition-colors">
+                                            <span class="text-gray-700">@shortcut.Description</span>
+                                            <div class="flex items-center gap-1">
+                                                @foreach (var key in ParseKeys(shortcut.Keys))
+                                                {
+                                                    <kbd class="kbd">@key</kbd>
+                                                }
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <!-- Footer -->
+                <div class="flex items-center justify-between p-6 border-t border-gray-200 bg-gray-50">
+                    <p class="text-sm text-gray-600">
+                        Press <kbd class="kbd">?</kbd> anytime to show this dialog
+                    </p>
+                    <button @onclick="Close"
+                            class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public bool IsVisible { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> IsVisibleChanged { get; set; }
+
+    private List<KeyboardShortcut> Shortcuts { get; set; } = new();
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (IsVisible)
+        {
+            Shortcuts = await KeyboardService.GetAllShortcutsAsync();
+        }
+    }
+
+    private Dictionary<string, List<KeyboardShortcut>> GetShortcutsByCategory()
+    {
+        return Shortcuts
+            .GroupBy(s => s.Category)
+            .OrderBy(g => GetCategoryOrder(g.Key))
+            .ToDictionary(g => g.Key, g => g.ToList());
+    }
+
+    private int GetCategoryOrder(string category)
+    {
+        return category switch
+        {
+            "Navigation" => 1,
+            "Actions" => 2,
+            "General" => 3,
+            _ => 99
+        };
+    }
+
+    private List<string> ParseKeys(string keys)
+    {
+        // Handle sequences (space-separated)
+        if (keys.Contains(' '))
+        {
+            var parts = keys.Split(' ');
+            var result = new List<string>();
+            for (int i = 0; i < parts.Length; i++)
+            {
+                result.Add(parts[i]);
+                if (i < parts.Length - 1)
+                {
+                    result.Add("then");
+                }
+            }
+            return result;
+        }
+
+        // Handle modifier combinations (+ separated)
+        return keys.Split('+').ToList();
+    }
+
+    private async Task Close()
+    {
+        IsVisible = false;
+        await IsVisibleChanged.InvokeAsync(false);
+    }
+}
