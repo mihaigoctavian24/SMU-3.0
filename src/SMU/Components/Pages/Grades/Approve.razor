@@ -11,203 +11,191 @@
 @inject IGradeService GradeService
 @inject AuthenticationStateProvider AuthStateProvider
 @inject NavigationManager Navigation
-@inject IJSRuntime JS
+@inject Radzen.DialogService DialogService
 
-<div class="space-y-6">
+<PageTitle>Aprobare Note - SMU</PageTitle>
+
+<RadzenStack Gap="1.5rem">
     <!-- Page Header -->
-    <div class="flex items-center justify-between">
-        <div>
-            <h1 class="text-2xl font-bold text-gray-900">Aprobare Note</h1>
-            <p class="mt-1 text-sm text-gray-600">Aprobă sau respinge notele în așteptare</p>
-        </div>
-        <a href="/note" class="text-gray-600 hover:text-gray-900">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-            </svg>
-        </a>
-    </div>
+    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
+        <RadzenStack Gap="0.25rem">
+            <RadzenText TextStyle="TextStyle.H4" Style="margin: 0; font-weight: bold;">Aprobare Note</RadzenText>
+            <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; color: var(--rz-text-secondary-color);">Aprobă sau respinge notele în așteptare</RadzenText>
+        </RadzenStack>
+        <RadzenButton Icon="close"
+                      ButtonStyle="ButtonStyle.Light"
+                      Variant="Variant.Text"
+                      Click="@(() => Navigation.NavigateTo("/note"))" />
+    </RadzenStack>
 
     @if (ErrorMessage != null)
     {
-        <div class="bg-danger-50 border border-danger-200 rounded-lg p-4">
-            <p class="text-sm text-danger-800">@ErrorMessage</p>
-        </div>
+        <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat" ShowIcon="true" Size="AlertSize.Small">
+            @ErrorMessage
+        </RadzenAlert>
     }
 
     @if (SuccessMessage != null)
     {
-        <div class="bg-success-50 border border-success-200 rounded-lg p-4">
-            <p class="text-sm text-success-800">@SuccessMessage</p>
-        </div>
+        <RadzenAlert AlertStyle="AlertStyle.Success" Variant="Variant.Flat" ShowIcon="true" Size="AlertSize.Small">
+            @SuccessMessage
+        </RadzenAlert>
     }
 
     <!-- Stats Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-            <div class="flex items-center">
-                <div class="flex-shrink-0">
-                    <div class="w-12 h-12 bg-warning-100 rounded-lg flex items-center justify-center">
-                        <svg class="w-6 h-6 text-warning-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>
+    <RadzenRow Gap="1.5rem" RowGap="1.5rem">
+        <RadzenColumn Size="12" SizeMD="4">
+            <RadzenCard Style="padding: 1.5rem;">
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem">
+                    <div style="width: 3rem; height: 3rem; background: rgba(var(--rz-warning-rgb), 0.1); border-radius: 0.5rem; display: flex; align-items: center; justify-content: center;">
+                        <RadzenIcon Icon="schedule" Style="font-size: 1.5rem; color: var(--rz-warning);" />
                     </div>
-                </div>
-                <div class="ml-4">
-                    <p class="text-sm font-medium text-gray-600">În Așteptare</p>
-                    <p class="text-2xl font-bold text-gray-900">@PendingGrades.Count</p>
-                </div>
-            </div>
-        </div>
+                    <RadzenStack Gap="0.25rem">
+                        <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; color: var(--rz-text-secondary-color);">În Așteptare</RadzenText>
+                        <RadzenText TextStyle="TextStyle.H4" Style="margin: 0; font-weight: bold;">@PendingGrades.Count</RadzenText>
+                    </RadzenStack>
+                </RadzenStack>
+            </RadzenCard>
+        </RadzenColumn>
 
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-            <div class="flex items-center">
-                <div class="flex-shrink-0">
-                    <div class="w-12 h-12 bg-success-100 rounded-lg flex items-center justify-center">
-                        <svg class="w-6 h-6 text-success-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>
+        <RadzenColumn Size="12" SizeMD="4">
+            <RadzenCard Style="padding: 1.5rem;">
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem">
+                    <div style="width: 3rem; height: 3rem; background: rgba(var(--rz-success-rgb), 0.1); border-radius: 0.5rem; display: flex; align-items: center; justify-content: center;">
+                        <RadzenIcon Icon="check_circle" Style="font-size: 1.5rem; color: var(--rz-success);" />
                     </div>
-                </div>
-                <div class="ml-4">
-                    <p class="text-sm font-medium text-gray-600">Aprobate Astăzi</p>
-                    <p class="text-2xl font-bold text-gray-900">@ApprovedToday</p>
-                </div>
-            </div>
-        </div>
+                    <RadzenStack Gap="0.25rem">
+                        <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; color: var(--rz-text-secondary-color);">Aprobate Astăzi</RadzenText>
+                        <RadzenText TextStyle="TextStyle.H4" Style="margin: 0; font-weight: bold;">@ApprovedToday</RadzenText>
+                    </RadzenStack>
+                </RadzenStack>
+            </RadzenCard>
+        </RadzenColumn>
 
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-            <div class="flex items-center">
-                <div class="flex-shrink-0">
-                    <div class="w-12 h-12 bg-danger-100 rounded-lg flex items-center justify-center">
-                        <svg class="w-6 h-6 text-danger-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>
+        <RadzenColumn Size="12" SizeMD="4">
+            <RadzenCard Style="padding: 1.5rem;">
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem">
+                    <div style="width: 3rem; height: 3rem; background: rgba(var(--rz-danger-rgb), 0.1); border-radius: 0.5rem; display: flex; align-items: center; justify-content: center;">
+                        <RadzenIcon Icon="cancel" Style="font-size: 1.5rem; color: var(--rz-danger);" />
                     </div>
-                </div>
-                <div class="ml-4">
-                    <p class="text-sm font-medium text-gray-600">Respinse Astăzi</p>
-                    <p class="text-2xl font-bold text-gray-900">@RejectedToday</p>
-                </div>
-            </div>
-        </div>
-    </div>
+                    <RadzenStack Gap="0.25rem">
+                        <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; color: var(--rz-text-secondary-color);">Respinse Astăzi</RadzenText>
+                        <RadzenText TextStyle="TextStyle.H4" Style="margin: 0; font-weight: bold;">@RejectedToday</RadzenText>
+                    </RadzenStack>
+                </RadzenStack>
+            </RadzenCard>
+        </RadzenColumn>
+    </RadzenRow>
 
     <!-- Pending Grades Table -->
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-            <h2 class="text-lg font-semibold text-gray-900">Note în Așteptare</h2>
-            @if (SelectedGrades.Count > 0)
-            {
-                <button @onclick="BulkApprove" class="px-4 py-2 bg-success-600 hover:bg-success-700 text-white font-medium rounded-lg transition-colors">
-                    Aprobă Selectate (@SelectedGrades.Count)
-                </button>
-            }
+    <RadzenCard Style="padding: 0; overflow: hidden;">
+        <div style="padding: 1rem 1.5rem; border-bottom: 1px solid var(--rz-border-color);">
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
+                <RadzenText TextStyle="TextStyle.H6" Style="margin: 0; font-weight: 600;">Note în Așteptare</RadzenText>
+                @if (SelectedGrades.Count > 0)
+                {
+                    <RadzenButton Text="@($"Aprobă Selectate ({SelectedGrades.Count})")"
+                                  ButtonStyle="ButtonStyle.Success"
+                                  Click="@BulkApprove" />
+                }
+            </RadzenStack>
         </div>
 
         @if (IsLoading)
         {
-            <div class="p-8 text-center">
-                <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-                <p class="mt-2 text-gray-600">Se încarcă...</p>
-            </div>
+            <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Style="padding: 3rem 0;">
+                <RadzenProgressBarCircular ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
+                <RadzenText TextStyle="TextStyle.Body2" Style="margin-top: 1rem; color: var(--rz-text-secondary-color);">Se încarcă...</RadzenText>
+            </RadzenStack>
         }
         else if (PendingGrades.Count == 0)
         {
-            <div class="p-8 text-center text-gray-500">
-                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-                <p class="mt-2">Nu există note în așteptare pentru aprobare.</p>
-            </div>
+            <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Style="padding: 3rem 0;">
+                <RadzenIcon Icon="check_circle_outline" Style="font-size: 3rem; color: var(--rz-text-disabled-color);" />
+                <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0.5rem 0 0 0; color: var(--rz-text-secondary-color);">
+                    Nu există note în așteptare pentru aprobare.
+                </RadzenText>
+            </RadzenStack>
         }
         else
         {
-            <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th class="px-6 py-3 text-left">
-                                <input type="checkbox" @onchange="ToggleSelectAll"
-                                       class="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500" />
-                            </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Curs</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nota</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tip</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Profesor</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data</th>
-                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acțiuni</th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
-                        @foreach (var grade in PendingGrades)
-                        {
-                            <tr class="hover:bg-gray-50">
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <input type="checkbox" @onchange="() => ToggleGradeSelection(grade.Id)"
-                                           checked="@SelectedGrades.Contains(grade.Id)"
-                                           class="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500" />
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">@grade.StudentName</td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="text-sm font-medium text-gray-900">@grade.CourseName</div>
-                                    <div class="text-sm text-gray-500">@grade.Credits credite</div>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <span class="@GetGradeBadgeClass(grade.Value)">
-                                        @grade.Value.ToString("0.00")
-                                    </span>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">@GetGradeTypeLabel(grade.Type)</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">@grade.EnteredByName</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">@grade.ExamDate.ToString("dd.MM.yyyy")</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
-                                    <button @onclick="() => ApproveGrade(grade.Id)"
-                                            class="text-success-600 hover:text-success-900 inline-flex items-center">
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                                        </svg>
-                                    </button>
-                                    <button @onclick="() => ShowRejectModal(grade.Id)"
-                                            class="text-danger-600 hover:text-danger-900 inline-flex items-center">
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                                        </svg>
-                                    </button>
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
-        }
-    </div>
-</div>
+            <RadzenDataGrid Data="@PendingGrades" TItem="GradeListDto" Style="border: none;">
+                <Columns>
+                    <RadzenDataGridColumn TItem="GradeListDto" Width="50px" Sortable="false">
+                        <HeaderTemplate>
+                            <RadzenCheckBox TValue="bool" Value="@(SelectedGrades.Count == PendingGrades.Count && PendingGrades.Count > 0)"
+                                            Change="@ToggleSelectAll" />
+                        </HeaderTemplate>
+                        <Template Context="grade">
+                            <RadzenCheckBox TValue="bool" Value="@SelectedGrades.Contains(grade.Id)"
+                                            Change="@(() => ToggleGradeSelection(grade.Id))" />
+                        </Template>
+                    </RadzenDataGridColumn>
 
-<!-- Reject Modal -->
-@if (ShowRejectModalFlag)
-{
-    <div class="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50" @onclick="CloseRejectModal">
-        <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4" @onclick:stopPropagation="true">
-            <div class="px-6 py-4 border-b border-gray-200">
-                <h3 class="text-lg font-semibold text-gray-900">Respinge Nota</h3>
-            </div>
-            <div class="px-6 py-4">
-                <label class="block text-sm font-medium text-gray-700 mb-2">Motiv Respingere <span class="text-danger-500">*</span></label>
-                <textarea @bind="RejectionReason" rows="4" placeholder="Introdu motivul respingerii..."
-                          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"></textarea>
-            </div>
-            <div class="px-6 py-4 bg-gray-50 flex justify-end space-x-3">
-                <button @onclick="CloseRejectModal" class="px-4 py-2 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors">
-                    Anulează
-                </button>
-                <button @onclick="ConfirmReject" class="px-4 py-2 bg-danger-600 hover:bg-danger-700 text-white font-medium rounded-lg transition-colors">
-                    Respinge Nota
-                </button>
-            </div>
-        </div>
-    </div>
-}
+                    <RadzenDataGridColumn TItem="GradeListDto" Property="StudentName" Title="Student">
+                        <Template Context="grade">
+                            <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; font-weight: 500;">@grade.StudentName</RadzenText>
+                        </Template>
+                    </RadzenDataGridColumn>
+
+                    <RadzenDataGridColumn TItem="GradeListDto" Property="CourseName" Title="Curs">
+                        <Template Context="grade">
+                            <RadzenStack Gap="0.125rem">
+                                <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; font-weight: 500;">@grade.CourseName</RadzenText>
+                                <RadzenText TextStyle="TextStyle.Caption" Style="margin: 0; color: var(--rz-text-secondary-color);">@grade.Credits credite</RadzenText>
+                            </RadzenStack>
+                        </Template>
+                    </RadzenDataGridColumn>
+
+                    <RadzenDataGridColumn TItem="GradeListDto" Property="Value" Title="Nota" Width="100px">
+                        <Template Context="grade">
+                            <RadzenBadge BadgeStyle="@GetGradeBadgeStyle(grade.Value)"
+                                         Text="@grade.Value.ToString("0.00")"
+                                         IsPill="true" />
+                        </Template>
+                    </RadzenDataGridColumn>
+
+                    <RadzenDataGridColumn TItem="GradeListDto" Property="Type" Title="Tip" Width="100px">
+                        <Template Context="grade">
+                            <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0;">@GetGradeTypeLabel(grade.Type)</RadzenText>
+                        </Template>
+                    </RadzenDataGridColumn>
+
+                    <RadzenDataGridColumn TItem="GradeListDto" Property="EnteredByName" Title="Profesor">
+                        <Template Context="grade">
+                            <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; color: var(--rz-text-secondary-color);">@grade.EnteredByName</RadzenText>
+                        </Template>
+                    </RadzenDataGridColumn>
+
+                    <RadzenDataGridColumn TItem="GradeListDto" Property="ExamDate" Title="Data" Width="110px">
+                        <Template Context="grade">
+                            <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; color: var(--rz-text-secondary-color);">@grade.ExamDate.ToString("dd.MM.yyyy")</RadzenText>
+                        </Template>
+                    </RadzenDataGridColumn>
+
+                    <RadzenDataGridColumn TItem="GradeListDto" Title="Acțiuni" Width="100px" TextAlign="TextAlign.End" Sortable="false">
+                        <Template Context="grade">
+                            <RadzenStack Orientation="Orientation.Horizontal" Gap="0.25rem" JustifyContent="JustifyContent.End">
+                                <RadzenButton Icon="check"
+                                              ButtonStyle="ButtonStyle.Success"
+                                              Variant="Variant.Text"
+                                              Size="ButtonSize.Small"
+                                              Click="@(() => ApproveGrade(grade.Id))"
+                                              title="Aprobă" />
+                                <RadzenButton Icon="close"
+                                              ButtonStyle="ButtonStyle.Danger"
+                                              Variant="Variant.Text"
+                                              Size="ButtonSize.Small"
+                                              Click="@(() => ShowRejectModal(grade.Id))"
+                                              title="Respinge" />
+                            </RadzenStack>
+                        </Template>
+                    </RadzenDataGridColumn>
+                </Columns>
+            </RadzenDataGrid>
+        }
+    </RadzenCard>
+</RadzenStack>
 
 @code {
     private List<GradeListDto> PendingGrades = new();
@@ -218,10 +206,6 @@
 
     private int ApprovedToday = 0;
     private int RejectedToday = 0;
-
-    private bool ShowRejectModalFlag = false;
-    private Guid? GradeToReject;
-    private string RejectionReason = "";
 
     private string? ErrorMessage;
     private string? SuccessMessage;
@@ -241,6 +225,7 @@
     private async Task LoadData()
     {
         IsLoading = true;
+        StateHasChanged();
 
         // Get dean's faculty
         var professor = await DbContext.Professors
@@ -263,11 +248,12 @@
             .CountAsync();
 
         IsLoading = false;
+        StateHasChanged();
     }
 
-    private void ToggleSelectAll(ChangeEventArgs e)
+    private void ToggleSelectAll(bool value)
     {
-        if ((bool)e.Value!)
+        if (value)
         {
             SelectedGrades = PendingGrades.Select(g => g.Id).ToHashSet();
         }
@@ -339,40 +325,23 @@
         SelectedGrades.Clear();
     }
 
-    private void ShowRejectModal(Guid gradeId)
+    private async Task ShowRejectModal(Guid gradeId)
     {
-        GradeToReject = gradeId;
-        RejectionReason = "";
-        ShowRejectModalFlag = true;
-    }
+        var reason = await DialogService.OpenAsync<RejectGradeDialog>("Respinge Nota",
+            new Dictionary<string, object>(),
+            new DialogOptions { Width = "450px", Height = "auto" });
 
-    private void CloseRejectModal()
-    {
-        ShowRejectModalFlag = false;
-        GradeToReject = null;
-        RejectionReason = "";
-    }
-
-    private async Task ConfirmReject()
-    {
-        if (string.IsNullOrWhiteSpace(RejectionReason))
-        {
-            ErrorMessage = "Motivul respingerii este obligatoriu.";
-            return;
-        }
-
-        if (GradeToReject.HasValue)
+        if (!string.IsNullOrWhiteSpace(reason as string))
         {
             ErrorMessage = null;
             SuccessMessage = null;
 
-            var result = await GradeService.RejectAsync(GradeToReject.Value, CurrentUserId, RejectionReason);
+            var result = await GradeService.RejectAsync(gradeId, CurrentUserId, reason as string);
 
             if (result.Succeeded)
             {
                 SuccessMessage = "Nota a fost respinsă.";
                 await LoadData();
-                CloseRejectModal();
             }
             else
             {
@@ -381,27 +350,21 @@
         }
     }
 
-    private string GetGradeBadgeClass(decimal value)
+    private BadgeStyle GetGradeBadgeStyle(decimal value) => value switch
     {
-        return value switch
-        {
-            >= 9 => "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-success-100 text-success-700",
-            >= 7 => "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-info-100 text-info-700",
-            >= 5 => "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-warning-100 text-warning-700",
-            _ => "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-danger-100 text-danger-700"
-        };
-    }
+        >= 9 => BadgeStyle.Success,
+        >= 7 => BadgeStyle.Info,
+        >= 5 => BadgeStyle.Warning,
+        _ => BadgeStyle.Danger
+    };
 
-    private string GetGradeTypeLabel(GradeType type)
+    private string GetGradeTypeLabel(GradeType type) => type switch
     {
-        return type switch
-        {
-            GradeType.Exam => "Examen",
-            GradeType.Lab => "Laborator",
-            GradeType.Seminar => "Seminar",
-            GradeType.Project => "Proiect",
-            GradeType.Final => "Final",
-            _ => type.ToString()
-        };
-    }
+        GradeType.Exam => "Examen",
+        GradeType.Lab => "Laborator",
+        GradeType.Seminar => "Seminar",
+        GradeType.Project => "Proiect",
+        GradeType.Final => "Final",
+        _ => type.ToString()
+    };
 }

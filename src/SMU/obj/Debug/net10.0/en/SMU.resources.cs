@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("SMU")]
 [assembly: System.Reflection.AssemblyCopyrightAttribute(" ")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+85fc6d4edeefe74b0fcedf30e153179300a5a482")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+f04509ca7f32dad1be8a768a425d120fae6284dd")]
 [assembly: System.Reflection.AssemblyProductAttribute("SMU")]
 [assembly: System.Reflection.AssemblyTitleAttribute("SMU")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

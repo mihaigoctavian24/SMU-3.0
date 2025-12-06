@@ -1,0 +1,70 @@
+@using SMU.Data.Entities
+@using SMU.Services.DTOs
+
+<RadzenStack Gap="1rem">
+    <RadzenStack Gap="0.5rem">
+        <RadzenText TextStyle="TextStyle.Caption" class="rz-color-secondary" Style="margin: 0;">Student</RadzenText>
+        <RadzenText TextStyle="TextStyle.Body1" Style="margin: 0; font-weight: 500;">@Request.StudentName</RadzenText>
+        <RadzenText TextStyle="TextStyle.Body2" class="rz-color-secondary" Style="margin: 0;">@Request.StudentNumber</RadzenText>
+    </RadzenStack>
+
+    <RadzenStack Gap="0.5rem">
+        <RadzenText TextStyle="TextStyle.Caption" class="rz-color-secondary" Style="margin: 0;">Tip Document</RadzenText>
+        <RadzenText TextStyle="TextStyle.Body1" Style="margin: 0;">@Request.TypeLabel</RadzenText>
+    </RadzenStack>
+
+    <RadzenStack Gap="0.5rem">
+        <RadzenText TextStyle="TextStyle.Caption" class="rz-color-secondary" Style="margin: 0;">Status</RadzenText>
+        <RadzenBadge BadgeStyle="@GetStatusBadgeStyle(Request.Status)" Text="@Request.StatusLabel" IsPill="true" />
+    </RadzenStack>
+
+    <RadzenStack Gap="0.5rem">
+        <RadzenText TextStyle="TextStyle.Caption" class="rz-color-secondary" Style="margin: 0;">Data Cererii</RadzenText>
+        <RadzenText TextStyle="TextStyle.Body1" Style="margin: 0;">@Request.CreatedAt.ToString("dd MMMM yyyy, HH:mm")</RadzenText>
+    </RadzenStack>
+
+    @if (Request.ProcessedByName != null)
+    {
+        <RadzenStack Gap="0.5rem">
+            <RadzenText TextStyle="TextStyle.Caption" class="rz-color-secondary" Style="margin: 0;">Procesat De</RadzenText>
+            <RadzenText TextStyle="TextStyle.Body1" Style="margin: 0;">@Request.ProcessedByName</RadzenText>
+            <RadzenText TextStyle="TextStyle.Body2" class="rz-color-secondary" Style="margin: 0;">
+                @Request.ProcessedAt?.ToString("dd MMMM yyyy, HH:mm")
+            </RadzenText>
+        </RadzenStack>
+    }
+
+    @if (!string.IsNullOrEmpty(Request.Notes))
+    {
+        <RadzenStack Gap="0.5rem">
+            <RadzenText TextStyle="TextStyle.Caption" class="rz-color-secondary" Style="margin: 0;">Observații</RadzenText>
+            <RadzenCard Style="background: var(--rz-base-100); padding: 1rem;">
+                <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; white-space: pre-wrap;">@Request.Notes</RadzenText>
+            </RadzenCard>
+        </RadzenStack>
+    }
+
+    <RadzenStack Orientation="Radzen.Orientation.Horizontal" JustifyContent="JustifyContent.End" Style="margin-top: 1rem;">
+        <RadzenButton Text="Închide" ButtonStyle="ButtonStyle.Light" Click="@Close" />
+    </RadzenStack>
+</RadzenStack>
+
+@code {
+    [Parameter] public DocumentRequestDto Request { get; set; } = null!;
+    [Inject] private DialogService DialogService { get; set; } = null!;
+
+    private void Close()
+    {
+        DialogService.Close();
+    }
+
+    private BadgeStyle GetStatusBadgeStyle(RequestStatus status) => status switch
+    {
+        RequestStatus.Pending => BadgeStyle.Warning,
+        RequestStatus.InProgress => BadgeStyle.Info,
+        RequestStatus.Approved => BadgeStyle.Success,
+        RequestStatus.Rejected => BadgeStyle.Danger,
+        RequestStatus.Completed => BadgeStyle.Success,
+        _ => BadgeStyle.Light
+    };
+}

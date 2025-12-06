@@ -77,4 +77,29 @@ public interface IScheduleService
     /// Get all courses for schedule management
     /// </summary>
     Task<List<CourseOptionDto>> GetCourseOptionsAsync();
+
+    /// <summary>
+    /// Get today's schedule for a student
+    /// </summary>
+    Task<List<ScheduleEntryDto>> GetTodayScheduleForStudentAsync(Guid studentId);
+
+    /// <summary>
+    /// Get today's schedule for a professor
+    /// </summary>
+    Task<List<ScheduleEntryDto>> GetTodayScheduleForProfessorAsync(Guid professorId);
+
+    /// <summary>
+    /// Get weekly schedule by faculty with optional year and semester filtering (for Dean role)
+    /// </summary>
+    Task<List<WeeklyScheduleDto>> GetWeeklyScheduleByFacultyAsync(Guid facultyId, int? year = null, int? semester = null);
+
+    /// <summary>
+    /// Get available years for a faculty's groups
+    /// </summary>
+    Task<List<int>> GetAvailableYearsAsync(Guid facultyId);
+
+    /// <summary>
+    /// Get groups by faculty with optional year filter (for Dean filtering)
+    /// </summary>
+    Task<List<GroupOptionDto>> GetGroupsByFacultyAsync(Guid facultyId, int? year = null);
 }

@@ -6,193 +6,180 @@
 @attribute [Authorize(Policy = "CanManageFaculties")]
 @inject IFacultyService FacultyService
 @inject NavigationManager Navigation
+@inject Radzen.DialogService DialogService
 
 <PageTitle>Facultăți - SMU</PageTitle>
 
-<div class="space-y-6">
+<RadzenStack Gap="1.5rem">
     <!-- Header -->
-    <div class="flex items-center justify-between">
-        <div>
-            <h1 class="text-2xl font-bold text-gray-900">Facultăți</h1>
-            <p class="mt-1 text-sm text-gray-500">Gestionează facultățile din universitate</p>
-        </div>
-        <a href="/facultati/nou" class="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-            </svg>
-            <span>Adaugă Facultate</span>
-        </a>
-    </div>
+    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
+        <RadzenStack Gap="0.25rem">
+            <RadzenText TextStyle="TextStyle.H4" Style="margin: 0; font-weight: bold;">Facultăți</RadzenText>
+            <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; color: var(--rz-text-secondary-color);">Gestionează facultățile din universitate</RadzenText>
+        </RadzenStack>
+        <RadzenButton Text="Adaugă Facultate"
+                      Icon="add"
+                      ButtonStyle="ButtonStyle.Primary"
+                      Click="@(() => Navigation.NavigateTo("/facultati/nou"))" />
+    </RadzenStack>
 
     <!-- Filters & Search -->
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+    <RadzenCard Style="padding: 1.5rem;">
+        <RadzenRow Gap="1rem" RowGap="1rem">
             <!-- Search -->
-            <div class="md:col-span-2">
-                <label class="block text-sm font-medium text-gray-700 mb-2">Căutare</label>
-                <input type="text"
-                       @bind="searchTerm"
-                       @bind:event="oninput"
-                       @onkeyup="HandleSearchKeyUp"
-                       placeholder="Nume sau cod facultate..."
-                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
-            </div>
+            <RadzenColumn Size="12" SizeMD="5">
+                <RadzenFormField Text="Căutare" Variant="Variant.Outlined" Style="width: 100%;">
+                    <RadzenTextBox @bind-Value="searchTerm"
+                                   Placeholder="Nume sau cod facultate..."
+                                   @oninput="HandleSearchKeyUp" />
+                </RadzenFormField>
+            </RadzenColumn>
 
             <!-- Status Filter -->
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
-                <select @bind="selectedStatus" @bind:after="ApplyFilters" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
-                    <option value="">Toate statusurile</option>
-                    <option value="true">Activ</option>
-                    <option value="false">Inactiv</option>
-                </select>
-            </div>
+            <RadzenColumn Size="12" SizeMD="3">
+                <RadzenFormField Text="Status" Variant="Variant.Outlined" Style="width: 100%;">
+                    <RadzenDropDown @bind-Value="selectedStatus"
+                                    Data="@statusOptions"
+                                    TextProperty="Text"
+                                    ValueProperty="Value"
+                                    AllowClear="true"
+                                    Placeholder="Toate statusurile"
+                                    Change="@(args => ApplyFilters())"
+                                    Style="width: 100%;" />
+                </RadzenFormField>
+            </RadzenColumn>
 
             <!-- Export -->
-            <div class="flex items-end">
-                <button @onclick="ExportToCSV" class="w-full px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors flex items-center justify-center space-x-2">
-                    <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                    </svg>
-                    <span>Export CSV</span>
-                </button>
-            </div>
-        </div>
-    </div>
+            <RadzenColumn Size="12" SizeMD="4">
+                <RadzenStack JustifyContent="JustifyContent.End" Style="height: 100%;">
+                    <RadzenButton Text="Export CSV"
+                                  Icon="download"
+                                  ButtonStyle="ButtonStyle.Light"
+                                  Click="@ExportToCSV"
+                                  Style="width: 100%;" />
+                </RadzenStack>
+            </RadzenColumn>
+        </RadzenRow>
+    </RadzenCard>
 
     <!-- Faculties Table -->
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+    <RadzenCard Style="padding: 0; overflow: hidden;">
         @if (isLoading)
         {
-            <div class="flex items-center justify-center py-12">
-                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-            </div>
+            <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Style="padding: 3rem 0;">
+                <RadzenProgressBarCircular ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
+            </RadzenStack>
         }
         else if (faculties.Items.Any())
         {
-            <div class="overflow-x-auto">
-                <table class="w-full">
-                    <thead class="bg-gray-50 border-b border-gray-100">
-                        <tr>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" @onclick='() => SortBy("Name")'>
-                                Nume
-                                @if (sortColumn == "Name")
-                                {
-                                    <span class="ml-1">@(sortAscending ? "↑" : "↓")</span>
-                                }
-                            </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" @onclick='() => SortBy("Code")'>
-                                Cod
-                                @if (sortColumn == "Code")
-                                {
-                                    <span class="ml-1">@(sortAscending ? "↑" : "↓")</span>
-                                }
-                            </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Decan</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Programe</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Studenți</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acțiuni</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-100">
-                        @foreach (var faculty in faculties.Items)
-                        {
-                            <tr class="hover:bg-gray-50 transition-colors">
-                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                    @faculty.Name
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                    @faculty.Code
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    @(faculty.DeanName ?? "Neasignat")
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    @faculty.ProgramsCount
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    @faculty.StudentsCount
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <span class="px-2 py-1 text-xs font-medium rounded-full @(faculty.IsActive ? "bg-success-100 text-success-700" : "bg-gray-100 text-gray-700")">
-                                        @(faculty.IsActive ? "Activ" : "Inactiv")
-                                    </span>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
-                                    <a href="/facultati/@faculty.Id" class="text-primary-600 hover:text-primary-900">Vezi</a>
-                                    <a href="/facultati/@faculty.Id/editare" class="text-gray-600 hover:text-gray-900">Editează</a>
-                                    <button @onclick="() => ConfirmDelete(faculty.Id)" class="text-red-600 hover:text-red-900">Șterge</button>
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
+            <RadzenDataGrid Data="@faculties.Items" TItem="FacultyListDto" AllowSorting="true" Style="border: none;">
+                <Columns>
+                    <RadzenDataGridColumn TItem="FacultyListDto" Property="Name" Title="Nume" Sortable="true">
+                        <Template Context="faculty">
+                            <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; font-weight: 500;">@faculty.Name</RadzenText>
+                        </Template>
+                    </RadzenDataGridColumn>
+
+                    <RadzenDataGridColumn TItem="FacultyListDto" Property="Code" Title="Cod" Width="100px" Sortable="true">
+                        <Template Context="faculty">
+                            <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; font-family: monospace;">@faculty.Code</RadzenText>
+                        </Template>
+                    </RadzenDataGridColumn>
+
+                    <RadzenDataGridColumn TItem="FacultyListDto" Property="DeanName" Title="Decan">
+                        <Template Context="faculty">
+                            <RadzenText TextStyle="TextStyle.Body2" Style="@($"margin: 0; color: {(faculty.DeanName == null ? "var(--rz-text-disabled-color)" : "inherit")};")">
+                                @(faculty.DeanName ?? "Neasignat")
+                            </RadzenText>
+                        </Template>
+                    </RadzenDataGridColumn>
+
+                    <RadzenDataGridColumn TItem="FacultyListDto" Property="ProgramsCount" Title="Programe" Width="100px" TextAlign="TextAlign.Center">
+                        <Template Context="faculty">
+                            <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0;">@faculty.ProgramsCount</RadzenText>
+                        </Template>
+                    </RadzenDataGridColumn>
+
+                    <RadzenDataGridColumn TItem="FacultyListDto" Property="StudentsCount" Title="Studenți" Width="100px" TextAlign="TextAlign.Center">
+                        <Template Context="faculty">
+                            <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0;">@faculty.StudentsCount</RadzenText>
+                        </Template>
+                    </RadzenDataGridColumn>
+
+                    <RadzenDataGridColumn TItem="FacultyListDto" Property="IsActive" Title="Status" Width="100px">
+                        <Template Context="faculty">
+                            <RadzenBadge BadgeStyle="@(faculty.IsActive ? BadgeStyle.Success : BadgeStyle.Light)"
+                                         Text="@(faculty.IsActive ? "Activ" : "Inactiv")"
+                                         IsPill="true" />
+                        </Template>
+                    </RadzenDataGridColumn>
+
+                    <RadzenDataGridColumn TItem="FacultyListDto" Title="Acțiuni" Width="180px" TextAlign="TextAlign.End" Sortable="false">
+                        <Template Context="faculty">
+                            <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" JustifyContent="JustifyContent.End">
+                                <RadzenButton Icon="visibility"
+                                              ButtonStyle="ButtonStyle.Light"
+                                              Variant="Variant.Text"
+                                              Size="ButtonSize.Small"
+                                              Click="@(() => Navigation.NavigateTo($"/facultati/{faculty.Id}"))"
+                                              title="Vezi" />
+                                <RadzenButton Icon="edit"
+                                              ButtonStyle="ButtonStyle.Light"
+                                              Variant="Variant.Text"
+                                              Size="ButtonSize.Small"
+                                              Click="@(() => Navigation.NavigateTo($"/facultati/{faculty.Id}/editare"))"
+                                              title="Editează" />
+                                <RadzenButton Icon="delete"
+                                              ButtonStyle="ButtonStyle.Danger"
+                                              Variant="Variant.Text"
+                                              Size="ButtonSize.Small"
+                                              Click="@(() => ConfirmDelete(faculty.Id))"
+                                              title="Șterge" />
+                            </RadzenStack>
+                        </Template>
+                    </RadzenDataGridColumn>
+                </Columns>
+            </RadzenDataGrid>
 
             <!-- Pagination -->
-            <div class="px-6 py-4 border-t border-gray-100 flex items-center justify-between">
-                <div class="flex items-center space-x-2">
-                    <span class="text-sm text-gray-700">
-                        Afișează
-                    </span>
-                    <select @bind="pageSize" @bind:after="ApplyFilters" class="px-3 py-1 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500">
-                        <option value="10">10</option>
-                        <option value="25">25</option>
-                        <option value="50">50</option>
-                    </select>
-                    <span class="text-sm text-gray-700">
-                        din @faculties.TotalCount facultăți
-                    </span>
-                </div>
+            <div style="padding: 1rem 1.5rem; border-top: 1px solid var(--rz-border-color);">
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
+                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
+                        <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0;">Afișează</RadzenText>
+                        <RadzenDropDown @bind-Value="pageSize"
+                                        Data="@pageSizeOptions"
+                                        Change="@(args => ApplyFilters())"
+                                        Style="width: 80px;" />
+                        <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0;">din @faculties.TotalCount facultăți</RadzenText>
+                    </RadzenStack>
 
-                <div class="flex items-center space-x-2">
-                    <button @onclick="PreviousPage"
-                            disabled="@(!faculties.HasPreviousPage)"
-                            class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
-                        Anterior
-                    </button>
-                    <span class="text-sm text-gray-700">
-                        Pagina @faculties.Page din @faculties.TotalPages
-                    </span>
-                    <button @onclick="NextPage"
-                            disabled="@(!faculties.HasNextPage)"
-                            class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
-                        Următorul
-                    </button>
-                </div>
+                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
+                        <RadzenButton Text="Anterior"
+                                      ButtonStyle="ButtonStyle.Light"
+                                      Click="@PreviousPage"
+                                      Disabled="@(!faculties.HasPreviousPage)" />
+                        <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0;">
+                            Pagina @faculties.Page din @faculties.TotalPages
+                        </RadzenText>
+                        <RadzenButton Text="Următorul"
+                                      ButtonStyle="ButtonStyle.Light"
+                                      Click="@NextPage"
+                                      Disabled="@(!faculties.HasNextPage)" />
+                    </RadzenStack>
+                </RadzenStack>
             </div>
         }
         else
         {
-            <div class="px-6 py-12 text-center">
-                <svg class="w-12 h-12 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-                </svg>
-                <p class="text-gray-500">Nu au fost găsite facultăți</p>
-            </div>
+            <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Style="padding: 3rem 0;">
+                <RadzenIcon Icon="business" Style="font-size: 3rem; color: var(--rz-text-disabled-color);" />
+                <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0.5rem 0 0 0; color: var(--rz-text-secondary-color);">
+                    Nu au fost găsite facultăți
+                </RadzenText>
+            </RadzenStack>
         }
-    </div>
-</div>
-
-<!-- Delete Confirmation Modal -->
-@if (showDeleteModal)
-{
-    <div class="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50" @onclick="CancelDelete">
-        <div class="bg-white rounded-xl shadow-xl max-w-md w-full mx-4 p-6" @onclick:stopPropagation>
-            <h3 class="text-lg font-semibold text-gray-900 mb-4">Confirmare Ștergere</h3>
-            <p class="text-gray-600 mb-6">Ești sigur că vrei să ștergi această facultate? Statusul va fi schimbat în "Inactiv".</p>
-            <div class="flex space-x-3 justify-end">
-                <button @onclick="CancelDelete" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors">
-                    Anulează
-                </button>
-                <button @onclick="DeleteFaculty" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium transition-colors">
-                    Șterge
-                </button>
-            </div>
-        </div>
-    </div>
-}
+    </RadzenCard>
+</RadzenStack>
 
 @code {
     private PagedResult<FacultyListDto> faculties = new();
@@ -200,17 +187,17 @@
 
     // Filters
     private string searchTerm = "";
-    private string selectedStatus = "";
+    private string? selectedStatus;
     private int currentPage = 1;
     private int pageSize = 25;
 
-    // Sorting
-    private string sortColumn = "Name";
-    private bool sortAscending = true;
-
-    // Delete modal
-    private bool showDeleteModal = false;
-    private Guid facultyToDelete = Guid.Empty;
+    // Options
+    private List<int> pageSizeOptions = new() { 10, 25, 50 };
+    private List<StatusOption> statusOptions = new()
+    {
+        new StatusOption { Text = "Activ", Value = "true" },
+        new StatusOption { Text = "Inactiv", Value = "false" }
+    };
 
     protected override async Task OnInitializedAsync()
     {
@@ -229,21 +216,6 @@
         };
 
         faculties = await FacultyService.GetAllAsync(filter, currentPage, pageSize);
-
-        // Apply client-side sorting if needed
-        if (!string.IsNullOrEmpty(sortColumn))
-        {
-            faculties.Items = sortColumn switch
-            {
-                "Name" => sortAscending
-                    ? faculties.Items.OrderBy(f => f.Name).ToList()
-                    : faculties.Items.OrderByDescending(f => f.Name).ToList(),
-                "Code" => sortAscending
-                    ? faculties.Items.OrderBy(f => f.Code).ToList()
-                    : faculties.Items.OrderByDescending(f => f.Code).ToList(),
-                _ => faculties.Items
-            };
-        }
 
         isLoading = false;
         StateHasChanged();
@@ -267,20 +239,6 @@
         await LoadFaculties();
     }
 
-    private async Task SortBy(string column)
-    {
-        if (sortColumn == column)
-        {
-            sortAscending = !sortAscending;
-        }
-        else
-        {
-            sortColumn = column;
-            sortAscending = true;
-        }
-        await LoadFaculties();
-    }
-
     private async Task NextPage()
     {
         if (faculties.HasNextPage)
@@ -299,27 +257,20 @@
         }
     }
 
-    private void ConfirmDelete(Guid id)
+    private async Task ConfirmDelete(Guid id)
     {
-        facultyToDelete = id;
-        showDeleteModal = true;
-    }
+        var confirmed = await DialogService.Confirm(
+            "Ești sigur că vrei să ștergi această facultate? Statusul va fi schimbat în \"Inactiv\".",
+            "Confirmare Ștergere",
+            new ConfirmOptions { OkButtonText = "Șterge", CancelButtonText = "Anulează" });
 
-    private void CancelDelete()
-    {
-        showDeleteModal = false;
-        facultyToDelete = Guid.Empty;
-    }
-
-    private async Task DeleteFaculty()
-    {
-        var result = await FacultyService.DeleteAsync(facultyToDelete);
-        showDeleteModal = false;
-        facultyToDelete = Guid.Empty;
-
-        if (result.Succeeded)
+        if (confirmed == true)
         {
-            await LoadFaculties();
+            var result = await FacultyService.DeleteAsync(id);
+            if (result.Succeeded)
+            {
+                await LoadFaculties();
+            }
         }
     }
 
@@ -345,5 +296,11 @@
     public void Dispose()
     {
         searchTimer?.Dispose();
+    }
+
+    private class StatusOption
+    {
+        public string Text { get; set; } = "";
+        public string Value { get; set; } = "";
     }
 }

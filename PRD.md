@@ -13,7 +13,7 @@ SMU 3.0 este un sistem modern de management universitar care oferă o experienț
 | Componentă | Tehnologie |
 |------------|------------|
 | **Framework** | Blazor Server (.NET 8) |
-| **UI** | Tailwind CSS + Lucide Icons |
+| **UI** | Radzen Blazor Components (Material Theme) |
 | **Charts** | Blazor.ApexCharts |
 | **Database** | Supabase PostgreSQL |
 | **ORM** | Entity Framework Core |

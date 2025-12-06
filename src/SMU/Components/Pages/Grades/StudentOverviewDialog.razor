@@ -1,0 +1,222 @@
+@using SMU.Services
+@using SMU.Services.DTOs
+@using SMU.Data.Entities
+@using SMU.Data
+@using Microsoft.EntityFrameworkCore
+@inject IGradeService GradeService
+@inject ApplicationDbContext DbContext
+
+<RadzenStack Gap="1rem">
+    @if (IsLoading)
+    {
+        <RadzenProgressBarCircular ShowValue="false" Mode="ProgressBarMode.Indeterminate" Size="ProgressBarCircularSize.Medium" />
+    }
+    else if (Student != null)
+    {
+        <RadzenCard>
+            <RadzenStack Gap="0.75rem">
+                <RadzenText TextStyle="TextStyle.H6" Style="margin: 0;">Informații Student</RadzenText>
+                <RadzenStack Orientation="Radzen.Orientation.Horizontal" Gap="1rem" Wrap="FlexWrap.Wrap">
+                    <RadzenStack Gap="0.25rem">
+                        <RadzenText TextStyle="TextStyle.Overline" class="rz-color-secondary" Style="margin: 0;">Nume Complet</RadzenText>
+                        <RadzenText TextStyle="TextStyle.Body1" Style="margin: 0; font-weight: 500;">@Student.FullName</RadzenText>
+                    </RadzenStack>
+                    <RadzenStack Gap="0.25rem">
+                        <RadzenText TextStyle="TextStyle.Overline" class="rz-color-secondary" Style="margin: 0;">Număr Matricol</RadzenText>
+                        <RadzenText TextStyle="TextStyle.Body1" Style="margin: 0; font-weight: 500;">@Student.StudentNumber</RadzenText>
+                    </RadzenStack>
+                    <RadzenStack Gap="0.25rem">
+                        <RadzenText TextStyle="TextStyle.Overline" class="rz-color-secondary" Style="margin: 0;">Grupă</RadzenText>
+                        <RadzenText TextStyle="TextStyle.Body1" Style="margin: 0; font-weight: 500;">@Student.GroupName</RadzenText>
+                    </RadzenStack>
+                </RadzenStack>
+            </RadzenStack>
+        </RadzenCard>
+
+        @if (Average != null)
+        {
+            <RadzenCard>
+                <RadzenStack Gap="0.75rem">
+                    <RadzenText TextStyle="TextStyle.H6" Style="margin: 0;">Statistici Generale</RadzenText>
+                    <RadzenRow Gap="1rem">
+                        <RadzenColumn Size="12" SizeMD="3">
+                            <RadzenCard Style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none;">
+                                <RadzenStack Gap="0.5rem" AlignItems="AlignItems.Center">
+                                    <RadzenIcon Icon="school" Style="font-size: 2rem;" />
+                                    <RadzenText TextStyle="TextStyle.Overline" Style="margin: 0; opacity: 0.9;">Total Credite</RadzenText>
+                                    <RadzenText TextStyle="TextStyle.H4" Style="margin: 0; font-weight: 700;">@Average.TotalCredits</RadzenText>
+                                </RadzenStack>
+                            </RadzenCard>
+                        </RadzenColumn>
+                        <RadzenColumn Size="12" SizeMD="3">
+                            <RadzenCard Style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); color: white; border: none;">
+                                <RadzenStack Gap="0.5rem" AlignItems="AlignItems.Center">
+                                    <RadzenIcon Icon="star" Style="font-size: 2rem;" />
+                                    <RadzenText TextStyle="TextStyle.Overline" Style="margin: 0; opacity: 0.9;">Media Generală</RadzenText>
+                                    <RadzenText TextStyle="TextStyle.H4" Style="margin: 0; font-weight: 700;">@Average.WeightedAverage.ToString("0.00")</RadzenText>
+                                </RadzenStack>
+                            </RadzenCard>
+                        </RadzenColumn>
+                        <RadzenColumn Size="12" SizeMD="3">
+                            <RadzenCard Style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; border: none;">
+                                <RadzenStack Gap="0.5rem" AlignItems="AlignItems.Center">
+                                    <RadzenIcon Icon="check_circle" Style="font-size: 2rem;" />
+                                    <RadzenText TextStyle="TextStyle.Overline" Style="margin: 0; opacity: 0.9;">Note Trecute</RadzenText>
+                                    <RadzenText TextStyle="TextStyle.H4" Style="margin: 0; font-weight: 700;">@Average.PassedGrades</RadzenText>
+                                </RadzenStack>
+                            </RadzenCard>
+                        </RadzenColumn>
+                        <RadzenColumn Size="12" SizeMD="3">
+                            <RadzenCard Style="background: linear-gradient(135deg, #ff6a00 0%, #ee0979 100%); color: white; border: none;">
+                                <RadzenStack Gap="0.5rem" AlignItems="AlignItems.Center">
+                                    <RadzenIcon Icon="warning" Style="font-size: 2rem;" />
+                                    <RadzenText TextStyle="TextStyle.Overline" Style="margin: 0; opacity: 0.9;">Note &lt; 5</RadzenText>
+                                    <RadzenText TextStyle="TextStyle.H4" Style="margin: 0; font-weight: 700;">@Average.FailedGrades</RadzenText>
+                                </RadzenStack>
+                            </RadzenCard>
+                        </RadzenColumn>
+                    </RadzenRow>
+                </RadzenStack>
+            </RadzenCard>
+        }
+
+        <RadzenCard>
+            <RadzenStack Gap="0.75rem">
+                <RadzenText TextStyle="TextStyle.H6" Style="margin: 0;">Toate Notele</RadzenText>
+
+                @if (Grades != null && Grades.Any())
+                {
+                    <RadzenDataGrid Data="@Grades" TItem="GradeListDto" AllowSorting="true" AllowPaging="true" PageSize="10">
+                        <Columns>
+                            <RadzenDataGridColumn TItem="GradeListDto" Property="CourseName" Title="Disciplină" Sortable="true" Width="200px">
+                                <Template Context="grade">
+                                    <RadzenStack Gap="0.25rem">
+                                        <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; font-weight: 500;">@grade.CourseName</RadzenText>
+                                        <RadzenText TextStyle="TextStyle.Caption" class="rz-color-secondary" Style="margin: 0;">@grade.Credits credite • Sem. @grade.Semester</RadzenText>
+                                    </RadzenStack>
+                                </Template>
+                            </RadzenDataGridColumn>
+
+                            <RadzenDataGridColumn TItem="GradeListDto" Property="ProfessorName" Title="Profesor" Sortable="true" Width="150px">
+                                <Template Context="grade">
+                                    <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0;">@grade.ProfessorName</RadzenText>
+                                </Template>
+                            </RadzenDataGridColumn>
+
+                            <RadzenDataGridColumn TItem="GradeListDto" Property="Value" Title="Notă" Sortable="true" Width="100px">
+                                <Template Context="grade">
+                                    <RadzenBadge BadgeStyle="@GetGradeBadgeStyle(grade.Value)" Text="@grade.Value.ToString("0.00")" IsPill="true" />
+                                </Template>
+                            </RadzenDataGridColumn>
+
+                            <RadzenDataGridColumn TItem="GradeListDto" Property="Type" Title="Tip" Sortable="true" Width="120px">
+                                <Template Context="grade">
+                                    <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0;">@GetGradeTypeLabel(grade.Type)</RadzenText>
+                                </Template>
+                            </RadzenDataGridColumn>
+
+                            <RadzenDataGridColumn TItem="GradeListDto" Property="Status" Title="Status" Sortable="true" Width="120px">
+                                <Template Context="grade">
+                                    <RadzenBadge BadgeStyle="@GetStatusBadgeStyle(grade.Status)" Text="@GetStatusLabel(grade.Status)" IsPill="true" />
+                                </Template>
+                            </RadzenDataGridColumn>
+
+                            <RadzenDataGridColumn TItem="GradeListDto" Property="ExamDate" Title="Data Examen" Sortable="true" Width="120px">
+                                <Template Context="grade">
+                                    <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0;">@grade.ExamDate.ToString("dd.MM.yyyy")</RadzenText>
+                                </Template>
+                            </RadzenDataGridColumn>
+                        </Columns>
+                    </RadzenDataGrid>
+                }
+                else
+                {
+                    <RadzenAlert AlertStyle="AlertStyle.Info" Variant="Variant.Flat" Shade="Shade.Lighter">
+                        Nu există note înregistrate pentru acest student.
+                    </RadzenAlert>
+                }
+            </RadzenStack>
+        </RadzenCard>
+    }
+</RadzenStack>
+
+@code {
+    [Parameter]
+    public Guid StudentId { get; set; }
+
+    private StudentInfo? Student;
+    private List<GradeListDto>? Grades;
+    private StudentAverageDto? Average;
+    private bool IsLoading = true;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        IsLoading = true;
+
+        // Load student details directly from database
+        var student = await DbContext.Students
+            .Include(s => s.User)
+            .Include(s => s.Group)
+            .FirstOrDefaultAsync(s => s.Id == StudentId);
+
+        if (student != null)
+        {
+            Student = new StudentInfo
+            {
+                FullName = $"{student.User.FirstName} {student.User.LastName}",
+                StudentNumber = student.StudentNumber,
+                GroupName = student.Group?.Name ?? "N/A"
+            };
+        }
+
+        // Load student grades
+        Grades = await GradeService.GetByStudentAsync(StudentId);
+
+        // Load student average
+        Average = await GradeService.GetStudentAverageAsync(StudentId);
+
+        IsLoading = false;
+    }
+
+    // Helper class for student information
+    private class StudentInfo
+    {
+        public string FullName { get; set; } = string.Empty;
+        public string StudentNumber { get; set; } = string.Empty;
+        public string GroupName { get; set; } = string.Empty;
+    }
+
+    private BadgeStyle GetGradeBadgeStyle(decimal value) => value switch
+    {
+        >= 9 => BadgeStyle.Success,
+        >= 7 => BadgeStyle.Info,
+        >= 5 => BadgeStyle.Warning,
+        _ => BadgeStyle.Danger
+    };
+
+    private BadgeStyle GetStatusBadgeStyle(GradeStatus status) => status switch
+    {
+        GradeStatus.Pending => BadgeStyle.Warning,
+        GradeStatus.Approved => BadgeStyle.Success,
+        GradeStatus.Rejected => BadgeStyle.Danger,
+        _ => BadgeStyle.Light
+    };
+
+    private string GetStatusLabel(GradeStatus status) => status switch
+    {
+        GradeStatus.Pending => "În așteptare",
+        GradeStatus.Approved => "Aprobat",
+        GradeStatus.Rejected => "Respins",
+        _ => status.ToString()
+    };
+
+    private string GetGradeTypeLabel(GradeType type) => type switch
+    {
+        GradeType.Exam => "Examen",
+        GradeType.Lab => "Laborator",
+        GradeType.Seminar => "Seminar",
+        GradeType.Project => "Proiect",
+        GradeType.Final => "Final",
+        _ => type.ToString()
+    };
+}

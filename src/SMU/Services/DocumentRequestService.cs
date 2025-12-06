@@ -12,11 +12,19 @@ public class DocumentRequestService : IDocumentRequestService
 {
     private readonly ApplicationDbContext _context;
     private readonly ILogger<DocumentRequestService> _logger;
+    private readonly INotificationService _notificationService;
+    private readonly IDocumentGenerationService _documentGenerationService;
 
-    public DocumentRequestService(ApplicationDbContext context, ILogger<DocumentRequestService> logger)
+    public DocumentRequestService(
+        ApplicationDbContext context,
+        ILogger<DocumentRequestService> logger,
+        INotificationService notificationService,
+        IDocumentGenerationService documentGenerationService)
     {
         _context = context;
         _logger = logger;
+        _notificationService = notificationService;
+        _documentGenerationService = documentGenerationService;
     }
 
     public async Task<List<DocumentRequestDto>> GetByStudentAsync(Guid studentId)
@@ -183,6 +191,110 @@ public class DocumentRequestService : IDocumentRequestService
         var action = dto.Approved ? "aprobată" : "respinsă";
         _logger.LogInformation("Document request {Action}: {RequestId} by user {UserId}",
             action, id, processedById);
+
+        // Send notification to student
+        var studentUserId = request.Student.User.Id;
+        if (dto.Approved)
+        {
+            await _notificationService.SendAsync(
+                studentUserId,
+                "Cerere Aprobată",
+                $"Cererea ta pentru {GetTypeLabel(request.Type)} a fost aprobată și este în curs de procesare.",
+                NotificationType.RequestUpdate,
+                "/cereri"
+            );
+        }
+        else
+        {
+            var reason = !string.IsNullOrWhiteSpace(dto.RejectionReason)
+                ? $" Motiv: {dto.RejectionReason}"
+                : "";
+            await _notificationService.SendAsync(
+                studentUserId,
+                "Cerere Respinsă",
+                $"Cererea ta pentru {GetTypeLabel(request.Type)} a fost respinsă.{reason}",
+                NotificationType.Warning,
+                "/cereri"
+            );
+        }
+
+        return ServiceResult.Success();
+    }
+
+    public async Task<ServiceResult> CompleteAsync(Guid id, CompleteDocumentRequestDto dto, Guid completedById)
+    {
+        var request = await _context.DocumentRequests
+            .Include(r => r.Student)
+                .ThenInclude(s => s.User)
+            .FirstOrDefaultAsync(r => r.Id == id);
+
+        if (request == null)
+        {
+            return ServiceResult.Failed("Cererea nu a fost găsită.");
+        }
+
+        if (request.Status != RequestStatus.Approved)
+        {
+            return ServiceResult.Failed("Doar cererile aprobate pot fi finalizate.");
+        }
+
+        try
+        {
+            // Generate PDF based on request type
+            byte[] pdfBytes = request.Type switch
+            {
+                RequestType.StudentCertificate => await _documentGenerationService.GenerateStudentCertificateAsync(request.StudentId),
+                RequestType.GradeReport => await _documentGenerationService.GenerateGradeReportAsync(request.StudentId),
+                RequestType.EnrollmentProof => await _documentGenerationService.GenerateEnrollmentProofAsync(request.StudentId),
+                _ => throw new InvalidOperationException($"Tip document necunoscut: {request.Type}")
+            };
+
+            // Save PDF and get file path
+            var documentPath = await _documentGenerationService.SaveDocumentAsync(
+                pdfBytes,
+                request.Type,
+                request.Student.StudentNumber
+            );
+
+            // Mark as completed
+            request.Status = RequestStatus.Completed;
+            request.ProcessedAt = DateTime.UtcNow;
+            request.ProcessedById = completedById;
+            request.UpdatedAt = DateTime.UtcNow;
+
+            // Store the generated document path
+            request.Notes = string.IsNullOrEmpty(request.Notes)
+                ? $"Document generat: {documentPath}"
+                : $"{request.Notes}\nDocument generat: {documentPath}";
+
+            await _context.SaveChangesAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Eroare la generarea documentului pentru cererea {RequestId}", id);
+            return ServiceResult.Failed($"Eroare la generarea documentului: {ex.Message}");
+        }
+
+        var action = "completed";
+        _logger.LogInformation(
+            "Document request {Action}: {RequestId} by user {UserId}",
+            action, id, completedById);
+
+        // Send notification to student about document completion
+        var student = await _context.Students
+            .Include(s => s.User)
+            .FirstOrDefaultAsync(s => s.Id == request.StudentId);
+
+        if (student != null)
+        {
+            await _notificationService.SendAsync(
+                student.User.Id,
+                "Document Emis",
+                $"Documentul tău ({GetTypeLabel(request.Type)}) a fost emis și este gata de ridicare.",
+                NotificationType.Success,
+                "/cereri"
+            );
+        }
 
         return ServiceResult.Success();
     }

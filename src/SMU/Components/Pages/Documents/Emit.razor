@@ -1,0 +1,296 @@
+@page "/documente/emite"
+@using SMU.Services
+@using SMU.Services.DTOs
+@using SMU.Data.Entities
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@inject IDocumentRequestService DocumentRequestService
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Navigation
+@inject Radzen.NotificationService NotificationService
+@attribute [Authorize(Roles = "Secretary,Dean,Admin")]
+
+<PageTitle>Emite Document - SMU</PageTitle>
+
+<RadzenStack Gap="1.5rem">
+    <!-- Page Header -->
+    <RadzenStack Orientation="Radzen.Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center">
+        <RadzenStack Gap="0.25rem">
+            <RadzenText TextStyle="TextStyle.H4" Style="margin: 0; font-weight: 700;">Emite Document</RadzenText>
+            <RadzenText TextStyle="TextStyle.Body2" class="rz-color-secondary" Style="margin: 0;">
+                Emite documentele pentru cererile aprobate
+            </RadzenText>
+        </RadzenStack>
+        <RadzenButton Icon="arrow_back" Text="Înapoi" ButtonStyle="ButtonStyle.Light" Variant="Variant.Text" Click="@(() => Navigation.NavigateTo("/dashboard"))" />
+    </RadzenStack>
+
+    @if (isLoading)
+    {
+        <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Style="padding: 3rem 0;">
+            <RadzenProgressBarCircular ShowValue="false" Mode="ProgressBarMode.Indeterminate" Size="ProgressBarCircularSize.Large" />
+            <RadzenText TextStyle="TextStyle.Body2" class="rz-color-secondary" Style="margin-top: 1rem;">
+                Se încarcă cererile aprobate...
+            </RadzenText>
+        </RadzenStack>
+    }
+    else
+    {
+        <!-- Filters -->
+        <RadzenCard>
+            <RadzenStack Orientation="Radzen.Orientation.Horizontal" Gap="1rem" AlignItems="AlignItems.End" Wrap="FlexWrap.Wrap">
+                <RadzenStack Gap="0.25rem">
+                    <RadzenLabel Text="Tip Document" />
+                    <RadzenDropDown TValue="RequestType?" @bind-Value="selectedType" Data="@requestTypes"
+                                    Placeholder="Toate tipurile" AllowClear="true"
+                                    Style="width: 200px;" Change="@OnFilterChange">
+                        <Template Context="type">
+                            @GetRequestTypeText(type)
+                        </Template>
+                    </RadzenDropDown>
+                </RadzenStack>
+
+                <RadzenStack Gap="0.25rem">
+                    <RadzenLabel Text="Căutare Student" />
+                    <RadzenTextBox @bind-Value="searchQuery" Placeholder="Nume sau nr. matricol"
+                                   Style="width: 250px;" @oninput="@OnSearchChange" />
+                </RadzenStack>
+
+                <RadzenButton Text="Resetează Filtre" Icon="refresh" ButtonStyle="ButtonStyle.Light"
+                              Click="@ResetFilters" Variant="Variant.Outlined" />
+            </RadzenStack>
+        </RadzenCard>
+
+        <!-- Approved Requests Table -->
+        <RadzenCard Style="padding: 0; overflow: hidden;">
+            <RadzenStack Class="rz-p-4" Style="border-bottom: 1px solid var(--rz-base-300);">
+                <RadzenText TextStyle="TextStyle.H6" Style="margin: 0; font-weight: 600;">
+                    Cereri Aprobate (@filteredRequests.Count)
+                </RadzenText>
+            </RadzenStack>
+
+            @if (!filteredRequests.Any())
+            {
+                <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Style="padding: 3rem;">
+                    <RadzenIcon Icon="check_circle" Style="font-size: 48px; color: var(--rz-success);" />
+                    <RadzenText TextStyle="TextStyle.H6" Style="margin: 1rem 0 0 0;">Nu există cereri aprobate de emis</RadzenText>
+                    <RadzenText TextStyle="TextStyle.Body2" class="rz-color-secondary" Style="margin: 0.5rem 0 0 0;">
+                        Toate cererile aprobate au fost procesate.
+                    </RadzenText>
+                </RadzenStack>
+            }
+            else
+            {
+                <RadzenDataGrid Data="@filteredRequests" TItem="DocumentRequestDto"
+                                AllowSorting="true" AllowPaging="true" PageSize="10"
+                                Style="border: none;">
+                    <Columns>
+                        <RadzenDataGridColumn TItem="DocumentRequestDto" Property="CreatedAt" Title="Data Cererii" Width="120px">
+                            <Template Context="request">
+                                @request.CreatedAt.ToString("dd.MM.yyyy")
+                            </Template>
+                        </RadzenDataGridColumn>
+
+                        <RadzenDataGridColumn TItem="DocumentRequestDto" Property="StudentName" Title="Student" />
+
+                        <RadzenDataGridColumn TItem="DocumentRequestDto" Property="StudentNumber" Title="Nr. Matricol" Width="120px" />
+
+                        <RadzenDataGridColumn TItem="DocumentRequestDto" Property="Type" Title="Tip Document" Width="180px">
+                            <Template Context="request">
+                                <RadzenBadge BadgeStyle="BadgeStyle.Info" Text="@request.TypeLabel" />
+                            </Template>
+                        </RadzenDataGridColumn>
+
+                        <RadzenDataGridColumn TItem="DocumentRequestDto" Property="ProcessedAt" Title="Data Aprobare" Width="120px">
+                            <Template Context="request">
+                                @(request.ProcessedAt?.ToString("dd.MM.yyyy") ?? "-")
+                            </Template>
+                        </RadzenDataGridColumn>
+
+                        <RadzenDataGridColumn TItem="DocumentRequestDto" Title="Acțiuni" Width="140px" Frozen="true" Sortable="false">
+                            <Template Context="request">
+                                <RadzenStack Orientation="Radzen.Orientation.Horizontal" Gap="0.5rem">
+                                    <RadzenButton Icon="visibility" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small"
+                                                  Click="@(() => ViewRequest(request.Id))" title="Vizualizează" />
+                                    <RadzenButton Icon="file_download" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small"
+                                                  Click="@(() => EmitDocument(request))" title="Emite Document" />
+                                </RadzenStack>
+                            </Template>
+                        </RadzenDataGridColumn>
+                    </Columns>
+                </RadzenDataGrid>
+            }
+        </RadzenCard>
+    }
+</RadzenStack>
+
+@code {
+    private bool isLoading = true;
+    private Guid? facultyId;
+
+    private List<DocumentRequestDto> approvedRequests = new();
+    private List<DocumentRequestDto> filteredRequests = new();
+
+    private RequestType? selectedType;
+    private string searchQuery = "";
+    private RequestType?[] requestTypes = new RequestType?[] { RequestType.StudentCertificate, RequestType.GradeReport, RequestType.EnrollmentProof, RequestType.Other };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadApprovedRequests();
+    }
+
+    private async Task LoadApprovedRequests()
+    {
+        try
+        {
+            isLoading = true;
+
+            // Get faculty ID from claims
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+            var facultyIdClaim = user.FindFirst("FacultyId")?.Value;
+
+            if (Guid.TryParse(facultyIdClaim, out var parsedFacultyId))
+            {
+                facultyId = parsedFacultyId;
+            }
+
+            // Get all requests for the faculty
+            var allRequests = await DocumentRequestService.GetAllAsync(new DocumentRequestFilter { FacultyId = facultyId });
+
+            // Filter only approved requests that haven't been completed yet
+            approvedRequests = allRequests
+                .Where(r => r.Status == RequestStatus.Approved)
+                .OrderByDescending(r => r.ProcessedAt)
+                .ToList();
+
+            filteredRequests = approvedRequests;
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(new NotificationMessage
+            {
+                Severity = NotificationSeverity.Error,
+                Summary = "Eroare",
+                Detail = $"Nu s-au putut încărca cererile: {ex.Message}",
+                Duration = 4000
+            });
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void OnFilterChange()
+    {
+        ApplyFilters();
+    }
+
+    private void OnSearchChange(ChangeEventArgs e)
+    {
+        searchQuery = e.Value?.ToString() ?? "";
+        ApplyFilters();
+    }
+
+    private void ApplyFilters()
+    {
+        filteredRequests = approvedRequests;
+
+        // Filter by type
+        if (selectedType.HasValue)
+        {
+            filteredRequests = filteredRequests.Where(r => r.Type == selectedType.Value).ToList();
+        }
+
+        // Filter by search query
+        if (!string.IsNullOrWhiteSpace(searchQuery))
+        {
+            var query = searchQuery.ToLower();
+            filteredRequests = filteredRequests.Where(r =>
+                r.StudentName.ToLower().Contains(query) ||
+                r.StudentNumber.ToLower().Contains(query)
+            ).ToList();
+        }
+    }
+
+    private void ResetFilters()
+    {
+        selectedType = null;
+        searchQuery = "";
+        filteredRequests = approvedRequests;
+        StateHasChanged();
+    }
+
+    private void ViewRequest(Guid requestId)
+    {
+        Navigation.NavigateTo($"/cereri/{requestId}");
+    }
+
+    private async Task EmitDocument(DocumentRequestDto request)
+    {
+        try
+        {
+            // Get current user ID
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+            var userId = Guid.Parse(user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "");
+
+            // Mark as completed
+            var completeDto = new CompleteDocumentRequestDto
+            {
+                GeneratedDocumentPath = $"/documents/{request.Type}_{request.StudentNumber}_{DateTime.Now:yyyyMMdd}.pdf"
+            };
+
+            var result = await DocumentRequestService.CompleteAsync(request.Id, completeDto, userId);
+
+            if (result.Succeeded)
+            {
+                NotificationService.Notify(new NotificationMessage
+                {
+                    Severity = NotificationSeverity.Success,
+                    Summary = "Succes",
+                    Detail = $"Documentul pentru {request.StudentName} a fost emis cu succes!",
+                    Duration = 4000
+                });
+
+                // Reload the list
+                await LoadApprovedRequests();
+            }
+            else
+            {
+                NotificationService.Notify(new NotificationMessage
+                {
+                    Severity = NotificationSeverity.Error,
+                    Summary = "Eroare",
+                    Detail = result.ErrorMessage ?? "Nu s-a putut emite documentul",
+                    Duration = 4000
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(new NotificationMessage
+            {
+                Severity = NotificationSeverity.Error,
+                Summary = "Eroare",
+                Detail = $"Eroare la emiterea documentului: {ex.Message}",
+                Duration = 4000
+            });
+        }
+    }
+
+    private string GetRequestTypeText(RequestType? type)
+    {
+        if (!type.HasValue) return "Toate tipurile";
+
+        return type.Value switch
+        {
+            RequestType.StudentCertificate => "Adeverință Student",
+            RequestType.GradeReport => "Foaie Matricolă",
+            RequestType.EnrollmentProof => "Dovadă Înscriere",
+            RequestType.Other => "Altele",
+            _ => type.Value.ToString()
+        };
+    }
+}

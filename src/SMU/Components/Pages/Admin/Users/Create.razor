@@ -9,163 +9,129 @@
 @inject IUserService UserService
 @inject ApplicationDbContext DbContext
 @inject NavigationManager Navigation
+@inject Radzen.NotificationService NotificationService
 
 <PageTitle>Utilizator Nou - SMU</PageTitle>
 
-<div class="max-w-3xl mx-auto space-y-6">
+<RadzenStack Gap="1.5rem" Style="max-width: 800px; margin: 0 auto;">
     <!-- Header -->
-    <div class="flex items-center space-x-4">
-        <a href="/admin/utilizatori" class="text-gray-500 hover:text-gray-700">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
-            </svg>
-        </a>
-        <div>
-            <h1 class="text-2xl font-bold text-gray-900">Utilizator Nou</h1>
-            <p class="mt-1 text-sm text-gray-500">Creează un nou cont de utilizator</p>
-        </div>
-    </div>
+    <RadzenStack Orientation="Radzen.Orientation.Horizontal" Gap="1rem" AlignItems="AlignItems.Center">
+        <RadzenButton Icon="arrow_back" ButtonStyle="ButtonStyle.Light" Variant="Variant.Text"
+                      Click="@(() => Navigation.NavigateTo("/admin/utilizatori"))" />
+        <RadzenStack Gap="0.25rem">
+            <RadzenText TextStyle="TextStyle.H4" Style="margin: 0; font-weight: 700;">Utilizator Nou</RadzenText>
+            <RadzenText TextStyle="TextStyle.Body2" class="rz-color-secondary" Style="margin: 0;">
+                Creează un nou cont de utilizator
+            </RadzenText>
+        </RadzenStack>
+    </RadzenStack>
 
     <!-- Form -->
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-        <EditForm Model="@model" OnValidSubmit="HandleSubmit">
-            <DataAnnotationsValidator />
-
-            <div class="space-y-6">
+    <RadzenCard Style="padding: 1.5rem;">
+        <RadzenTemplateForm TItem="CreateUserDto" Data="@model" Submit="@HandleSubmit">
+            <RadzenStack Gap="1.5rem">
                 <!-- Email -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Email *</label>
-                    <InputText @bind-Value="model.Email"
-                               placeholder="exemplu@smu.edu"
-                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500" />
-                    <ValidationMessage For="@(() => model.Email)" class="text-sm text-red-600 mt-1" />
-                </div>
+                <RadzenStack Gap="0.5rem">
+                    <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; font-weight: 500;">Email *</RadzenText>
+                    <RadzenTextBox @bind-Value="model.Email" Placeholder="exemplu@smu.edu" Style="width: 100%;" />
+                    <RadzenRequiredValidator Component="Email" Text="Email-ul este obligatoriu" />
+                </RadzenStack>
 
                 <!-- First Name & Last Name -->
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Prenume *</label>
-                        <InputText @bind-Value="model.FirstName"
-                                   placeholder="Ion"
-                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500" />
-                        <ValidationMessage For="@(() => model.FirstName)" class="text-sm text-red-600 mt-1" />
-                    </div>
+                <RadzenRow Gap="1rem" RowGap="1rem">
+                    <RadzenColumn Size="12" SizeMD="6">
+                        <RadzenStack Gap="0.5rem">
+                            <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; font-weight: 500;">Prenume *</RadzenText>
+                            <RadzenTextBox @bind-Value="model.FirstName" Placeholder="Ion" Style="width: 100%;" />
+                            <RadzenRequiredValidator Component="FirstName" Text="Prenumele este obligatoriu" />
+                        </RadzenStack>
+                    </RadzenColumn>
 
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Nume *</label>
-                        <InputText @bind-Value="model.LastName"
-                                   placeholder="Popescu"
-                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500" />
-                        <ValidationMessage For="@(() => model.LastName)" class="text-sm text-red-600 mt-1" />
-                    </div>
-                </div>
+                    <RadzenColumn Size="12" SizeMD="6">
+                        <RadzenStack Gap="0.5rem">
+                            <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; font-weight: 500;">Nume *</RadzenText>
+                            <RadzenTextBox @bind-Value="model.LastName" Placeholder="Popescu" Style="width: 100%;" />
+                            <RadzenRequiredValidator Component="LastName" Text="Numele este obligatoriu" />
+                        </RadzenStack>
+                    </RadzenColumn>
+                </RadzenRow>
 
                 <!-- Password -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Parolă *</label>
-                    <div class="flex space-x-2">
-                        <InputText type="password"
-                                   @bind-Value="model.Password"
-                                   placeholder="Minimum 8 caractere"
-                                   class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500" />
-                        <button type="button"
-                                @onclick="GeneratePassword"
-                                class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors">
-                            Generează
-                        </button>
-                    </div>
-                    <ValidationMessage For="@(() => model.Password)" class="text-sm text-red-600 mt-1" />
+                <RadzenStack Gap="0.5rem">
+                    <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; font-weight: 500;">Parolă *</RadzenText>
+                    <RadzenStack Orientation="Radzen.Orientation.Horizontal" Gap="0.5rem">
+                        <RadzenTextBox @bind-Value="model.Password" Placeholder="Minimum 8 caractere"
+                                       Style="flex: 1;" InputAttributes="@(new Dictionary<string,object> { { "type", "password" } })" />
+                        <RadzenButton Text="Generează" ButtonStyle="ButtonStyle.Light" Click="GeneratePassword" />
+                    </RadzenStack>
+                    <RadzenRequiredValidator Component="Password" Text="Parola este obligatorie" />
                     @if (showGeneratedPassword)
                     {
-                        <p class="text-sm text-success-600 mt-1">Parolă generată: @model.Password</p>
+                        <RadzenText TextStyle="TextStyle.Caption" Style="margin: 0; color: var(--rz-success);">
+                            Parolă generată: @model.Password
+                        </RadzenText>
                     }
-                </div>
+                </RadzenStack>
 
                 <!-- Role -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Rol *</label>
-                    <InputSelect @bind-Value="model.Role"
-                                 class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
-                        <option value="">Selectează rol...</option>
-                        <option value="@UserRole.Admin">Administrator</option>
-                        <option value="@UserRole.Rector">Rector</option>
-                        <option value="@UserRole.Dean">Decan</option>
-                        <option value="@UserRole.Secretary">Secretar</option>
-                        <option value="@UserRole.Professor">Profesor</option>
-                        <option value="@UserRole.Student">Student</option>
-                    </InputSelect>
-                    <ValidationMessage For="@(() => model.Role)" class="text-sm text-red-600 mt-1" />
-                    <p class="text-sm text-gray-500 mt-1">@GetRoleDescription(model.Role)</p>
-                </div>
+                <RadzenStack Gap="0.5rem">
+                    <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; font-weight: 500;">Rol *</RadzenText>
+                    <RadzenDropDown @bind-Value="model.Role" Data="@roleOptions" TextProperty="Text" ValueProperty="Value"
+                                    Style="width: 100%;" Placeholder="Selectează rol..." />
+                    <RadzenText TextStyle="TextStyle.Caption" class="rz-color-secondary" Style="margin: 0;">
+                        @GetRoleDescription(model.Role)
+                    </RadzenText>
+                </RadzenStack>
 
                 <!-- Faculty Selection (only for Professor role) -->
                 @if (model.Role == UserRole.Professor)
                 {
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Facultate *</label>
-                        <InputSelect @bind-Value="model.FacultyId"
-                                     class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
-                            <option value="">Selectează facultate...</option>
-                            @foreach (var faculty in faculties)
-                            {
-                                <option value="@faculty.Id">@faculty.Name</option>
-                            }
-                        </InputSelect>
-                        <ValidationMessage For="@(() => model.FacultyId)" class="text-sm text-red-600 mt-1" />
-                    </div>
-                }
-
-                <!-- Error Message -->
-                @if (!string.IsNullOrEmpty(errorMessage))
-                {
-                    <div class="bg-red-50 border border-red-200 rounded-lg p-4">
-                        <p class="text-sm text-red-800">@errorMessage</p>
-                    </div>
-                }
-
-                <!-- Success Message -->
-                @if (!string.IsNullOrEmpty(successMessage))
-                {
-                    <div class="bg-success-50 border border-success-200 rounded-lg p-4">
-                        <p class="text-sm text-success-800">@successMessage</p>
-                    </div>
+                    <RadzenStack Gap="0.5rem">
+                        <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; font-weight: 500;">Facultate *</RadzenText>
+                        <RadzenDropDown @bind-Value="model.FacultyId" Data="@faculties" TextProperty="Name" ValueProperty="Id"
+                                        Style="width: 100%;" Placeholder="Selectează facultate..." />
+                        <RadzenRequiredValidator Component="FacultyId" Text="Facultatea este obligatorie pentru profesori" />
+                    </RadzenStack>
                 }
 
                 <!-- Actions -->
-                <div class="flex justify-end space-x-3 pt-4">
-                    <a href="/admin/utilizatori" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors">
-                        Anulează
-                    </a>
-                    <button type="submit"
-                            disabled="@isSubmitting"
-                            class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                        @if (isSubmitting)
-                        {
-                            <span>Se creează...</span>
-                        }
-                        else
-                        {
-                            <span>Creează Utilizator</span>
-                        }
-                    </button>
-                </div>
-            </div>
-        </EditForm>
-    </div>
-</div>
+                <RadzenStack Orientation="Radzen.Orientation.Horizontal" Gap="0.75rem" JustifyContent="JustifyContent.End" Style="padding-top: 1rem;">
+                    <RadzenButton Text="Anulează" ButtonStyle="ButtonStyle.Light"
+                                  Click="@(() => Navigation.NavigateTo("/admin/utilizatori"))" />
+                    <RadzenButton Text="Creează Utilizator" ButtonStyle="ButtonStyle.Primary"
+                                  ButtonType="ButtonType.Submit" Disabled="@isSubmitting" />
+                </RadzenStack>
+            </RadzenStack>
+        </RadzenTemplateForm>
+    </RadzenCard>
+</RadzenStack>
 
 @code {
     private CreateUserDto model = new() { Role = UserRole.Student };
     private List<Faculty> faculties = new();
     private bool isSubmitting = false;
     private bool showGeneratedPassword = false;
-    private string errorMessage = "";
-    private string successMessage = "";
+
+    private List<RoleOption> roleOptions = new()
+    {
+        new() { Text = "Administrator", Value = UserRole.Admin },
+        new() { Text = "Rector", Value = UserRole.Rector },
+        new() { Text = "Decan", Value = UserRole.Dean },
+        new() { Text = "Secretar", Value = UserRole.Secretary },
+        new() { Text = "Profesor", Value = UserRole.Professor },
+        new() { Text = "Student", Value = UserRole.Student }
+    };
 
     private class Faculty
     {
         public Guid Id { get; set; }
         public string Name { get; set; } = string.Empty;
+    }
+
+    private class RoleOption
+    {
+        public string Text { get; set; } = "";
+        public UserRole Value { get; set; }
     }
 
     protected override async Task OnInitializedAsync()
@@ -210,11 +176,9 @@
         showGeneratedPassword = true;
     }
 
-    private async Task HandleSubmit()
+    private async Task HandleSubmit(CreateUserDto dto)
     {
         isSubmitting = true;
-        errorMessage = "";
-        successMessage = "";
         showGeneratedPassword = false;
         StateHasChanged();
 
@@ -224,19 +188,36 @@
 
             if (result.Succeeded)
             {
-                successMessage = "Utilizatorul a fost creat cu succes!";
-                StateHasChanged();
-                await Task.Delay(1500);
+                NotificationService.Notify(new NotificationMessage
+                {
+                    Severity = NotificationSeverity.Success,
+                    Summary = "Succes",
+                    Detail = "Utilizatorul a fost creat cu succes!",
+                    Duration = 4000
+                });
+                await Task.Delay(1000);
                 Navigation.NavigateTo("/admin/utilizatori");
             }
             else
             {
-                errorMessage = result.ErrorMessage ?? "Eroare la crearea utilizatorului.";
+                NotificationService.Notify(new NotificationMessage
+                {
+                    Severity = NotificationSeverity.Error,
+                    Summary = "Eroare",
+                    Detail = result.ErrorMessage ?? "Eroare la crearea utilizatorului.",
+                    Duration = 4000
+                });
             }
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            errorMessage = "Eroare la crearea utilizatorului. Vă rugăm încercați din nou.";
+            NotificationService.Notify(new NotificationMessage
+            {
+                Severity = NotificationSeverity.Error,
+                Summary = "Eroare",
+                Detail = "Eroare la crearea utilizatorului. Vă rugăm încercați din nou.",
+                Duration = 4000
+            });
         }
         finally
         {

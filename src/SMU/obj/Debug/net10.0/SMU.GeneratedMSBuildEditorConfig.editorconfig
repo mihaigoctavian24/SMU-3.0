@@ -34,12 +34,12 @@ build_property.EnableCodeStyleSeverity =
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9BcHAucmF6b3I=
 build_metadata.AdditionalFiles.CssScope = 
 
-[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Layout/Header.razor]
-build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9MYXlvdXQvSGVhZGVyLnJhem9y
+[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Layout/EmptyLayout.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9MYXlvdXQvRW1wdHlMYXlvdXQucmF6b3I=
 build_metadata.AdditionalFiles.CssScope = 
 
-[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Layout/Sidebar.razor]
-build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9MYXlvdXQvU2lkZWJhci5yYXpvcg==
+[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Layout/MainLayout.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9MYXlvdXQvTWFpbkxheW91dC5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 
 
 [/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Pages/AccessDenied.razor]
@@ -48,6 +48,10 @@ build_metadata.AdditionalFiles.CssScope =
 
 [/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Pages/Admin/ActivityFeed.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9BZG1pbi9BY3Rpdml0eUZlZWQucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Pages/Admin/Audit.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9BZG1pbi9BdWRpdC5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 
 
 [/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Pages/Admin/Roles.razor]
@@ -142,6 +146,10 @@ build_metadata.AdditionalFiles.CssScope =
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9EYXNoYm9hcmRzL1N0dWRlbnREYXNoYm9hcmQucmF6b3I=
 build_metadata.AdditionalFiles.CssScope = 
 
+[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Pages/Documents/Emit.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9Eb2N1bWVudHMvRW1pdC5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
 [/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Pages/Error.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9FcnJvci5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 
@@ -166,8 +174,24 @@ build_metadata.AdditionalFiles.CssScope =
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9HcmFkZXMvQXBwcm92ZS5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 
 
+[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Pages/Grades/GradeDetailsDialog.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9HcmFkZXMvR3JhZGVEZXRhaWxzRGlhbG9nLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Pages/Grades/GradeHistoryDialog.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9HcmFkZXMvR3JhZGVIaXN0b3J5RGlhbG9nLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
 [/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Pages/Grades/Index.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9HcmFkZXMvSW5kZXgucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Pages/Grades/RejectGradeDialog.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9HcmFkZXMvUmVqZWN0R3JhZGVEaWFsb2cucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Pages/Grades/StudentOverviewDialog.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9HcmFkZXMvU3R1ZGVudE92ZXJ2aWV3RGlhbG9nLnJhem9y
 build_metadata.AdditionalFiles.CssScope = 
 
 [/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Pages/Groups/Index.razor]
@@ -194,10 +218,6 @@ build_metadata.AdditionalFiles.CssScope =
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9Qcm9ncmFtcy9JbmRleC5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 
 
-[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Pages/Reports/Index.razor]
-build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9SZXBvcnRzL0luZGV4LnJhem9y
-build_metadata.AdditionalFiles.CssScope = 
-
 [/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Pages/Requests/Create.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9SZXF1ZXN0cy9DcmVhdGUucmF6b3I=
 build_metadata.AdditionalFiles.CssScope = 
@@ -206,8 +226,16 @@ build_metadata.AdditionalFiles.CssScope =
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9SZXF1ZXN0cy9JbmRleC5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 
 
+[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Pages/Requests/New.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9SZXF1ZXN0cy9OZXcucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
 [/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Pages/Requests/Process.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9SZXF1ZXN0cy9Qcm9jZXNzLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Pages/Requests/RequestDetailsDialog.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9SZXF1ZXN0cy9SZXF1ZXN0RGV0YWlsc0RpYWxvZy5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 
 
 [/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Pages/Schedule/Index.razor]
@@ -216,6 +244,10 @@ build_metadata.AdditionalFiles.CssScope =
 
 [/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Pages/Schedule/Manage.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9TY2hlZHVsZS9NYW5hZ2UucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Pages/Schedule/ScheduleFormDialog.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9TY2hlZHVsZS9TY2hlZHVsZUZvcm1EaWFsb2cucmF6b3I=
 build_metadata.AdditionalFiles.CssScope = 
 
 [/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Pages/Settings/Index.razor]
@@ -236,6 +268,14 @@ build_metadata.AdditionalFiles.CssScope =
 
 [/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Pages/Students/Index.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9TdHVkZW50cy9JbmRleC5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Pages/Students/Transfer.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9TdHVkZW50cy9UcmFuc2Zlci5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Pages/TestDatePicker.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9UZXN0RGF0ZVBpY2tlci5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 
 
 [/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Routes.razor]
@@ -266,6 +306,10 @@ build_metadata.AdditionalFiles.CssScope =
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9TaGFyZWQvQ29tbWFuZFBhbGV0dGUucmF6b3I=
 build_metadata.AdditionalFiles.CssScope = 
 
+[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Shared/GradeStatistics.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9TaGFyZWQvR3JhZGVTdGF0aXN0aWNzLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
 [/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Shared/LanguageSelector.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9TaGFyZWQvTGFuZ3VhZ2VTZWxlY3Rvci5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 
@@ -293,14 +337,6 @@ build_metadata.AdditionalFiles.CssScope =
 [/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/_Imports.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9fSW1wb3J0cy5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 
-
-[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Layout/MainLayout.razor]
-build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9MYXlvdXQvTWFpbkxheW91dC5yYXpvcg==
-build_metadata.AdditionalFiles.CssScope = b-qoiad7m832
-
-[/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Layout/NavMenu.razor]
-build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9MYXlvdXQvTmF2TWVudS5yYXpvcg==
-build_metadata.AdditionalFiles.CssScope = b-x1wirq5um9
 
 [/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/Components/Layout/ReconnectModal.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9MYXlvdXQvUmVjb25uZWN0TW9kYWwucmF6b3I=

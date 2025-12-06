@@ -61,6 +61,31 @@ public interface IGradeService
     /// Delete a grade (only if status is Pending)
     /// </summary>
     Task<GradeResult> DeleteAsync(Guid id);
+
+    /// <summary>
+    /// Get filtered grades based on comprehensive criteria
+    /// </summary>
+    Task<List<GradeListDto>> GetFilteredGradesAsync(GradeFilterDto filter);
+
+    /// <summary>
+    /// Get grade statistics for dashboard display
+    /// </summary>
+    Task<GradeStatisticsDto> GetStatisticsAsync(Guid? facultyId = null);
+
+    /// <summary>
+    /// Get failing grades (grade < 5) for early warning system
+    /// </summary>
+    Task<List<GradeListDto>> GetFailingGradesAsync(Guid? facultyId = null);
+
+    /// <summary>
+    /// Get missing grades for a specific course
+    /// </summary>
+    Task<List<MissingGradeDto>> GetMissingGradesAsync(Guid courseId);
+
+    /// <summary>
+    /// Get grade history (audit trail) for a specific grade
+    /// </summary>
+    Task<List<GradeHistoryDto>> GetGradeHistoryAsync(Guid gradeId);
 }
 
 /// <summary>

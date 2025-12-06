@@ -8,194 +8,245 @@
 
 <PageTitle>Analiza Personala - SMU</PageTitle>
 
-<div class="space-y-6">
+<RadzenStack Gap="1.5rem">
     <!-- Header -->
-    <div class="bg-gradient-to-r from-primary-600 to-primary-700 rounded-xl p-6 text-white">
-        <div class="flex items-center justify-between">
-            <div>
-                <h1 class="text-2xl font-bold">Analiza Personala</h1>
-                <p class="mt-1 text-primary-100">@StudentName - @DateTime.Now.ToString("dd MMMM yyyy")</p>
-            </div>
-            <div class="hidden md:block">
-                <svg class="w-16 h-16 opacity-20" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                </svg>
-            </div>
-        </div>
-    </div>
+    <RadzenCard Style="background: linear-gradient(to right, var(--rz-primary), var(--rz-primary-light)); padding: 1.5rem; color: white;">
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
+            <RadzenStack Gap="0.25rem">
+                <RadzenText TextStyle="TextStyle.H4" Style="margin: 0; font-weight: bold; color: white;">Analiza Personala</RadzenText>
+                <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; color: rgba(255, 255, 255, 0.8);">@StudentName - @DateTime.Now.ToString("dd MMMM yyyy")</RadzenText>
+            </RadzenStack>
+            <RadzenIcon Icon="bar_chart" Style="font-size: 4rem; opacity: 0.2; color: white;" />
+        </RadzenStack>
+    </RadzenCard>
 
-    <!-- Stats Overview Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <!-- Media Generala -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-sm font-medium text-gray-600">Media Generala</p>
-                    <div class="flex items-baseline mt-2">
-                        <p class="text-3xl font-bold text-gray-900">@Stats.AverageGrade.ToString("0.00")</p>
-                        @if (GradeTrend != 0)
-                        {
-                            <span class="ml-2 flex items-center text-sm font-medium @(GradeTrend > 0 ? "text-success-600" : "text-danger-600")">
-                                @if (GradeTrend > 0)
+    @if (IsLoading)
+    {
+        <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Style="padding: 3rem 0;">
+            <RadzenProgressBarCircular ShowValue="false" Mode="ProgressBarMode.Indeterminate" Size="ProgressBarCircularSize.Large" />
+        </RadzenStack>
+    }
+    else if (StudentId == Guid.Empty)
+    {
+        <RadzenAlert AlertStyle="AlertStyle.Warning" Variant="Variant.Flat" ShowIcon="true">
+            <RadzenStack AlignItems="AlignItems.Center" Gap="1rem">
+                <RadzenText TextStyle="TextStyle.H6" Style="margin: 0; font-weight: 600;">Nu esti asociat cu un profil de student</RadzenText>
+                <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0;">Contul tau nu este asociat cu un profil de student in sistem.</RadzenText>
+            </RadzenStack>
+        </RadzenAlert>
+    }
+    else if (!HasData)
+    {
+        <RadzenAlert AlertStyle="AlertStyle.Info" Variant="Variant.Flat" ShowIcon="true">
+            <RadzenStack AlignItems="AlignItems.Center" Gap="1rem">
+                <RadzenText TextStyle="TextStyle.H6" Style="margin: 0; font-weight: 600;">Nu exista date de analiza</RadzenText>
+                <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0;">Nu ai inca note sau prezente inregistrate. Datele vor aparea pe masura ce profesorii le introduc.</RadzenText>
+            </RadzenStack>
+        </RadzenAlert>
+    }
+    else
+    {
+        <!-- Stats Overview Cards -->
+        <RadzenRow Gap="1.5rem" RowGap="1.5rem">
+            <!-- Media Generala -->
+            <RadzenColumn Size="12" SizeMD="6" SizeLG="3">
+                <RadzenCard Style="padding: 1.5rem; height: 100%;">
+                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
+                        <RadzenStack Gap="0.5rem">
+                            <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; color: var(--rz-text-secondary-color);">Media Generala</RadzenText>
+                            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.End" Gap="0.5rem">
+                                <RadzenText TextStyle="TextStyle.H3" Style="margin: 0; font-weight: bold;">@(Stats.AverageGrade > 0 ? Stats.AverageGrade.ToString("0.00") : "-")</RadzenText>
+                                @if (GradeTrend != 0)
                                 {
-                                    <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M5.293 9.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 7.414V15a1 1 0 11-2 0V7.414L6.707 9.707a1 1 0 01-1.414 0z" clip-rule="evenodd" />
-                                    </svg>
+                                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.25rem">
+                                        <RadzenIcon Icon="@(GradeTrend > 0 ? "trending_up" : "trending_down")" Style="@($"font-size: 1rem; color: var(--rz-{(GradeTrend > 0 ? "success" : "danger")});")" />
+                                        <RadzenText TextStyle="TextStyle.Caption" Style="@($"margin: 0; color: var(--rz-{(GradeTrend > 0 ? "success" : "danger")});")">@Math.Abs(GradeTrend).ToString("0.0")%</RadzenText>
+                                    </RadzenStack>
                                 }
-                                else
-                                {
-                                    <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M14.707 10.293a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 12.586V5a1 1 0 012 0v7.586l2.293-2.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-                                    </svg>
-                                }
-                                @Math.Abs(GradeTrend).ToString("0.0")%
-                            </span>
-                        }
-                    </div>
-                </div>
-                <div class="bg-success-100 p-3 rounded-lg">
-                    <svg class="w-8 h-8 text-success-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
-                    </svg>
-                </div>
-            </div>
-            <p class="mt-4 text-xs text-gray-500">@Stats.PassingGradeCount note promovate</p>
-        </div>
+                            </RadzenStack>
+                        </RadzenStack>
+                        <div style="width: 3rem; height: 3rem; background: rgba(var(--rz-success-rgb), 0.1); border-radius: 0.5rem; display: flex; align-items: center; justify-content: center;">
+                            <RadzenIcon Icon="workspace_premium" Style="font-size: 1.5rem; color: var(--rz-success);" />
+                        </div>
+                    </RadzenStack>
+                    <RadzenText TextStyle="TextStyle.Caption" Style="margin: 1rem 0 0 0; color: var(--rz-text-secondary-color);">@Stats.PassingGradeCount note promovate</RadzenText>
+                </RadzenCard>
+            </RadzenColumn>
 
-        <!-- Rata Prezenta -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-sm font-medium text-gray-600">Rata Prezenta</p>
-                    <div class="flex items-baseline mt-2">
-                        <p class="text-3xl font-bold text-gray-900">@Stats.AttendanceRate.ToString("0")%</p>
-                    </div>
-                </div>
-                <div class="bg-primary-100 p-3 rounded-lg">
-                    <svg class="w-8 h-8 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                </div>
-            </div>
-            <div class="mt-4">
-                <div class="flex justify-between text-xs text-gray-500 mb-1">
-                    <span>Progres</span>
-                    <span>@Stats.AttendanceRate.ToString("0")%</span>
-                </div>
-                <div class="w-full bg-gray-200 rounded-full h-2">
-                    <div class="@GetAttendanceColorClass() h-2 rounded-full transition-all" style="width: @Stats.AttendanceRate.ToString("0")%"></div>
-                </div>
-            </div>
-        </div>
+            <!-- Rata Prezenta -->
+            <RadzenColumn Size="12" SizeMD="6" SizeLG="3">
+                <RadzenCard Style="padding: 1.5rem; height: 100%;">
+                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
+                        <RadzenStack Gap="0.5rem">
+                            <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; color: var(--rz-text-secondary-color);">Rata Prezenta</RadzenText>
+                            <RadzenText TextStyle="TextStyle.H3" Style="margin: 0; font-weight: bold;">@Stats.AttendanceRate.ToString("0")%</RadzenText>
+                        </RadzenStack>
+                        <div style="width: 3rem; height: 3rem; background: rgba(var(--rz-primary-rgb), 0.1); border-radius: 0.5rem; display: flex; align-items: center; justify-content: center;">
+                            <RadzenIcon Icon="check_circle" Style="font-size: 1.5rem; color: var(--rz-primary);" />
+                        </div>
+                    </RadzenStack>
+                    <RadzenStack Gap="0.25rem" Style="margin-top: 1rem;">
+                        <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween">
+                            <RadzenText TextStyle="TextStyle.Caption" Style="margin: 0; color: var(--rz-text-secondary-color);">Progres</RadzenText>
+                            <RadzenText TextStyle="TextStyle.Caption" Style="margin: 0; color: var(--rz-text-secondary-color);">@Stats.AttendanceRate.ToString("0")%</RadzenText>
+                        </RadzenStack>
+                        <RadzenProgressBar Value="@((double)Stats.AttendanceRate)" ShowValue="false" Style="height: 0.5rem;" ProgressBarStyle="@GetAttendanceProgressStyle()" />
+                    </RadzenStack>
+                </RadzenCard>
+            </RadzenColumn>
 
-        <!-- Credite Acumulate -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-sm font-medium text-gray-600">Credite Acumulate</p>
-                    <div class="flex items-baseline mt-2">
-                        <p class="text-3xl font-bold text-gray-900">@Stats.TotalCredits</p>
-                        <span class="ml-2 text-sm text-gray-500">/ 180</span>
-                    </div>
-                </div>
-                <div class="bg-info-100 p-3 rounded-lg">
-                    <svg class="w-8 h-8 text-info-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                    </svg>
-                </div>
-            </div>
-            <div class="mt-4">
-                <div class="flex justify-between text-xs text-gray-500 mb-1">
-                    <span>Progres</span>
-                    <span>@((Stats.TotalCredits / 180m * 100).ToString("0"))%</span>
-                </div>
-                <div class="w-full bg-gray-200 rounded-full h-2">
-                    <div class="bg-info-600 h-2 rounded-full transition-all" style="width: @((Stats.TotalCredits / 180m * 100).ToString("0"))%"></div>
-                </div>
-            </div>
-        </div>
+            <!-- Credite Acumulate -->
+            <RadzenColumn Size="12" SizeMD="6" SizeLG="3">
+                <RadzenCard Style="padding: 1.5rem; height: 100%;">
+                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
+                        <RadzenStack Gap="0.5rem">
+                            <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; color: var(--rz-text-secondary-color);">Credite Acumulate</RadzenText>
+                            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.End" Gap="0.25rem">
+                                <RadzenText TextStyle="TextStyle.H3" Style="margin: 0; font-weight: bold;">@Stats.TotalCredits</RadzenText>
+                                <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; color: var(--rz-text-secondary-color);">/ 180</RadzenText>
+                            </RadzenStack>
+                        </RadzenStack>
+                        <div style="width: 3rem; height: 3rem; background: rgba(var(--rz-info-rgb), 0.1); border-radius: 0.5rem; display: flex; align-items: center; justify-content: center;">
+                            <RadzenIcon Icon="menu_book" Style="font-size: 1.5rem; color: var(--rz-info);" />
+                        </div>
+                    </RadzenStack>
+                    <RadzenStack Gap="0.25rem" Style="margin-top: 1rem;">
+                        <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween">
+                            <RadzenText TextStyle="TextStyle.Caption" Style="margin: 0; color: var(--rz-text-secondary-color);">Progres</RadzenText>
+                            <RadzenText TextStyle="TextStyle.Caption" Style="margin: 0; color: var(--rz-text-secondary-color);">@((Stats.TotalCredits / 180m * 100).ToString("0"))%</RadzenText>
+                        </RadzenStack>
+                        <RadzenProgressBar Value="@((double)(Stats.TotalCredits / 180m * 100))" ShowValue="false" Style="height: 0.5rem;" ProgressBarStyle="ProgressBarStyle.Info" />
+                    </RadzenStack>
+                </RadzenCard>
+            </RadzenColumn>
 
-        <!-- Nivel Risc -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-sm font-medium text-gray-600">Nivel Risc</p>
-                    <div class="flex items-baseline mt-2">
-                        <p class="text-2xl font-bold @GetRiskTextColor()">@GetRiskLabel()</p>
-                    </div>
-                </div>
-                <div class="@GetRiskBgColor() p-3 rounded-lg">
-                    <svg class="w-8 h-8 @GetRiskIconColor()" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                    </svg>
-                </div>
-            </div>
-            <p class="mt-4 text-xs text-gray-500">@Stats.CourseCount cursuri active</p>
-        </div>
-    </div>
+            <!-- Nivel Risc -->
+            <RadzenColumn Size="12" SizeMD="6" SizeLG="3">
+                <RadzenCard Style="padding: 1.5rem; height: 100%;">
+                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
+                        <RadzenStack Gap="0.5rem">
+                            <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; color: var(--rz-text-secondary-color);">Nivel Risc</RadzenText>
+                            <RadzenText TextStyle="TextStyle.H4" Style="@($"margin: 0; font-weight: bold; color: var(--rz-{GetRiskColor()});")">@GetRiskLabel()</RadzenText>
+                        </RadzenStack>
+                        <div style="@($"width: 3rem; height: 3rem; background: rgba(var(--rz-{GetRiskColor()}-rgb), 0.1); border-radius: 0.5rem; display: flex; align-items: center; justify-content: center;")">
+                            <RadzenIcon Icon="shield" Style="@($"font-size: 1.5rem; color: var(--rz-{GetRiskColor()});")" />
+                        </div>
+                    </RadzenStack>
+                    <RadzenText TextStyle="TextStyle.Caption" Style="margin: 1rem 0 0 0; color: var(--rz-text-secondary-color);">@Stats.CourseCount cursuri active</RadzenText>
+                </RadzenCard>
+            </RadzenColumn>
+        </RadzenRow>
 
-    <!-- Charts Row 1: Line Chart + Donut Chart -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <!-- Evolutie Medie -->
-        <div>
-            <h3 class="text-lg font-semibold text-gray-900 mb-4">Evolutie Medie</h3>
-            <SmuLineChart
-                Title=""
-                Data="@GradeEvolutionData"
-                YAxisLabel="Media"
-                Height="350"
-                IsLoading="@IsLoading" />
-        </div>
+        <!-- Charts Row 1: Line Chart + Donut Chart -->
+        <RadzenRow Gap="1.5rem" RowGap="1.5rem">
+            <!-- Evolutie Medie -->
+            <RadzenColumn Size="12" SizeLG="6">
+                <RadzenCard Style="padding: 1.5rem;">
+                    <RadzenText TextStyle="TextStyle.H6" Style="margin: 0 0 1rem 0; font-weight: 600;">Evolutie Medie</RadzenText>
+                    @if (GradeEvolutionData.Any())
+                    {
+                        <SmuLineChart
+                            Title=""
+                            Data="@GradeEvolutionData"
+                            YAxisLabel="Media"
+                            Height="350"
+                            IsLoading="@IsLoading" />
+                    }
+                    else
+                    {
+                        <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Style="padding: 2rem; background: var(--rz-base-200); border-radius: 0.5rem;">
+                            <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; color: var(--rz-text-secondary-color);">Nu exista date suficiente pentru graficul evolutiei</RadzenText>
+                        </RadzenStack>
+                    }
+                </RadzenCard>
+            </RadzenColumn>
 
-        <!-- Distributie Note -->
-        <div>
-            <h3 class="text-lg font-semibold text-gray-900 mb-4">Distributie Note</h3>
-            <SmuDonutChart
-                Title=""
-                Data="@GradeDistributionData"
-                Height="350"
-                ShowLegend="true"
-                IsLoading="@IsLoading" />
-        </div>
-    </div>
+            <!-- Distributie Note -->
+            <RadzenColumn Size="12" SizeLG="6">
+                <RadzenCard Style="padding: 1.5rem;">
+                    <RadzenText TextStyle="TextStyle.H6" Style="margin: 0 0 1rem 0; font-weight: 600;">Distributie Note</RadzenText>
+                    @if (GradeDistributionData.Any())
+                    {
+                        <SmuDonutChart
+                            Title=""
+                            Data="@GradeDistributionData"
+                            Height="350"
+                            ShowLegend="true"
+                            IsLoading="@IsLoading" />
+                    }
+                    else
+                    {
+                        <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Style="padding: 2rem; background: var(--rz-base-200); border-radius: 0.5rem;">
+                            <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; color: var(--rz-text-secondary-color);">Nu exista note pentru distributie</RadzenText>
+                        </RadzenStack>
+                    }
+                </RadzenCard>
+            </RadzenColumn>
+        </RadzenRow>
 
-    <!-- Charts Row 2: Radar Chart + Bar Chart -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <!-- Performanta per Curs -->
-        <div>
-            <h3 class="text-lg font-semibold text-gray-900 mb-4">Performanta per Curs</h3>
-            <SmuRadarChart
-                Title=""
-                Data="@CoursePerformanceData"
-                Height="400"
-                IsLoading="@IsLoading" />
-        </div>
+        <!-- Charts Row 2: Radar Chart + Bar Chart -->
+        <RadzenRow Gap="1.5rem" RowGap="1.5rem">
+            <!-- Performanta per Curs -->
+            <RadzenColumn Size="12" SizeLG="6">
+                <RadzenCard Style="padding: 1.5rem;">
+                    <RadzenText TextStyle="TextStyle.H6" Style="margin: 0 0 1rem 0; font-weight: 600;">Performanta per Curs</RadzenText>
+                    @if (CoursePerformanceData.Any())
+                    {
+                        <SmuRadarChart
+                            Title=""
+                            Data="@CoursePerformanceData"
+                            Height="400"
+                            IsLoading="@IsLoading" />
+                    }
+                    else
+                    {
+                        <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Style="padding: 2rem; background: var(--rz-base-200); border-radius: 0.5rem;">
+                            <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; color: var(--rz-text-secondary-color);">Nu exista date de performanta per curs</RadzenText>
+                        </RadzenStack>
+                    }
+                </RadzenCard>
+            </RadzenColumn>
 
-        <!-- Prezenta per Materie -->
-        <div>
-            <h3 class="text-lg font-semibold text-gray-900 mb-4">Prezenta per Materie</h3>
-            <SmuBarChart
-                Title=""
-                Data="@AttendanceByCourseData"
-                YAxisLabel="Rata Prezenta (%)"
-                Height="400"
-                Horizontal="true"
-                IsLoading="@IsLoading" />
-        </div>
-    </div>
+            <!-- Prezenta per Materie -->
+            <RadzenColumn Size="12" SizeLG="6">
+                <RadzenCard Style="padding: 1.5rem;">
+                    <RadzenText TextStyle="TextStyle.H6" Style="margin: 0 0 1rem 0; font-weight: 600;">Prezenta per Materie</RadzenText>
+                    @if (AttendanceByCourseData.Any())
+                    {
+                        <SmuBarChart
+                            Title=""
+                            Data="@AttendanceByCourseData"
+                            YAxisLabel="Rata Prezenta (%)"
+                            Height="400"
+                            Horizontal="true"
+                            IsLoading="@IsLoading" />
+                    }
+                    else
+                    {
+                        <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Style="padding: 2rem; background: var(--rz-base-200); border-radius: 0.5rem;">
+                            <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; color: var(--rz-text-secondary-color);">Nu exista date de prezenta per materie</RadzenText>
+                        </RadzenStack>
+                    }
+                </RadzenCard>
+            </RadzenColumn>
+        </RadzenRow>
 
-    <!-- Heatmap Section -->
-    <div>
-        <h3 class="text-lg font-semibold text-gray-900 mb-4">Calendar Prezente</h3>
-        <SmuHeatmapChart
-            Title=""
-            Data="@AttendanceHeatmapData"
-            Month="@DateTime.Now.Month"
-            Year="@DateTime.Now.Year"
-            Height="350"
-            IsLoading="@IsLoading" />
-    </div>
-</div>
+        <!-- Heatmap Section -->
+        @if (AttendanceHeatmapData.Any())
+        {
+            <RadzenCard Style="padding: 1.5rem;">
+                <RadzenText TextStyle="TextStyle.H6" Style="margin: 0 0 1rem 0; font-weight: 600;">Calendar Prezente</RadzenText>
+                <SmuHeatmapChart
+                    Title=""
+                    Data="@AttendanceHeatmapData"
+                    Month="@DateTime.Now.Month"
+                    Year="@DateTime.Now.Year"
+                    Height="350"
+                    IsLoading="@IsLoading" />
+            </RadzenCard>
+        }
+    }
+</RadzenStack>
 
 @code {
     [Inject] private IAnalyticsService AnalyticsService { get; set; } = default!;
@@ -204,6 +255,7 @@
     private string StudentName = "Student";
     private Guid StudentId = Guid.Empty;
     private bool IsLoading = true;
+    private bool HasData = false;
     private decimal GradeTrend = 0;
 
     // Stats
@@ -227,18 +279,17 @@
             var user = authState.User;
             StudentName = user.FindFirst("FullName")?.Value ?? user.Identity?.Name ?? "Student";
 
-            // For now, use demo student ID - in production, get from authenticated user claims
-            // StudentId = Guid.Parse(user.FindFirst("StudentId")?.Value);
-            StudentId = Guid.NewGuid(); // Demo ID
-
-            // Load analytics data
-            await LoadAnalyticsData();
+            // Get StudentId from claims
+            var studentIdClaim = user.FindFirst("StudentId")?.Value;
+            if (Guid.TryParse(studentIdClaim, out var studentId))
+            {
+                StudentId = studentId;
+                await LoadAnalyticsData();
+            }
         }
         catch (Exception ex)
         {
-            // Log error and use demo data as fallback
             Console.WriteLine($"Error loading analytics: {ex.Message}");
-            LoadDemoData();
         }
         finally
         {
@@ -248,156 +299,63 @@
 
     private async Task LoadAnalyticsData()
     {
-        try
+        // Load student stats
+        Stats = await AnalyticsService.GetStudentStatsAsync(StudentId);
+
+        // Check if we have any meaningful data
+        HasData = Stats.CourseCount > 0 || Stats.PassingGradeCount > 0 || Stats.FailingGradeCount > 0;
+
+        if (!HasData) return;
+
+        // Load grade evolution (12 months)
+        var evolutionPoints = await AnalyticsService.GetGradeEvolutionAsync(StudentId, 12);
+        GradeEvolutionData = evolutionPoints.Select(p => new SmuLineChart.ChartDataPoint
         {
-            // Load student stats
-            Stats = await AnalyticsService.GetStudentStatsAsync(StudentId);
+            Date = p.Date,
+            Value = p.Average
+        }).ToList();
 
-            // Load grade evolution (12 months)
-            var evolutionPoints = await AnalyticsService.GetGradeEvolutionAsync(StudentId, 12);
-            GradeEvolutionData = evolutionPoints.Select(p => new SmuLineChart.ChartDataPoint
+        // Calculate grade trend (comparing last 3 months to previous 3 months)
+        if (evolutionPoints.Count >= 6)
+        {
+            var recentAvg = evolutionPoints.TakeLast(3).Average(p => p.Average);
+            var previousAvg = evolutionPoints.Skip(Math.Max(0, evolutionPoints.Count - 6)).Take(3).Average(p => p.Average);
+            GradeTrend = previousAvg > 0 ? ((recentAvg - previousAvg) / previousAvg * 100) : 0;
+        }
+
+        // Load attendance stats
+        var attendanceStats = await AnalyticsService.GetAttendanceStatsAsync(StudentId);
+
+        // Build grade distribution data from actual stats
+        var totalGrades = Stats.PassingGradeCount + Stats.FailingGradeCount;
+        if (totalGrades > 0)
+        {
+            GradeDistributionData = new List<SmuDonutChart.ChartDataSegment>
             {
-                Date = p.Date,
-                Value = p.Average
-            }).ToList();
+                new() { Label = "Promovate (≥5)", Value = Stats.PassingGradeCount, Color = "#10B981" },
+                new() { Label = "Nepromovate (<5)", Value = Stats.FailingGradeCount, Color = "#EF4444" }
+            };
+        }
 
-            // Calculate grade trend (comparing last 3 months to previous 3 months)
-            if (evolutionPoints.Count >= 6)
-            {
-                var recentAvg = evolutionPoints.TakeLast(3).Average(p => p.Average);
-                var previousAvg = evolutionPoints.Skip(Math.Max(0, evolutionPoints.Count - 6)).Take(3).Average(p => p.Average);
-                GradeTrend = previousAvg > 0 ? ((recentAvg - previousAvg) / previousAvg * 100) : 0;
-            }
-
-            // Load attendance stats
-            var attendanceStats = await AnalyticsService.GetAttendanceStatsAsync(StudentId);
-
-            // Build grade distribution data (demo for now)
-            GradeDistributionData = GenerateGradeDistribution();
-
-            // Build course performance data (demo for now)
-            CoursePerformanceData = GenerateCoursePerformance();
-
-            // Build attendance by course data (from attendance stats)
+        // Build attendance by course data (from attendance stats)
+        if (attendanceStats.RateByCourseType.Any())
+        {
             AttendanceByCourseData = attendanceStats.RateByCourseType.Select(kvp => new SmuBarChart.ChartDataItem
             {
                 Label = kvp.Key,
                 Value = kvp.Value.Rate
             }).ToList();
-
-            // Build attendance heatmap data (demo for now)
-            AttendanceHeatmapData = GenerateAttendanceHeatmap();
-
-            // If no real data, fallback to demo
-            if (!GradeEvolutionData.Any() && Stats.AverageGrade == 0)
-            {
-                LoadDemoData();
-            }
-        }
-        catch
-        {
-            LoadDemoData();
-        }
-    }
-
-    private void LoadDemoData()
-    {
-        // Demo Stats
-        Stats = new StudentAnalyticsDto
-        {
-            AverageGrade = 8.45m,
-            TotalCredits = 45,
-            AttendanceRate = 87.5m,
-            CourseCount = 6,
-            RiskLevel = RiskLevel.Low,
-            PassingGradeCount = 18,
-            FailingGradeCount = 2
-        };
-
-        GradeTrend = 3.2m;
-
-        // Demo Grade Evolution (12 months)
-        var today = DateTime.Now;
-        GradeEvolutionData = Enumerable.Range(0, 12)
-            .Select(i => new SmuLineChart.ChartDataPoint
-            {
-                Date = today.AddMonths(-11 + i),
-                Value = 7.5m + (i * 0.15m) + (decimal)(new Random().NextDouble() * 0.5)
-            })
-            .ToList();
-
-        // Demo Grade Distribution
-        GradeDistributionData = GenerateGradeDistribution();
-
-        // Demo Course Performance
-        CoursePerformanceData = GenerateCoursePerformance();
-
-        // Demo Attendance by Course
-        AttendanceByCourseData = new List<SmuBarChart.ChartDataItem>
-        {
-            new() { Label = "Programare Web", Value = 92 },
-            new() { Label = "Baze de Date", Value = 88 },
-            new() { Label = "Algoritmi", Value = 95 },
-            new() { Label = "Matematica", Value = 82 },
-            new() { Label = "Fizica", Value = 78 },
-            new() { Label = "Engleza", Value = 90 }
-        };
-
-        // Demo Attendance Heatmap
-        AttendanceHeatmapData = GenerateAttendanceHeatmap();
-    }
-
-    private List<SmuDonutChart.ChartDataSegment> GenerateGradeDistribution()
-    {
-        return new List<SmuDonutChart.ChartDataSegment>
-        {
-            new() { Label = "9-10", Value = 8, Color = "#10B981" },  // emerald-500
-            new() { Label = "8-9", Value = 12, Color = "#3B82F6" },   // blue-500
-            new() { Label = "7-8", Value = 15, Color = "#F59E0B" },   // amber-500
-            new() { Label = "6-7", Value = 8, Color = "#EF4444" },    // red-500
-            new() { Label = "5-6", Value = 4, Color = "#DC2626" },    // red-600
-            new() { Label = "Sub 5", Value = 2, Color = "#991B1B" }   // red-800
-        };
-    }
-
-    private List<SmuRadarChart.ChartDataCategory> GenerateCoursePerformance()
-    {
-        return new List<SmuRadarChart.ChartDataCategory>
-        {
-            new() { Category = "Programare Web", Value = 9.2m },
-            new() { Category = "Baze de Date", Value = 8.5m },
-            new() { Category = "Algoritmi", Value = 9.0m },
-            new() { Category = "Matematica", Value = 7.8m },
-            new() { Category = "Fizica", Value = 8.0m },
-            new() { Category = "Engleza", Value = 8.7m }
-        };
-    }
-
-    private Dictionary<DateTime, decimal> GenerateAttendanceHeatmap()
-    {
-        var heatmap = new Dictionary<DateTime, decimal>();
-        var daysInMonth = DateTime.DaysInMonth(DateTime.Now.Year, DateTime.Now.Month);
-        var random = new Random();
-
-        for (int day = 1; day <= daysInMonth; day++)
-        {
-            var date = new DateTime(DateTime.Now.Year, DateTime.Now.Month, day);
-            // Skip weekends
-            if (date.DayOfWeek != DayOfWeek.Saturday && date.DayOfWeek != DayOfWeek.Sunday)
-            {
-                // Random attendance rate between 70-100%
-                heatmap[date] = 70 + (decimal)(random.NextDouble() * 30);
-            }
         }
 
-        return heatmap;
+        // Note: CoursePerformanceData and AttendanceHeatmapData would require additional service methods
+        // For now, these remain empty and the UI handles the empty state gracefully
     }
 
-    private string GetAttendanceColorClass()
+    private ProgressBarStyle GetAttendanceProgressStyle()
     {
-        return Stats.AttendanceRate >= 85 ? "bg-success-600" :
-               Stats.AttendanceRate >= 75 ? "bg-warning-500" :
-               "bg-danger-600";
+        return Stats.AttendanceRate >= 85 ? ProgressBarStyle.Success :
+               Stats.AttendanceRate >= 75 ? ProgressBarStyle.Warning :
+               ProgressBarStyle.Danger;
     }
 
     private string GetRiskLabel()
@@ -412,39 +370,15 @@
         };
     }
 
-    private string GetRiskTextColor()
+    private string GetRiskColor()
     {
         return Stats.RiskLevel switch
         {
-            RiskLevel.Low => "text-success-600",
-            RiskLevel.Medium => "text-warning-600",
-            RiskLevel.High => "text-danger-600",
-            RiskLevel.Critical => "text-danger-700",
-            _ => "text-gray-600"
-        };
-    }
-
-    private string GetRiskBgColor()
-    {
-        return Stats.RiskLevel switch
-        {
-            RiskLevel.Low => "bg-success-100",
-            RiskLevel.Medium => "bg-warning-100",
-            RiskLevel.High => "bg-danger-100",
-            RiskLevel.Critical => "bg-danger-200",
-            _ => "bg-gray-100"
-        };
-    }
-
-    private string GetRiskIconColor()
-    {
-        return Stats.RiskLevel switch
-        {
-            RiskLevel.Low => "text-success-600",
-            RiskLevel.Medium => "text-warning-600",
-            RiskLevel.High => "text-danger-600",
-            RiskLevel.Critical => "text-danger-700",
-            _ => "text-gray-600"
+            RiskLevel.Low => "success",
+            RiskLevel.Medium => "warning",
+            RiskLevel.High => "danger",
+            RiskLevel.Critical => "danger",
+            _ => "secondary"
         };
     }
 }

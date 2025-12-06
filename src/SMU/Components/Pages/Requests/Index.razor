@@ -11,221 +11,174 @@
 @inject IDocumentRequestService RequestService
 @inject AuthenticationStateProvider AuthStateProvider
 @inject NavigationManager Navigation
-@inject IJSRuntime JS
+@inject DialogService DialogService
+@inject Radzen.NotificationService RadzenNotificationService
 
-<div class="space-y-6">
+<PageTitle>Cereri Documente - SMU</PageTitle>
+
+<RadzenStack Gap="1.5rem">
     <!-- Page Header -->
-    <div class="flex items-center justify-between">
-        <div>
-            <h1 class="text-2xl font-bold text-gray-900">
-                @if (CurrentRole == UserRole.Student)
-                {
-                    <text>Cererile Mele</text>
-                }
-                else
-                {
-                    <text>Cereri Documente</text>
-                }
-            </h1>
-            <p class="mt-1 text-sm text-gray-600">
-                @if (CurrentRole == UserRole.Student)
-                {
-                    <text>Gestionează cererile tale de documente</text>
-                }
-                else
-                {
-                    <text>Procesează cererile studenților</text>
-                }
-            </p>
-        </div>
+    <RadzenStack Orientation="Radzen.Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center">
+        <RadzenStack Gap="0.25rem">
+            <RadzenText TextStyle="TextStyle.H4" Style="margin: 0; font-weight: 700;">
+                @(CurrentRole == UserRole.Student ? "Cererile Mele" : "Cereri Documente")
+            </RadzenText>
+            <RadzenText TextStyle="TextStyle.Body2" class="rz-color-secondary" Style="margin: 0;">
+                @(CurrentRole == UserRole.Student ? "Gestionează cererile tale de documente" : "Procesează cererile studenților")
+            </RadzenText>
+        </RadzenStack>
 
         @if (CurrentRole == UserRole.Student)
         {
-            <a href="/cereri/adauga" class="inline-flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg transition-colors">
-                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                </svg>
-                Cerere Nouă
-            </a>
+            <RadzenButton Text="Cerere Nouă" Icon="add" ButtonStyle="ButtonStyle.Primary"
+                          Click="@(() => Navigation.NavigateTo("/cereri/adauga"))" />
         }
-    </div>
+    </RadzenStack>
 
     <!-- Filters (for Secretary/Admin) -->
     @if (CurrentRole != UserRole.Student)
     {
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Tip Document</label>
-                    <select @bind="SelectedType" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
-                        <option value="">Toate tipurile</option>
-                        <option value="StudentCertificate">Adeverință de Student</option>
-                        <option value="GradeReport">Adeverință cu Note</option>
-                        <option value="EnrollmentProof">Foaie Matricolă</option>
-                        <option value="Other">Altele</option>
-                    </select>
-                </div>
+        <RadzenCard>
+            <RadzenRow Gap="1rem" RowGap="1rem">
+                <RadzenColumn Size="12" SizeMD="4">
+                    <RadzenFormField Text="Tip Document" Variant="Variant.Outlined" Style="width: 100%;">
+                        <RadzenDropDown @bind-Value="SelectedType" Data="@typeOptions" TextProperty="Text" ValueProperty="Value"
+                                        Placeholder="Toate tipurile" Style="width: 100%;" />
+                    </RadzenFormField>
+                </RadzenColumn>
 
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                    <select @bind="SelectedStatus" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
-                        <option value="">Toate statusurile</option>
-                        <option value="Pending">În așteptare</option>
-                        <option value="Approved">Aprobat</option>
-                        <option value="Rejected">Respins</option>
-                    </select>
-                </div>
+                <RadzenColumn Size="12" SizeMD="4">
+                    <RadzenFormField Text="Status" Variant="Variant.Outlined" Style="width: 100%;">
+                        <RadzenDropDown @bind-Value="SelectedStatus" Data="@statusOptions" TextProperty="Text" ValueProperty="Value"
+                                        Placeholder="Toate statusurile" Style="width: 100%;" />
+                    </RadzenFormField>
+                </RadzenColumn>
 
-                <div class="flex items-end">
-                    <button @onclick="ApplyFilters" class="w-full px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg transition-colors">
-                        Aplică Filtre
-                    </button>
-                </div>
-            </div>
-        </div>
+                <RadzenColumn Size="12" SizeMD="4">
+                    <RadzenStack Style="height: 100%;" JustifyContent="JustifyContent.End">
+                        <RadzenButton Text="Aplică Filtre" Icon="filter_list" ButtonStyle="ButtonStyle.Primary"
+                                      Click="@ApplyFilters" Style="width: 100%;" />
+                    </RadzenStack>
+                </RadzenColumn>
+            </RadzenRow>
+        </RadzenCard>
     }
 
     <!-- Requests Table -->
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+    <RadzenCard Style="padding: 0; overflow: hidden;">
         @if (IsLoading)
         {
-            <div class="p-8 text-center">
-                <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-                <p class="mt-2 text-gray-600">Se încarcă...</p>
-            </div>
+            <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Style="padding: 3rem 0;">
+                <RadzenProgressBarCircular ShowValue="false" Mode="ProgressBarMode.Indeterminate" Size="ProgressBarCircularSize.Large" />
+                <RadzenText TextStyle="TextStyle.Body2" class="rz-color-secondary" Style="margin-top: 1rem;">
+                    Se încarcă cererile...
+                </RadzenText>
+            </RadzenStack>
         }
         else if (FilteredRequests.Count == 0)
         {
-            <div class="p-8 text-center text-gray-500">
-                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                </svg>
-                <p class="mt-2">Nu există cereri înregistrate.</p>
-            </div>
+            <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Class="rz-p-6" Gap="1rem">
+                <RadzenIcon Icon="description" Style="font-size: 48px; color: var(--rz-text-disabled-color);" />
+                <RadzenText TextStyle="TextStyle.H6" Style="margin: 0;">Nu există cereri înregistrate</RadzenText>
+                <RadzenText TextStyle="TextStyle.Body2" class="rz-color-secondary" Style="margin: 0;">
+                    @(CurrentRole == UserRole.Student ? "Creează prima ta cerere de documente." : "Nu există cereri în așteptare.")
+                </RadzenText>
+            </RadzenStack>
         }
         else
         {
-            <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            @if (CurrentRole != UserRole.Student)
-                            {
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student</th>
-                            }
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tip Document</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data Cererii</th>
-                            @if (CurrentRole != UserRole.Student)
-                            {
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Procesat De</th>
-                            }
-                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acțiuni</th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
-                        @foreach (var request in FilteredRequests)
-                        {
-                            <tr class="hover:bg-gray-50">
-                                @if (CurrentRole != UserRole.Student)
-                                {
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <div class="text-sm font-medium text-gray-900">@request.StudentName</div>
-                                        <div class="text-sm text-gray-500">@request.StudentNumber</div>
-                                    </td>
-                                }
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">@request.TypeLabel</td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <span class="@GetStatusBadgeClass(request.Status)">
-                                        @request.StatusLabel
-                                    </span>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    @request.CreatedAt.ToString("dd.MM.yyyy HH:mm")
-                                </td>
-                                @if (CurrentRole != UserRole.Student)
-                                {
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        @if (request.ProcessedByName != null)
-                                        {
-                                            <div>@request.ProcessedByName</div>
-                                            <div class="text-xs">@request.ProcessedAt?.ToString("dd.MM.yyyy HH:mm")</div>
-                                        }
-                                        else
-                                        {
-                                            <span class="text-gray-400">-</span>
-                                        }
-                                    </td>
-                                }
-                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                    @if (CurrentRole == UserRole.Student && request.Status == RequestStatus.Pending)
-                                    {
-                                        <button @onclick="() => CancelRequest(request.Id)" class="text-danger-600 hover:text-danger-900">
-                                            Anulează
-                                        </button>
-                                    }
-                                    else if (CurrentRole != UserRole.Student && request.Status == RequestStatus.Pending)
-                                    {
-                                        <a href="/cereri/proceseaza/@request.Id" class="text-primary-600 hover:text-primary-900">
-                                            Procesează
-                                        </a>
-                                    }
-                                    @if (!string.IsNullOrEmpty(request.Notes))
-                                    {
-                                        <button @onclick="() => ShowNotes(request)" class="ml-3 text-info-600 hover:text-info-900">
-                                            Detalii
-                                        </button>
-                                    }
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
-        }
-    </div>
-</div>
-
-@if (ShowNotesModal && SelectedRequest != null)
-{
-    <div class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50" @onclick="CloseNotesModal">
-        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-lg bg-white" @onclick:stopPropagation="true">
-            <div class="mt-3">
-                <h3 class="text-lg font-medium text-gray-900 mb-4">Detalii Cerere</h3>
-                <div class="space-y-3">
-                    <div>
-                        <span class="text-sm font-medium text-gray-700">Student:</span>
-                        <p class="text-sm text-gray-900">@SelectedRequest.StudentName</p>
-                    </div>
-                    <div>
-                        <span class="text-sm font-medium text-gray-700">Tip:</span>
-                        <p class="text-sm text-gray-900">@SelectedRequest.TypeLabel</p>
-                    </div>
-                    <div>
-                        <span class="text-sm font-medium text-gray-700">Status:</span>
-                        <p class="text-sm">
-                            <span class="@GetStatusBadgeClass(SelectedRequest.Status)">@SelectedRequest.StatusLabel</span>
-                        </p>
-                    </div>
-                    @if (!string.IsNullOrEmpty(SelectedRequest.Notes))
+            <RadzenDataGrid @ref="grid" Data="@FilteredRequests" TItem="DocumentRequestDto"
+                            AllowSorting="true" AllowPaging="false"
+                            Style="border: none;">
+                <Columns>
+                    @if (CurrentRole != UserRole.Student)
                     {
-                        <div>
-                            <span class="text-sm font-medium text-gray-700">Observații:</span>
-                            <p class="text-sm text-gray-900 whitespace-pre-wrap">@SelectedRequest.Notes</p>
-                        </div>
+                        <RadzenDataGridColumn TItem="DocumentRequestDto" Property="StudentName" Title="Student" Sortable="true">
+                            <Template Context="request">
+                                <RadzenStack Gap="0.125rem">
+                                    <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; font-weight: 500;">@request.StudentName</RadzenText>
+                                    <RadzenText TextStyle="TextStyle.Caption" class="rz-color-secondary" Style="margin: 0;">@request.StudentNumber</RadzenText>
+                                </RadzenStack>
+                            </Template>
+                        </RadzenDataGridColumn>
                     }
-                </div>
-                <div class="mt-6">
-                    <button @onclick="CloseNotesModal" class="w-full px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg transition-colors">
-                        Închide
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-}
+
+                    <RadzenDataGridColumn TItem="DocumentRequestDto" Property="TypeLabel" Title="Tip Document" Sortable="true" />
+
+                    <RadzenDataGridColumn TItem="DocumentRequestDto" Property="Status" Title="Status" Width="130px" Sortable="true">
+                        <Template Context="request">
+                            <RadzenBadge BadgeStyle="@GetStatusBadgeStyle(request.Status)" Text="@request.StatusLabel" IsPill="true" />
+                        </Template>
+                    </RadzenDataGridColumn>
+
+                    <RadzenDataGridColumn TItem="DocumentRequestDto" Property="CreatedAt" Title="Data Cererii" Width="150px" Sortable="true">
+                        <Template Context="request">
+                            <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0;">
+                                @request.CreatedAt.ToString("dd.MM.yyyy HH:mm")
+                            </RadzenText>
+                        </Template>
+                    </RadzenDataGridColumn>
+
+                    @if (CurrentRole != UserRole.Student)
+                    {
+                        <RadzenDataGridColumn TItem="DocumentRequestDto" Property="ProcessedByName" Title="Procesat De" Width="160px" Sortable="true">
+                            <Template Context="request">
+                                @if (request.ProcessedByName != null)
+                                {
+                                    <RadzenStack Gap="0.125rem">
+                                        <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0;">@request.ProcessedByName</RadzenText>
+                                        <RadzenText TextStyle="TextStyle.Caption" class="rz-color-secondary" Style="margin: 0;">
+                                            @request.ProcessedAt?.ToString("dd.MM.yyyy HH:mm")
+                                        </RadzenText>
+                                    </RadzenStack>
+                                }
+                                else
+                                {
+                                    <RadzenText TextStyle="TextStyle.Body2" class="rz-color-secondary" Style="margin: 0;">-</RadzenText>
+                                }
+                            </Template>
+                        </RadzenDataGridColumn>
+                    }
+
+                    <RadzenDataGridColumn TItem="DocumentRequestDto" Title="Acțiuni" Width="180px" TextAlign="TextAlign.End" Sortable="false">
+                        <Template Context="request">
+                            <RadzenStack Orientation="Radzen.Orientation.Horizontal" Gap="0.25rem" JustifyContent="JustifyContent.End">
+                                @if (CurrentRole == UserRole.Student && request.Status == RequestStatus.Pending)
+                                {
+                                    <RadzenButton Text="Anulează" ButtonStyle="ButtonStyle.Danger" Variant="Variant.Text" Size="ButtonSize.Small"
+                                                  Click="@(() => CancelRequest(request.Id))" />
+                                }
+                                else if (CurrentRole != UserRole.Student && request.Status == RequestStatus.Pending)
+                                {
+                                    <RadzenButton Text="Procesează" ButtonStyle="ButtonStyle.Primary" Variant="Variant.Text" Size="ButtonSize.Small"
+                                                  Click="@(() => Navigation.NavigateTo($"/cereri/proceseaza/{request.Id}"))" />
+                                }
+                                else if (CurrentRole != UserRole.Student && request.Status == RequestStatus.Approved)
+                                {
+                                    <RadzenButton Text="Finalizează" ButtonStyle="ButtonStyle.Success" Variant="Variant.Text" Size="ButtonSize.Small"
+                                                  Click="@(() => CompleteRequest(request.Id))" />
+                                }
+                                @if (request.Status == RequestStatus.Completed && !string.IsNullOrEmpty(request.GeneratedDocumentPath))
+                                {
+                                    <RadzenButton Icon="download" ButtonStyle="ButtonStyle.Success" Variant="Variant.Text" Size="ButtonSize.Small"
+                                                  Click="@(() => DownloadDocument(request.GeneratedDocumentPath))" />
+                                }
+                                @if (!string.IsNullOrEmpty(request.Notes))
+                                {
+                                    <RadzenButton Icon="info" ButtonStyle="ButtonStyle.Info" Variant="Variant.Text" Size="ButtonSize.Small"
+                                                  Click="@(() => ShowDetails(request))" />
+                                }
+                            </RadzenStack>
+                        </Template>
+                    </RadzenDataGridColumn>
+                </Columns>
+            </RadzenDataGrid>
+        }
+    </RadzenCard>
+</RadzenStack>
 
 @code {
+    private RadzenDataGrid<DocumentRequestDto>? grid;
     private List<DocumentRequestDto> Requests = new();
     private List<DocumentRequestDto> FilteredRequests = new();
     private bool IsLoading = true;
@@ -234,12 +187,28 @@
     private Guid? CurrentStudentId;
 
     // Filters
-    private string SelectedType = "";
-    private string SelectedStatus = "";
+    private string? SelectedType;
+    private string? SelectedStatus;
 
-    // Modal
-    private bool ShowNotesModal = false;
-    private DocumentRequestDto? SelectedRequest;
+    // Filter options
+    private List<dynamic> typeOptions = new List<dynamic>
+    {
+        new { Text = "Toate tipurile", Value = (string?)null },
+        new { Text = "Adeverință de Student", Value = "StudentCertificate" },
+        new { Text = "Adeverință cu Note", Value = "GradeReport" },
+        new { Text = "Foaie Matricolă", Value = "EnrollmentProof" },
+        new { Text = "Altele", Value = "Other" }
+    };
+
+    private List<dynamic> statusOptions = new List<dynamic>
+    {
+        new { Text = "Toate statusurile", Value = (string?)null },
+        new { Text = "În așteptare", Value = "Pending" },
+        new { Text = "În procesare", Value = "InProgress" },
+        new { Text = "Aprobat", Value = "Approved" },
+        new { Text = "Respins", Value = "Rejected" },
+        new { Text = "Completat", Value = "Completed" }
+    };
 
     protected override async Task OnInitializedAsync()
     {
@@ -273,8 +242,9 @@
         }
         else if (CurrentRole == UserRole.Secretary || CurrentRole == UserRole.Dean || CurrentRole == UserRole.Admin)
         {
-            // Secretary sees all pending requests
-            Requests = await RequestService.GetPendingAsync();
+            // Load all requests for staff, not just pending
+            var filter = new DocumentRequestFilter();
+            Requests = await RequestService.GetAllAsync(filter);
         }
 
         FilteredRequests = Requests;
@@ -302,43 +272,107 @@
     {
         if (CurrentStudentId == null) return;
 
-        var confirmed = await JS.InvokeAsync<bool>("confirm", "Sigur doriți să anulați această cerere?");
-        if (confirmed)
+        var confirmed = await DialogService.Confirm(
+            "Sigur doriți să anulați această cerere?",
+            "Confirmare Anulare",
+            new ConfirmOptions
+            {
+                OkButtonText = "Anulează Cererea",
+                CancelButtonText = "Renunță"
+            });
+
+        if (confirmed == true)
         {
             var result = await RequestService.CancelAsync(requestId, CurrentStudentId.Value);
             if (result.Succeeded)
             {
+                RadzenNotificationService.Notify(new NotificationMessage
+                {
+                    Severity = NotificationSeverity.Success,
+                    Summary = "Succes",
+                    Detail = "Cererea a fost anulată cu succes.",
+                    Duration = 4000
+                });
                 await LoadData();
             }
             else
             {
-                await JS.InvokeVoidAsync("alert", result.ErrorMessage ?? "Eroare la anularea cererii.");
+                RadzenNotificationService.Notify(new NotificationMessage
+                {
+                    Severity = NotificationSeverity.Error,
+                    Summary = "Eroare",
+                    Detail = result.ErrorMessage ?? "Eroare la anularea cererii.",
+                    Duration = 4000
+                });
             }
         }
     }
 
-    private void ShowNotes(DocumentRequestDto request)
+    private async Task CompleteRequest(Guid requestId)
     {
-        SelectedRequest = request;
-        ShowNotesModal = true;
-    }
+        var confirmed = await DialogService.Confirm(
+            "Sigur doriți să finalizați această cerere? Se va genera documentul PDF.",
+            "Confirmare Finalizare",
+            new ConfirmOptions
+            {
+                OkButtonText = "Finalizează",
+                CancelButtonText = "Anulează"
+            });
 
-    private void CloseNotesModal()
-    {
-        ShowNotesModal = false;
-        SelectedRequest = null;
-    }
-
-    private string GetStatusBadgeClass(RequestStatus status)
-    {
-        return status switch
+        if (confirmed == true)
         {
-            RequestStatus.Pending => "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-warning-100 text-warning-700",
-            RequestStatus.InProgress => "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-info-100 text-info-700",
-            RequestStatus.Approved => "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-success-100 text-success-700",
-            RequestStatus.Rejected => "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-danger-100 text-danger-700",
-            RequestStatus.Completed => "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-success-100 text-success-700",
-            _ => "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700"
-        };
+            var result = await RequestService.CompleteAsync(requestId, new CompleteDocumentRequestDto(), CurrentUserId);
+            if (result.Succeeded)
+            {
+                RadzenNotificationService.Notify(new NotificationMessage
+                {
+                    Severity = NotificationSeverity.Success,
+                    Summary = "Succes",
+                    Detail = "Documentul a fost generat cu succes!",
+                    Duration = 4000
+                });
+                await LoadData();
+            }
+            else
+            {
+                RadzenNotificationService.Notify(new NotificationMessage
+                {
+                    Severity = NotificationSeverity.Error,
+                    Summary = "Eroare",
+                    Detail = result.ErrorMessage ?? "Eroare la generarea documentului.",
+                    Duration = 4000
+                });
+            }
+        }
     }
+
+    private async Task ShowDetails(DocumentRequestDto request)
+    {
+        await DialogService.OpenAsync<RequestDetailsDialog>("Detalii Cerere",
+            new Dictionary<string, object> { { "Request", request } },
+            new DialogOptions
+            {
+                Width = "500px",
+                Height = "auto",
+                CloseDialogOnOverlayClick = true
+            });
+    }
+
+    private void DownloadDocument(string? documentPath)
+    {
+        if (string.IsNullOrEmpty(documentPath))
+            return;
+
+        Navigation.NavigateTo(documentPath, forceLoad: true);
+    }
+
+    private BadgeStyle GetStatusBadgeStyle(RequestStatus status) => status switch
+    {
+        RequestStatus.Pending => BadgeStyle.Warning,
+        RequestStatus.InProgress => BadgeStyle.Info,
+        RequestStatus.Approved => BadgeStyle.Success,
+        RequestStatus.Rejected => BadgeStyle.Danger,
+        RequestStatus.Completed => BadgeStyle.Success,
+        _ => BadgeStyle.Light
+    };
 }

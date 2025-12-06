@@ -40,8 +40,8 @@ public class RiskCalculationJob : IScheduledJob
 
             // Get high-risk students (risk score >= 60)
             var highRiskStudents = await dbContext.StudentRiskScores
-                .Where(ra => ra.OverallScore >= 60)
-                .OrderByDescending(ra => ra.OverallScore)
+                .Where(ra => ra.RiskScore >= 60)
+                .OrderByDescending(ra => ra.RiskScore)
                 .ToListAsync(cancellationToken);
 
             _logger.LogInformation("Found {Count} high-risk students", highRiskStudents.Count);

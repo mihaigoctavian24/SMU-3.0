@@ -1,0 +1,52 @@
+@inject Radzen.DialogService DialogService
+
+<RadzenStack Gap="1.5rem">
+    <RadzenText TextStyle="TextStyle.Body1" Style="margin: 0; color: var(--rz-text-secondary-color);">
+        Te rugăm să specifici motivul respingerii notei. Acest motiv va fi vizibil profesorului care a introdus nota.
+    </RadzenText>
+
+    <RadzenFormField Text="Motiv Respingere" Variant="Variant.Outlined" Style="width: 100%;">
+        <RadzenTextArea @bind-Value="reason"
+                        Rows="4"
+                        Placeholder="Introduceți motivul respingerii..."
+                        Style="width: 100%;" />
+    </RadzenFormField>
+
+    @if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat" ShowIcon="true" Size="AlertSize.Small">
+            @errorMessage
+        </RadzenAlert>
+    }
+
+    <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.75rem" Style="padding-top: 1rem; border-top: 1px solid var(--rz-border-color);">
+        <RadzenButton Text="Anulează"
+                      ButtonStyle="ButtonStyle.Light"
+                      Click="@Cancel" />
+        <RadzenButton Text="Respinge Nota"
+                      Icon="close"
+                      ButtonStyle="ButtonStyle.Danger"
+                      Click="@Submit" />
+    </RadzenStack>
+</RadzenStack>
+
+@code {
+    private string reason = "";
+    private string? errorMessage;
+
+    private void Submit()
+    {
+        if (string.IsNullOrWhiteSpace(reason))
+        {
+            errorMessage = "Te rugăm să specifici un motiv pentru respingere.";
+            return;
+        }
+
+        DialogService.Close(reason);
+    }
+
+    private void Cancel()
+    {
+        DialogService.Close(null);
+    }
+}

@@ -15,10 +15,19 @@
           "Microsoft.EntityFrameworkCore": "10.0.0-preview.5.25277.114",
           "Microsoft.EntityFrameworkCore.Design": "10.0.0-preview.5.25277.114",
           "Npgsql.EntityFrameworkCore.PostgreSQL": "10.0.0-preview.5",
-          "QuestPDF": "2024.10.2"
+          "QuestPDF": "2024.10.2",
+          "Radzen.Blazor": "7.1.2"
         },
         "runtime": {
           "SMU.dll": {}
+        },
+        "resources": {
+          "en/SMU.resources.dll": {
+            "locale": "en"
+          },
+          "ro/SMU.resources.dll": {
+            "locale": "ro"
+          }
         }
       },
       "Blazor-ApexCharts/4.0.0": {
@@ -625,6 +634,14 @@
           }
         }
       },
+      "Radzen.Blazor/7.1.2": {
+        "runtime": {
+          "lib/net9.0/Radzen.Blazor.dll": {
+            "assemblyVersion": "7.1.2.0",
+            "fileVersion": "7.1.2.0"
+          }
+        }
+      },
       "RBush/4.0.0": {
         "runtime": {
           "lib/net8.0/RBush.dll": {
@@ -1021,6 +1038,13 @@
       "sha512": "sha512-2Dsbm4nu6G9ObRgIHn6pf4wyGpIbpvIP5V5FmoJF5aH9fw4D+liC9fFXky16APx+EWnFbmOkRlAGZ9VkmvOpGA==",
       "path": "questpdf/2024.10.2",
       "hashPath": "questpdf.2024.10.2.nupkg.sha512"
+    },
+    "Radzen.Blazor/7.1.2": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-pZMUDRp1hdv2Ydt+/HIktMqJp0FvpqCm7Pihi77j6lPjAc8gUGojjI53inO5xfebdNxQziAT4ksKpGlEsaXfcg==",
+      "path": "radzen.blazor/7.1.2",
+      "hashPath": "radzen.blazor.7.1.2.nupkg.sha512"
     },
     "RBush/4.0.0": {
       "type": "package",

@@ -1,253 +1,321 @@
 @using SMU.Components.Shared
+@using SMU.Data
+@using SMU.Data.Entities
+@using SMU.Services
+@using SMU.Services.DTOs
+@using Microsoft.AspNetCore.Components.Authorization
+@inject IGradeService GradeService
+@inject IAnalyticsService AnalyticsService
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Navigation
 
-<div class="space-y-6">
-    <!-- Welcome Header -->
-    <div class="bg-gradient-to-r from-purple-600 to-purple-700 rounded-xl p-6 text-white">
-        <h1 class="text-2xl font-bold">Buna ziua, Decan @UserName!</h1>
-        <p class="mt-1 text-purple-100">Iata un sumar al indicatorilor facultatii.</p>
-    </div>
-
-    <!-- Stats Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatsCard
-            Label="Total Studenti"
-            Value="@TotalStudents.ToString()"
-            Subtitle="inscrisi in facultate"
-            IconType="users"
-            IconBgClass="bg-primary-100"
-            IconClass="text-primary-600"
-            ShowTrend="true"
-            TrendValue="@StudentsTrend" />
-
-        <StatsCard
-            Label="Media Facultate"
-            Value="@FacultyAverage.ToString("0.00")"
-            Subtitle="medie generala"
-            IconType="academic"
-            IconBgClass="bg-success-100"
-            IconClass="text-success-600"
-            ShowTrend="true"
-            TrendValue="@AverageTrend" />
-
-        <StatsCard
-            Label="Rata Promovare"
-            Value="@(PassRate.ToString("0") + "%")"
-            Subtitle="sesiunea curenta"
-            IconType="attendance"
-            IconBgClass="bg-info-100"
-            IconClass="text-info-600" />
-
-        <StatsCard
-            Label="Note Pending"
-            Value="@PendingApprovals.ToString()"
-            Subtitle="@(PendingApprovals > 0 ? "necesita aprobare" : "nicio nota")"
-            IconType="grades"
-            IconBgClass="@(PendingApprovals > 0 ? "bg-warning-100" : "bg-gray-100")"
-            IconClass="@(PendingApprovals > 0 ? "text-warning-600" : "text-gray-600")"
-            ActionLink="/note/aprobare"
-            ActionText="Aproba note" />
-    </div>
-
-    <!-- Content Grid -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <!-- Grade Approvals -->
-        <div class="lg:col-span-2">
-            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-                    <h3 class="text-lg font-semibold text-gray-900">Note in Asteptare</h3>
-                    <a href="/note/aprobare" class="text-sm font-medium text-primary-600 hover:text-primary-700">Vezi toate</a>
-                </div>
-                @if (PendingGradesList.Any())
-                {
-                    <div class="divide-y divide-gray-100">
-                        @foreach (var grade in PendingGradesList.Take(5))
-                        {
-                            <div class="px-6 py-4 hover:bg-gray-50 transition-colors">
-                                <div class="flex items-center justify-between">
-                                    <div class="flex-1">
-                                        <div class="flex items-center gap-2">
-                                            <h4 class="font-medium text-gray-900">@grade.StudentName</h4>
-                                            <span class="px-2 py-0.5 text-xs font-medium rounded-full bg-primary-100 text-primary-700">
-                                                @grade.Grade
-                                            </span>
-                                        </div>
-                                        <p class="text-sm text-gray-500 mt-1">@grade.CourseName - @grade.ExamType</p>
-                                        <p class="text-xs text-gray-400 mt-1">Prof. @grade.ProfessorName</p>
-                                    </div>
-                                    <div class="flex items-center gap-2">
-                                        <button class="p-2 text-success-600 hover:bg-success-50 rounded-lg transition-colors" title="Aproba">
-                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                                            </svg>
-                                        </button>
-                                        <button class="p-2 text-danger-600 hover:bg-danger-50 rounded-lg transition-colors" title="Respinge">
-                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                                            </svg>
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        }
-                    </div>
-                    @if (PendingApprovals > 5)
-                    {
-                        <div class="px-6 py-4 bg-gray-50 border-t border-gray-100 text-center">
-                            <a href="/note/aprobare" class="text-sm font-medium text-primary-600 hover:text-primary-700">
-                                Vezi toate cele @PendingApprovals note in asteptare
-                            </a>
-                        </div>
-                    }
-                }
-                else
-                {
-                    <div class="px-6 py-12 text-center">
-                        <svg class="w-12 h-12 mx-auto text-success-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                        </svg>
-                        <p class="text-gray-500">Toate notele au fost aprobate</p>
-                    </div>
-                }
-            </div>
-        </div>
-
-        <!-- Quick Actions & Stats -->
-        <div class="space-y-6">
-            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                <h3 class="text-lg font-semibold text-gray-900 mb-4">Actiuni Rapide</h3>
-                <div class="space-y-3">
-                    <QuickActionButton
-                        Text="Aproba Note"
-                        IconType="check"
-                        Variant="primary"
-                        FullWidth="true"
-                        IsLink="true"
-                        Link="/note/aprobare" />
-                    <QuickActionButton
-                        Text="Raport Facultate"
-                        IconType="view"
-                        Variant="outline-primary"
-                        FullWidth="true"
-                        IsLink="true"
-                        Link="/rapoarte/facultate" />
-                    <QuickActionButton
-                        Text="Statistici Programe"
-                        IconType="view"
-                        Variant="outline"
-                        FullWidth="true"
-                        IsLink="true"
-                        Link="/rapoarte/programe" />
-                </div>
-            </div>
-
-            <!-- Program Statistics -->
-            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                <div class="px-6 py-4 border-b border-gray-100">
-                    <h3 class="text-lg font-semibold text-gray-900">Statistici pe Programe</h3>
-                </div>
-                <div class="px-6 py-4 space-y-4">
-                    @foreach (var program in ProgramStats)
-                    {
-                        <div>
-                            <div class="flex justify-between items-center mb-1">
-                                <span class="text-sm font-medium text-gray-700">@program.Name</span>
-                                <span class="text-sm text-gray-500">@program.Students studenti</span>
-                            </div>
-                            <div class="w-full bg-gray-200 rounded-full h-2">
-                                <div class="h-2 rounded-full @program.ColorClass" style="width: @program.Percentage%"></div>
-                            </div>
-                        </div>
-                    }
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- At-Risk Students Alert -->
-    @if (AtRiskStudents > 0)
+<RadzenStack Gap="1.5rem">
+    @if (_isLoading)
     {
-        <div class="bg-danger-50 border border-danger-200 rounded-xl p-6">
-            <div class="flex items-start gap-4">
-                <div class="flex-shrink-0">
-                    <svg class="w-6 h-6 text-danger-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-                    </svg>
-                </div>
-                <div class="flex-1">
-                    <h4 class="font-semibold text-danger-800">Studenti la Risc</h4>
-                    <p class="mt-1 text-sm text-danger-700">
-                        @AtRiskStudents studenti au media sub 5.00 sau prezenta sub 50%.
-                        Se recomanda interventia pentru prevenirea abandonului.
-                    </p>
-                    <a href="/studenti/risc" class="mt-3 inline-flex items-center text-sm font-medium text-danger-700 hover:text-danger-800">
-                        Vezi lista completa
-                        <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-                        </svg>
-                    </a>
-                </div>
-            </div>
-        </div>
+        <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Style="padding: 3rem 0;">
+            <RadzenProgressBarCircular ShowValue="false" Mode="ProgressBarMode.Indeterminate" Size="ProgressBarCircularSize.Large" />
+            <RadzenText TextStyle="TextStyle.Body2" class="rz-color-secondary" Style="margin-top: 1rem;">
+                Se încarcă datele...
+            </RadzenText>
+        </RadzenStack>
     }
-</div>
+    else if (_facultyId == null)
+    {
+        <RadzenAlert AlertStyle="AlertStyle.Warning" Variant="Variant.Flat" ShowIcon="true" Size="AlertSize.Medium">
+            <RadzenStack AlignItems="AlignItems.Center" Gap="0.5rem">
+                <RadzenIcon Icon="warning" Style="font-size: 48px;" />
+                <RadzenText TextStyle="TextStyle.H6" Style="margin: 0;">Nu ești asociat cu o facultate</RadzenText>
+                <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0;">
+                    Contul tău nu este asociat cu o facultate.
+                </RadzenText>
+            </RadzenStack>
+        </RadzenAlert>
+    }
+    else
+    {
+        <!-- Welcome Header -->
+        <RadzenCard Style="background: linear-gradient(135deg, #9333ea 0%, #7c3aed 100%); color: white; padding: 1.5rem;">
+            <RadzenText TextStyle="TextStyle.H4" Style="margin: 0; color: white; font-weight: 700;">
+                Bună ziua, Decan @UserName!
+            </RadzenText>
+            <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0.5rem 0 0 0; color: rgba(255,255,255,0.9);">
+                Iată un sumar al indicatorilor facultății.
+            </RadzenText>
+        </RadzenCard>
+
+        <!-- Stats Cards -->
+        <RadzenRow Gap="1.5rem" RowGap="1.5rem">
+            <RadzenColumn Size="12" SizeMD="6" SizeLG="3">
+                <StatsCard
+                    Label="Total Studenți"
+                    Value="@TotalStudents.ToString()"
+                    Subtitle="înscriși în facultate"
+                    IconType="users"
+                    IconBgClass="bg-primary-100"
+                    IconClass="text-primary-600" />
+            </RadzenColumn>
+
+            <RadzenColumn Size="12" SizeMD="6" SizeLG="3">
+                <StatsCard
+                    Label="Media Facultate"
+                    Value="@(FacultyAverage > 0 ? FacultyAverage.ToString("0.00") : "-")"
+                    Subtitle="medie generală"
+                    IconType="academic"
+                    IconBgClass="bg-success-100"
+                    IconClass="text-success-600" />
+            </RadzenColumn>
+
+            <RadzenColumn Size="12" SizeMD="6" SizeLG="3">
+                <StatsCard
+                    Label="Rata Promovare"
+                    Value="@(PassRate.ToString("0") + "%")"
+                    Subtitle="sesiunea curentă"
+                    IconType="attendance"
+                    IconBgClass="bg-info-100"
+                    IconClass="text-info-600" />
+            </RadzenColumn>
+
+            <RadzenColumn Size="12" SizeMD="6" SizeLG="3">
+                <StatsCard
+                    Label="Note Pending"
+                    Value="@PendingApprovals.ToString()"
+                    Subtitle="@(PendingApprovals > 0 ? "necesită aprobare" : "nicio notă")"
+                    IconType="grades"
+                    IconBgClass="@(PendingApprovals > 0 ? "bg-warning-100" : "bg-success-100")"
+                    IconClass="@(PendingApprovals > 0 ? "text-warning-600" : "text-success-600")"
+                    ActionLink="/note/aprobare"
+                    ActionText="Aprobă note" />
+            </RadzenColumn>
+        </RadzenRow>
+
+        <!-- Content Grid -->
+        <RadzenRow Gap="1.5rem" RowGap="1.5rem">
+            <!-- Grade Approvals -->
+            <RadzenColumn Size="12" SizeLG="8">
+                <RadzenCard Style="padding: 0; overflow: hidden;">
+                    <RadzenStack Orientation="Radzen.Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center"
+                                 Class="rz-p-4" Style="border-bottom: 1px solid var(--rz-base-300);">
+                        <RadzenText TextStyle="TextStyle.H6" Style="margin: 0; font-weight: 600;">Note în Așteptare</RadzenText>
+                        <RadzenLink Path="/note/aprobare" Text="Vezi toate" Style="font-weight: 500;" />
+                    </RadzenStack>
+                    @if (PendingGradesList.Any())
+                    {
+                        <RadzenStack Gap="0">
+                            @foreach (var grade in PendingGradesList.Take(5))
+                            {
+                                <RadzenStack Orientation="Radzen.Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center"
+                                             Class="rz-p-4" Style="border-bottom: 1px solid var(--rz-base-200);">
+                                    <RadzenStack Gap="0.25rem" Style="flex: 1;">
+                                        <RadzenStack Orientation="Radzen.Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
+                                            <RadzenText TextStyle="TextStyle.Body1" Style="margin: 0; font-weight: 500;">@grade.StudentName</RadzenText>
+                                            <RadzenBadge BadgeStyle="BadgeStyle.Primary" Text="@grade.Value.ToString("0")" IsPill="true" />
+                                        </RadzenStack>
+                                        <RadzenText TextStyle="TextStyle.Caption" class="rz-color-secondary" Style="margin: 0;">
+                                            @grade.CourseName - @GetTypeLabel(grade.Type)
+                                        </RadzenText>
+                                        <RadzenText TextStyle="TextStyle.Caption" Style="margin: 0; color: var(--rz-text-disabled-color);">
+                                            Prof. @(grade.EnteredByName ?? "Necunoscut")
+                                        </RadzenText>
+                                    </RadzenStack>
+                                    <RadzenStack Orientation="Radzen.Orientation.Horizontal" Gap="0.5rem">
+                                        <RadzenButton Icon="check" ButtonStyle="ButtonStyle.Success" Variant="Variant.Text" Size="ButtonSize.Small"
+                                                      title="Aprobă" />
+                                        <RadzenButton Icon="close" ButtonStyle="ButtonStyle.Danger" Variant="Variant.Text" Size="ButtonSize.Small"
+                                                      title="Respinge" />
+                                    </RadzenStack>
+                                </RadzenStack>
+                            }
+                        </RadzenStack>
+                        @if (PendingApprovals > 5)
+                        {
+                            <RadzenStack AlignItems="AlignItems.Center" Class="rz-p-4" Style="background: var(--rz-base-100); border-top: 1px solid var(--rz-base-300);">
+                                <RadzenLink Path="/note/aprobare" Text="@($"Vezi toate cele {PendingApprovals} note în așteptare")" Style="font-weight: 500;" />
+                            </RadzenStack>
+                        }
+                    }
+                    else
+                    {
+                        <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Class="rz-p-6" Gap="0.75rem">
+                            <RadzenIcon Icon="check_circle" Style="font-size: 48px; color: var(--rz-success);" />
+                            <RadzenText TextStyle="TextStyle.Body2" class="rz-color-secondary" Style="margin: 0;">
+                                Toate notele au fost aprobate
+                            </RadzenText>
+                        </RadzenStack>
+                    }
+                </RadzenCard>
+            </RadzenColumn>
+
+            <!-- Quick Actions & Stats -->
+            <RadzenColumn Size="12" SizeLG="4">
+                <RadzenStack Gap="1.5rem">
+                    <!-- Quick Actions -->
+                    <RadzenCard>
+                        <RadzenText TextStyle="TextStyle.H6" Style="margin: 0 0 1rem 0; font-weight: 600;">Acțiuni Rapide</RadzenText>
+                        <RadzenStack Gap="0.75rem">
+                            <QuickActionButton
+                                Text="Aprobă Note"
+                                IconType="check"
+                                Variant="primary"
+                                FullWidth="true"
+                                IsLink="true"
+                                Link="/note/aprobare" />
+                            <QuickActionButton
+                                Text="Raport Facultate"
+                                IconType="view"
+                                Variant="outline-primary"
+                                FullWidth="true"
+                                IsLink="true"
+                                Link="/rapoarte/facultate" />
+                            <QuickActionButton
+                                Text="Statistici Programe"
+                                IconType="view"
+                                Variant="outline"
+                                FullWidth="true"
+                                IsLink="true"
+                                Link="/rapoarte/programe" />
+                        </RadzenStack>
+                    </RadzenCard>
+
+                    <!-- Program Statistics -->
+                    <RadzenCard Style="padding: 0; overflow: hidden;">
+                        <RadzenStack Class="rz-p-4" Style="border-bottom: 1px solid var(--rz-base-300);">
+                            <RadzenText TextStyle="TextStyle.H6" Style="margin: 0; font-weight: 600;">Statistici pe Programe</RadzenText>
+                        </RadzenStack>
+                        <RadzenStack Gap="1rem" Class="rz-p-4">
+                            @if (ProgramStats.Any())
+                            {
+                                @foreach (var program in ProgramStats)
+                                {
+                                    var percentage = TotalStudents > 0 ? Math.Round((decimal)program.StudentCount / TotalStudents * 100) : 0;
+                                    <RadzenStack Gap="0.25rem">
+                                        <RadzenStack Orientation="Radzen.Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center">
+                                            <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; font-weight: 500;">@program.ProgramName</RadzenText>
+                                            <RadzenText TextStyle="TextStyle.Body2" class="rz-color-secondary" Style="margin: 0;">@program.StudentCount studenți</RadzenText>
+                                        </RadzenStack>
+                                        <RadzenProgressBar Value="@((int)percentage)" ShowValue="false" Style="height: 8px;" />
+                                    </RadzenStack>
+                                }
+                            }
+                            else
+                            {
+                                <RadzenText TextStyle="TextStyle.Body2" class="rz-color-secondary" Style="margin: 0; text-align: center;">
+                                    Nu există date despre programe.
+                                </RadzenText>
+                            }
+                        </RadzenStack>
+                    </RadzenCard>
+                </RadzenStack>
+            </RadzenColumn>
+        </RadzenRow>
+
+        <!-- At-Risk Students Alert -->
+        @if (AtRiskStudents > 0)
+        {
+            <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat" ShowIcon="true" Size="AlertSize.Medium">
+                <RadzenStack Gap="0.5rem">
+                    <RadzenText TextStyle="TextStyle.Subtitle1" Style="margin: 0; font-weight: 600;">Studenți la Risc</RadzenText>
+                    <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0;">
+                        @AtRiskStudents studenți au media sub 5.00 sau prezența sub 50%.
+                        Se recomandă intervenția pentru prevenirea abandonului.
+                    </RadzenText>
+                    <RadzenLink Path="/studenti/risc" Text="Vezi lista completă" Icon="chevron_right" Style="font-weight: 500;" />
+                </RadzenStack>
+            </RadzenAlert>
+        }
+    }
+</RadzenStack>
 
 @code {
-    [Parameter] public string UserName { get; set; } = "";
+    [Parameter] public string UserName { get; set; } = "Decan";
+
+    // State
+    private bool _isLoading = true;
+    private Guid? _facultyId;
+    private Guid? _userId;
 
     // Stats
-    private int TotalStudents = 485;
-    private decimal StudentsTrend = 3.2m;
-    private decimal FacultyAverage = 7.85m;
-    private decimal AverageTrend = 1.5m;
-    private decimal PassRate = 87.5m;
-    private int PendingApprovals = 12;
-    private int AtRiskStudents = 8;
+    private int TotalStudents = 0;
+    private decimal FacultyAverage = 0;
+    private decimal PassRate = 0;
+    private int PendingApprovals = 0;
+    private int AtRiskStudents = 0;
 
     // Data
-    private List<PendingGradeDto> PendingGradesList = new();
-    private List<ProgramStatDto> ProgramStats = new();
+    private List<GradeListDto> PendingGradesList = new();
+    private List<ProgramPerformanceDto> ProgramStats = new();
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        LoadDashboardData();
+        await LoadDashboardData();
     }
 
-    private void LoadDashboardData()
+    private async Task LoadDashboardData()
     {
-        // Demo pending grades
-        PendingGradesList = new List<PendingGradeDto>
+        try
         {
-            new() { StudentName = "Popescu Maria", CourseName = "Programare Web", Grade = 9, ExamType = "Examen", ProfessorName = "Ion Georgescu" },
-            new() { StudentName = "Ionescu Andrei", CourseName = "Baze de Date", Grade = 8, ExamType = "Examen", ProfessorName = "Ana Marinescu" },
-            new() { StudentName = "Popa Elena", CourseName = "Algoritmi", Grade = 10, ExamType = "Laborator", ProfessorName = "Mihai Stanescu" },
-            new() { StudentName = "Munteanu Dan", CourseName = "POO", Grade = 7, ExamType = "Partial", ProfessorName = "Ion Georgescu" },
-            new() { StudentName = "Stan Alexandru", CourseName = "Retele", Grade = 6, ExamType = "Examen", ProfessorName = "Cristian Popa" }
-        };
+            _isLoading = true;
 
-        // Demo program stats
-        ProgramStats = new List<ProgramStatDto>
+            // Get current user claims
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+
+            // Get FacultyId from claims
+            var facultyIdClaim = user.FindFirst("FacultyId")?.Value;
+            var userIdClaim = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
+            if (Guid.TryParse(facultyIdClaim, out var facultyId))
+            {
+                _facultyId = facultyId;
+            }
+
+            if (Guid.TryParse(userIdClaim, out var userId))
+            {
+                _userId = userId;
+            }
+
+            if (_facultyId == null)
+            {
+                _isLoading = false;
+                return;
+            }
+
+            // Load faculty analytics
+            var facultyStats = await AnalyticsService.GetFacultyStatsAsync(_facultyId.Value);
+            TotalStudents = facultyStats.StudentCount;
+            FacultyAverage = facultyStats.AverageGrade;
+            PassRate = facultyStats.PassRate;
+
+            // Load program statistics
+            ProgramStats = await AnalyticsService.GetProgramPerformancesAsync(_facultyId.Value);
+
+            // Load pending grades for approval
+            PendingGradesList = await GradeService.GetPendingForApprovalAsync(_facultyId.Value);
+            PendingApprovals = PendingGradesList.Count;
+
+            // Calculate at-risk students based on passing rate
+            // For now, estimate at-risk as students with failing grades
+            if (PassRate < 100 && TotalStudents > 0)
+            {
+                AtRiskStudents = (int)Math.Round(TotalStudents * (100 - PassRate) / 100);
+            }
+        }
+        catch (Exception ex)
         {
-            new() { Name = "Informatica", Students = 245, Percentage = 50, ColorClass = "bg-primary-500" },
-            new() { Name = "CTI", Students = 145, Percentage = 30, ColorClass = "bg-secondary-500" },
-            new() { Name = "Matematica-Info", Students = 65, Percentage = 13, ColorClass = "bg-success-500" },
-            new() { Name = "IS", Students = 30, Percentage = 7, ColorClass = "bg-warning-500" }
-        };
+            Console.WriteLine($"Error loading dashboard: {ex.Message}");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
     }
 
-    private class PendingGradeDto
+    private string GetTypeLabel(GradeType type) => type switch
     {
-        public string StudentName { get; set; } = "";
-        public string CourseName { get; set; } = "";
-        public int Grade { get; set; }
-        public string ExamType { get; set; } = "";
-        public string ProfessorName { get; set; } = "";
-    }
-
-    private class ProgramStatDto
-    {
-        public string Name { get; set; } = "";
-        public int Students { get; set; }
-        public int Percentage { get; set; }
-        public string ColorClass { get; set; } = "";
-    }
+        GradeType.Exam => "Examen",
+        GradeType.Lab => "Laborator",
+        GradeType.Seminar => "Seminar",
+        GradeType.Project => "Proiect",
+        GradeType.Final => "Final",
+        _ => type.ToString()
+    };
 }

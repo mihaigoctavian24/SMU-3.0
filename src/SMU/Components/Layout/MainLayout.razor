@@ -3,55 +3,132 @@
 @using SMU.Services
 @inject NavigationManager Navigation
 @inject IKeyboardShortcutService KeyboardService
+@inject DialogService DialogService
+@inject Radzen.NotificationService RadzenNotificationService
 @implements IAsyncDisposable
 
 <AuthorizeView>
     <Authorized Context="authContext">
-        <!-- Authenticated Layout with Sidebar and Header Components -->
-        <div class="flex h-screen overflow-hidden bg-gray-50 dark:bg-gray-900">
-            <!-- Sidebar Component -->
-            <Sidebar
-                Collapsed="@SidebarCollapsed"
-                CollapsedChanged="@HandleSidebarCollapsedChanged"
-                UserName="@GetFullName(authContext)"
-                UserRole="@GetUserRole(authContext)" />
+        <RadzenLayout>
+            <!-- Sidebar -->
+            <RadzenSidebar @bind-Expanded="@SidebarExpanded" Style="width: 250px;">
+                <RadzenStack Gap="0" Class="rz-h-full">
+                    <!-- Logo -->
+                    <RadzenStack Orientation="Radzen.Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.75rem" Class="rz-p-3 rz-border-bottom" Style="height: 64px;">
+                        <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Style="width: 40px; height: 40px; background: linear-gradient(135deg, #4f46e5, #6366f1); border-radius: 12px;">
+                            <RadzenIcon Icon="school" Style="color: white; font-size: 20px;" />
+                        </RadzenStack>
+                        @if (SidebarExpanded)
+                        {
+                            <RadzenText TextStyle="TextStyle.H6" Class="rz-m-0" Style="font-weight: 600;">SMU</RadzenText>
+                        }
+                    </RadzenStack>
 
-            <!-- Main Content -->
-            <div class="flex-1 flex flex-col overflow-hidden">
-                <!-- Header Component -->
-                <Header
-                    UserName="@GetFullName(authContext)"
-                    UserRole="@GetUserRole(authContext)"
-                    OnMobileMenuToggle="@HandleMobileMenuToggle" />
+                    <!-- Navigation Menu -->
+                    <RadzenPanelMenu Class="rz-flex-grow-1">
+                        <RadzenPanelMenuItem Text="@Localizer["Dashboard"]" Icon="dashboard" Path="/dashboard" />
+
+                        @if (CanManageStudents(authContext))
+                        {
+                            <RadzenPanelMenuItem Text="@Localizer["Students"]" Icon="people" Path="/studenti" />
+                        }
+
+                        <RadzenPanelMenuItem Text="@Localizer["Grades"]" Icon="grading" Path="/note" />
+
+                        @if (CanManageAttendance(authContext))
+                        {
+                            <RadzenPanelMenuItem Text="@Localizer["Attendance"]" Icon="event_available" Path="/prezente" />
+                        }
+
+                        <RadzenPanelMenuItem Text="@Localizer["Schedule"]" Icon="schedule" Path="/orar" />
+
+                        @if (CanViewFaculties(authContext))
+                        {
+                            <RadzenPanelMenuItem Text="@Localizer["Faculties"]" Icon="business" Path="/facultati" />
+                        }
+
+                        <RadzenPanelMenuItem Text="@Localizer["Analytics"]" Icon="analytics" Path="@GetAnalyticsLink(authContext)" />
+
+
+                        <RadzenPanelMenuItem Text="@Localizer["Export"]" Icon="download" Path="/export" />
+
+                        @if (GetUserRole(authContext) == "Admin")
+                        {
+                            <RadzenPanelMenuItem Text="@Localizer["Admin"]" Icon="admin_panel_settings" Path="/admin/utilizatori" />
+                            <RadzenPanelMenuItem Text="Activity Feed" Icon="bolt" Path="/admin/activity-feed" />
+                        }
+
+                        <RadzenPanelMenuItem Text="@Localizer["Settings"]" Icon="settings" Path="/setari" />
+                    </RadzenPanelMenu>
+
+                    <!-- User Info & Logout -->
+                    <RadzenStack Class="rz-p-3 rz-border-top" Gap="0.5rem">
+                        @if (SidebarExpanded)
+                        {
+                            <RadzenStack Orientation="Radzen.Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.75rem">
+                                <RadzenGravatar Email="@GetFullName(authContext)" Style="width: 40px; height: 40px;" />
+                                <RadzenStack Gap="0" Class="rz-flex-grow-1" Style="min-width: 0;">
+                                    <RadzenText TextStyle="TextStyle.Body2" Class="rz-m-0" Style="font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                        @GetFullName(authContext)
+                                    </RadzenText>
+                                    <RadzenText TextStyle="TextStyle.Caption" Class="rz-m-0 rz-color-secondary">
+                                        @GetRoleDisplayName(authContext)
+                                    </RadzenText>
+                                </RadzenStack>
+                            </RadzenStack>
+                            <RadzenButton Text="@Localizer["Logout"]" Icon="logout" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Style="width: 100%;" Click="@Logout" />
+                        }
+                        else
+                        {
+                            <RadzenButton Icon="logout" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@Logout" title="@Localizer["Logout"]" />
+                        }
+                    </RadzenStack>
+                </RadzenStack>
+            </RadzenSidebar>
+
+            <!-- Main Content Area -->
+            <RadzenBody>
+                <!-- Header -->
+                <RadzenStack Orientation="Radzen.Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween" Class="rz-px-4 smu-header" Style="height: 64px; background: white;">
+                    <!-- Left: Sidebar Toggle + Search -->
+                    <RadzenStack Orientation="Radzen.Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem">
+                        <RadzenButton Icon="@(SidebarExpanded ? "menu_open" : "menu")" ButtonStyle="ButtonStyle.Light" Click="@ToggleSidebar" />
+                        <RadzenTextBox Placeholder="@Localizer["SearchPlaceholder"]" Style="width: 250px;" @bind-Value="@SearchQuery" />
+                    </RadzenStack>
+
+                    <!-- Right: Date, Notifications, User Menu -->
+                    <RadzenStack Orientation="Radzen.Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.75rem">
+                        <!-- Current Date -->
+                        <RadzenStack Orientation="Radzen.Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Class="rz-px-3 rz-py-2 rz-background-color-base-200" Style="border-radius: 8px;">
+                            <RadzenIcon Icon="calendar_today" Style="font-size: 16px;" />
+                            <RadzenText TextStyle="TextStyle.Body2" Class="rz-m-0">@CurrentDate</RadzenText>
+                        </RadzenStack>
+
+                        <!-- Notifications -->
+                        <RadzenButton Icon="notifications" ButtonStyle="ButtonStyle.Light" />
+
+                        <!-- User Avatar & Dropdown -->
+                        <RadzenStack Orientation="Radzen.Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
+                            <RadzenGravatar Email="@GetFullName(authContext)" Style="width: 36px; height: 36px;" />
+                            <RadzenStack Gap="0" Class="rz-display-none rz-display-sm-block">
+                                <RadzenText TextStyle="TextStyle.Body2" Class="rz-m-0" Style="font-weight: 500;">@GetFullName(authContext)</RadzenText>
+                                <RadzenText TextStyle="TextStyle.Caption" Class="rz-m-0 rz-color-secondary">@GetUserRole(authContext)</RadzenText>
+                            </RadzenStack>
+                        </RadzenStack>
+                    </RadzenStack>
+                </RadzenStack>
 
                 <!-- Page Content -->
-                <main class="flex-1 overflow-auto p-6">
+                <RadzenContent Class="rz-p-4">
                     @Body
-                </main>
-            </div>
-        </div>
-
-        <!-- Mobile Sidebar Overlay (for small screens) -->
-        @if (ShowMobileMenu)
-        {
-            <div class="fixed inset-0 bg-gray-900 bg-opacity-50 z-40 lg:hidden" @onclick="CloseMobileMenu">
-                <div class="fixed inset-y-0 left-0 w-64 z-50" @onclick:stopPropagation="true">
-                    <Sidebar
-                        Collapsed="false"
-                        CollapsedChanged="@HandleSidebarCollapsedChanged"
-                        UserName="@GetFullName(authContext)"
-                        UserRole="@GetUserRole(authContext)" />
-                </div>
-            </div>
-        }
-
-        <!-- Keyboard Shortcuts Modals -->
-        <ShortcutsHelpModal @bind-IsVisible="ShowShortcutsHelp" />
-        <CommandPalette @bind-IsVisible="ShowCommandPalette" />
+                </RadzenContent>
+            </RadzenBody>
+        </RadzenLayout>
+        <RadzenComponents @rendermode="InteractiveServer" />
     </Authorized>
     <NotAuthorized>
-        <!-- Simple layout for non-authenticated pages -->
         @Body
+        <RadzenComponents @rendermode="InteractiveServer" />
     </NotAuthorized>
 </AuthorizeView>
 
@@ -62,10 +139,11 @@
 </div>
 
 @code {
-    private bool SidebarCollapsed { get; set; }
-    private bool ShowMobileMenu { get; set; }
-    private bool ShowShortcutsHelp { get; set; }
-    private bool ShowCommandPalette { get; set; }
+    [Inject] private IStringLocalizer<SMU.Resources.SharedResources> Localizer { get; set; } = default!;
+
+    private bool SidebarExpanded { get; set; } = true;
+    private string SearchQuery { get; set; } = string.Empty;
+    private string CurrentDate => DateTime.Now.ToString("dd MMMM yyyy", new System.Globalization.CultureInfo("ro-RO"));
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -81,7 +159,7 @@
         {
             await KeyboardService.InitializeAsync();
 
-            // Navigation Shortcuts (G prefix sequences)
+            // Navigation Shortcuts
             await KeyboardService.RegisterShortcutAsync("G D", "Go to Dashboard", "Navigation",
                 async () => { Navigation.NavigateTo("/dashboard"); await Task.CompletedTask; });
 
@@ -90,35 +168,6 @@
 
             await KeyboardService.RegisterShortcutAsync("G G", "Go to Grades", "Navigation",
                 async () => { Navigation.NavigateTo("/note"); await Task.CompletedTask; });
-
-            await KeyboardService.RegisterShortcutAsync("G A", "Go to Attendance", "Navigation",
-                async () => { Navigation.NavigateTo("/prezente"); await Task.CompletedTask; });
-
-            await KeyboardService.RegisterShortcutAsync("G R", "Go to Reports", "Navigation",
-                async () => { Navigation.NavigateTo("/rapoarte"); await Task.CompletedTask; });
-
-            await KeyboardService.RegisterShortcutAsync("G E", "Go to Export", "Navigation",
-                async () => { Navigation.NavigateTo("/export"); await Task.CompletedTask; });
-
-            // Action Shortcuts
-            var isMac = await IsRunningOnMac();
-            var modifierKey = isMac ? "Cmd" : "Ctrl";
-
-            await KeyboardService.RegisterShortcutAsync($"{modifierKey}+K", "Open Command Palette", "Actions",
-                async () => { ShowCommandPalette = true; StateHasChanged(); await Task.CompletedTask; });
-
-            await KeyboardService.RegisterShortcutAsync("?", "Show Keyboard Shortcuts", "General",
-                async () => { ShowShortcutsHelp = true; StateHasChanged(); await Task.CompletedTask; });
-
-            await KeyboardService.RegisterShortcutAsync("Esc", "Close Modal/Dropdown", "General",
-                async () =>
-                {
-                    if (ShowCommandPalette) ShowCommandPalette = false;
-                    if (ShowShortcutsHelp) ShowShortcutsHelp = false;
-                    if (ShowMobileMenu) ShowMobileMenu = false;
-                    StateHasChanged();
-                    await Task.CompletedTask;
-                });
         }
         catch (Exception ex)
         {
@@ -126,40 +175,65 @@
         }
     }
 
-    private async Task<bool> IsRunningOnMac()
+    private void ToggleSidebar()
     {
-        // Simple platform detection - in production you'd use JSInterop
-        return false; // Default to Windows/Linux for now
+        SidebarExpanded = !SidebarExpanded;
     }
 
-    private void HandleSidebarCollapsedChanged(bool collapsed)
+    private async Task Logout()
     {
-        SidebarCollapsed = collapsed;
+        Navigation.NavigateTo("/logout", forceLoad: true);
+        await Task.CompletedTask;
     }
 
-    private void HandleMobileMenuToggle()
+    // Role helpers
+    private string GetUserRole(AuthenticationState authState) =>
+        authState.User.FindFirst("Role")?.Value ?? "Student";
+
+    private string GetFullName(AuthenticationState authState) =>
+        authState.User.FindFirst("FullName")?.Value ?? authState.User.Identity?.Name ?? "User";
+
+    private string GetRoleDisplayName(AuthenticationState authState) => GetUserRole(authState) switch
     {
-        ShowMobileMenu = !ShowMobileMenu;
+        "Admin" => "Administrator",
+        "Rector" => "Rector",
+        "Dean" => "Decan",
+        "Secretary" => "Secretar",
+        "Professor" => "Profesor",
+        "Student" => "Student",
+        _ => GetUserRole(authState)
+    };
+
+    private bool CanManageStudents(AuthenticationState authState)
+    {
+        var role = GetUserRole(authState);
+        return role is "Secretary" or "Dean" or "Rector" or "Admin";
     }
 
-    private void CloseMobileMenu()
+    private bool CanManageAttendance(AuthenticationState authState)
     {
-        ShowMobileMenu = false;
+        var role = GetUserRole(authState);
+        return role is "Professor" or "Secretary" or "Dean" or "Admin";
     }
 
-    private string GetUserRole(AuthenticationState authState)
+    private bool CanViewFaculties(AuthenticationState authState)
     {
-        return authState.User.FindFirst("Role")?.Value ?? "Student";
+        var role = GetUserRole(authState);
+        return role is "Dean" or "Rector" or "Admin";
     }
 
-    private string GetFullName(AuthenticationState authState)
+    private string GetAnalyticsLink(AuthenticationState authState) => GetUserRole(authState) switch
     {
-        return authState.User.FindFirst("FullName")?.Value ?? authState.User.Identity?.Name ?? "User";
-    }
+        "Student" => "/analytics/student",
+        "Professor" => "/analytics/professor",
+        "Dean" => "/analytics/faculty",
+        "Rector" => "/analytics/university",
+        "Admin" => "/analytics/university",
+        _ => "/analytics/student"
+    };
 
     public async ValueTask DisposeAsync()
     {
-        // Cleanup will happen automatically through service disposal
         await Task.CompletedTask;
     }
 }

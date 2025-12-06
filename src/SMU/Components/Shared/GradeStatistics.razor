@@ -1,0 +1,104 @@
+@using SMU.Services.DTOs
+
+<RadzenStack Gap="1rem">
+    @* Primary Stats - Most Important Metrics *@
+    <RadzenRow Gap="1rem">
+        <RadzenColumn Size="12" SizeMD="3">
+            <RadzenCard class="rz-shadow-3" Style="background: var(--rz-base-background-color);">
+                <RadzenStack Orientation="Radzen.Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem">
+                    <div style="width: 56px; height: 56px; border-radius: 12px; background: var(--rz-primary-lighter); display: flex; align-items: center; justify-content: center;">
+                        <RadzenIcon Icon="assignment" Style="font-size: 1.75rem; color: var(--rz-primary);" />
+                    </div>
+                    <RadzenStack Gap="0.25rem">
+                        <RadzenText TextStyle="TextStyle.Overline" class="rz-color-secondary" Style="margin: 0;">Total Note</RadzenText>
+                        <RadzenText TextStyle="TextStyle.H4" Style="margin: 0; font-weight: 600;">@Statistics.TotalGrades</RadzenText>
+                    </RadzenStack>
+                </RadzenStack>
+            </RadzenCard>
+        </RadzenColumn>
+
+        <RadzenColumn Size="12" SizeMD="3">
+            <RadzenCard class="rz-shadow-3" Style="background: var(--rz-base-background-color);">
+                <RadzenStack Orientation="Radzen.Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem">
+                    <div style="width: 56px; height: 56px; border-radius: 12px; background: var(--rz-warning-lighter); display: flex; align-items: center; justify-content: center;">
+                        <RadzenIcon Icon="pending_actions" Style="font-size: 1.75rem; color: var(--rz-warning);" />
+                    </div>
+                    <RadzenStack Gap="0.25rem">
+                        <RadzenText TextStyle="TextStyle.Overline" class="rz-color-secondary" Style="margin: 0;">În Așteptare</RadzenText>
+                        <RadzenText TextStyle="TextStyle.H4" Style="margin: 0; font-weight: 600;">@Statistics.PendingGrades</RadzenText>
+                    </RadzenStack>
+                </RadzenStack>
+            </RadzenCard>
+        </RadzenColumn>
+
+        <RadzenColumn Size="12" SizeMD="3">
+            <RadzenCard class="rz-shadow-3" Style="background: var(--rz-base-background-color);">
+                <RadzenStack Orientation="Radzen.Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem">
+                    <div style="width: 56px; height: 56px; border-radius: 12px; background: var(--rz-success-lighter); display: flex; align-items: center; justify-content: center;">
+                        <RadzenIcon Icon="star" Style="font-size: 1.75rem; color: var(--rz-success);" />
+                    </div>
+                    <RadzenStack Gap="0.25rem">
+                        <RadzenText TextStyle="TextStyle.Overline" class="rz-color-secondary" Style="margin: 0;">Media Generală</RadzenText>
+                        <RadzenText TextStyle="TextStyle.H4" Style="margin: 0; font-weight: 600;">@Statistics.AverageGrade.ToString("0.00")</RadzenText>
+                    </RadzenStack>
+                </RadzenStack>
+            </RadzenCard>
+        </RadzenColumn>
+
+        <RadzenColumn Size="12" SizeMD="3">
+            <RadzenCard class="rz-shadow-3" Style="background: var(--rz-base-background-color);">
+                <RadzenStack Orientation="Radzen.Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem">
+                    <div style="width: 56px; height: 56px; border-radius: 12px; background: var(--rz-danger-lighter); display: flex; align-items: center; justify-content: center;">
+                        <RadzenIcon Icon="warning" Style="font-size: 1.75rem; color: var(--rz-danger);" />
+                    </div>
+                    <RadzenStack Gap="0.25rem">
+                        <RadzenText TextStyle="TextStyle.Overline" class="rz-color-secondary" Style="margin: 0;">Note &lt; 5</RadzenText>
+                        <RadzenText TextStyle="TextStyle.H4" Style="margin: 0; font-weight: 600;">@Statistics.FailingGrades</RadzenText>
+                    </RadzenStack>
+                </RadzenStack>
+            </RadzenCard>
+        </RadzenColumn>
+    </RadzenRow>
+
+    @* Secondary Stats - Activity Metrics *@
+    <RadzenRow Gap="1rem">
+        <RadzenColumn Size="12" SizeMD="6">
+            <RadzenCard class="rz-shadow-2" Style="background: var(--rz-base-background-color);">
+                <RadzenStack Gap="0.75rem">
+                    <RadzenStack Orientation="Radzen.Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
+                        <RadzenStack Orientation="Radzen.Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.75rem">
+                            <div style="width: 40px; height: 40px; border-radius: 8px; background: var(--rz-info-lighter); display: flex; align-items: center; justify-content: center;">
+                                <RadzenIcon Icon="today" Style="font-size: 1.25rem; color: var(--rz-info);" />
+                            </div>
+                            <RadzenText TextStyle="TextStyle.Subtitle1" Style="margin: 0; font-weight: 500;">Activitate Azi</RadzenText>
+                        </RadzenStack>
+                        <RadzenBadge BadgeStyle="BadgeStyle.Info" Text="@Statistics.ApprovedToday.ToString()" Variant="Variant.Flat" Style="font-size: 1.125rem; padding: 0.5rem 1rem;" />
+                    </RadzenStack>
+                    <RadzenText TextStyle="TextStyle.Body2" class="rz-color-secondary" Style="margin: 0;">Note aprobate astăzi</RadzenText>
+                </RadzenStack>
+            </RadzenCard>
+        </RadzenColumn>
+
+        <RadzenColumn Size="12" SizeMD="6">
+            <RadzenCard class="rz-shadow-2" Style="background: var(--rz-base-background-color);">
+                <RadzenStack Gap="0.75rem">
+                    <RadzenStack Orientation="Radzen.Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
+                        <RadzenStack Orientation="Radzen.Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.75rem">
+                            <div style="width: 40px; height: 40px; border-radius: 8px; background: var(--rz-success-lighter); display: flex; align-items: center; justify-content: center;">
+                                <RadzenIcon Icon="date_range" Style="font-size: 1.25rem; color: var(--rz-success);" />
+                            </div>
+                            <RadzenText TextStyle="TextStyle.Subtitle1" Style="margin: 0; font-weight: 500;">Săptămâna Curentă</RadzenText>
+                        </RadzenStack>
+                        <RadzenBadge BadgeStyle="BadgeStyle.Success" Text="@Statistics.ApprovedThisWeek.ToString()" Variant="Variant.Flat" Style="font-size: 1.125rem; padding: 0.5rem 1rem;" />
+                    </RadzenStack>
+                    <RadzenText TextStyle="TextStyle.Body2" class="rz-color-secondary" Style="margin: 0;">Note aprobate în ultimele 7 zile</RadzenText>
+                </RadzenStack>
+            </RadzenCard>
+        </RadzenColumn>
+    </RadzenRow>
+</RadzenStack>
+
+@code {
+    [Parameter]
+    public GradeStatisticsDto Statistics { get; set; } = new();
+}

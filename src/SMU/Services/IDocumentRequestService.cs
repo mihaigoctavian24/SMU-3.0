@@ -38,6 +38,11 @@ public interface IDocumentRequestService
     Task<ServiceResult> ProcessAsync(Guid id, ProcessDocumentRequestDto dto, Guid processedById);
 
     /// <summary>
+    /// Complete a document request by emitting the document (secretary)
+    /// </summary>
+    Task<ServiceResult> CompleteAsync(Guid id, CompleteDocumentRequestDto dto, Guid completedById);
+
+    /// <summary>
     /// Cancel a document request (student can cancel own pending requests)
     /// </summary>
     Task<ServiceResult> CancelAsync(Guid id, Guid studentId);

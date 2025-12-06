@@ -5,130 +5,143 @@
 @using SMU.Data.Entities
 @attribute [Authorize(Policy = "CanManageUsers")]
 @inject IUserService UserService
+@inject NavigationManager Navigation
 
 <PageTitle>Roluri - SMU</PageTitle>
 
-<div class="space-y-6">
+<RadzenStack Gap="1.5rem">
     <!-- Header -->
-    <div class="flex items-center justify-between">
-        <div>
-            <h1 class="text-2xl font-bold text-gray-900">Roluri și Permisiuni</h1>
-            <p class="mt-1 text-sm text-gray-500">Vizualizare roluri disponibile și distribuția utilizatorilor</p>
-        </div>
-        <a href="/admin/utilizatori" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
-            </svg>
-            <span>Gestionare Utilizatori</span>
-        </a>
-    </div>
+    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween" Gap="1rem">
+        <RadzenStack Gap="0.5rem">
+            <RadzenText TextStyle="TextStyle.H4" Style="margin: 0; font-weight: bold;">Roluri și Permisiuni</RadzenText>
+            <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; color: var(--rz-text-secondary-color);">Vizualizare roluri disponibile și distribuția utilizatorilor</RadzenText>
+        </RadzenStack>
+        <RadzenButton Text="Gestionare Utilizatori"
+                      Icon="people"
+                      ButtonStyle="ButtonStyle.Light"
+                      Click="@(() => Navigation.NavigateTo("/admin/utilizatori"))"
+                      Style="display: flex; align-items: center; gap: 0.5rem;" />
+    </RadzenStack>
 
     @if (isLoading)
     {
-        <div class="flex items-center justify-center py-12">
-            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-        </div>
+        <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Style="padding: 3rem 0;">
+            <RadzenProgressBarCircular ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
+        </RadzenStack>
     }
     else
     {
         <!-- Role Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <RadzenRow Gap="1.5rem">
             @foreach (var roleStats in roleStatsList)
             {
-                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                    <div class="flex items-center justify-between mb-4">
-                        <div class="flex items-center space-x-3">
-                            <div class="h-12 w-12 rounded-lg @GetRoleIconBg(roleStats.Role) flex items-center justify-center">
-                                @GetRoleIcon(roleStats.Role)
-                            </div>
-                            <div>
-                                <h3 class="font-semibold text-gray-900">@roleStats.RoleName</h3>
-                                <p class="text-2xl font-bold @GetRoleTextColor(roleStats.Role)">@roleStats.UserCount</p>
-                            </div>
-                        </div>
-                    </div>
+                <RadzenColumn Size="12" SizeMD="6" SizeLG="4">
+                    <RadzenCard Style="padding: 1.5rem;">
+                        <RadzenStack Gap="1rem">
+                            <!-- Header with Icon and Count -->
+                            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween" Gap="0.75rem">
+                                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.75rem">
+                                    <div style="width: 3rem; height: 3rem; border-radius: 0.5rem; display: flex; align-items: center; justify-content: center; @GetRoleIconBgStyle(roleStats.Role)">
+                                        @GetRoleIcon(roleStats.Role)
+                                    </div>
+                                    <RadzenStack Gap="0.25rem">
+                                        <RadzenText TextStyle="TextStyle.Subtitle1" Style="margin: 0; font-weight: 600;">@roleStats.RoleName</RadzenText>
+                                        <RadzenText TextStyle="TextStyle.H5" Style="@($"margin: 0; font-weight: bold; {GetRoleTextColorStyle(roleStats.Role)}")">@roleStats.UserCount</RadzenText>
+                                    </RadzenStack>
+                                </RadzenStack>
+                            </RadzenStack>
 
-                    <p class="text-sm text-gray-600 mb-4">@roleStats.Description</p>
+                            <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; color: var(--rz-text-secondary-color);">@roleStats.Description</RadzenText>
 
-                    <!-- Permissions -->
-                    <div class="space-y-2">
-                        <p class="text-xs font-medium text-gray-500 uppercase">Permisiuni principale:</p>
-                        <div class="space-y-1">
-                            @foreach (var permission in GetRolePermissions(roleStats.Role))
-                            {
-                                <div class="flex items-start space-x-2 text-sm text-gray-600">
-                                    <svg class="w-4 h-4 text-success-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-                                    </svg>
-                                    <span>@permission</span>
-                                </div>
-                            }
-                        </div>
-                    </div>
-                </div>
+                            <!-- Permissions -->
+                            <RadzenStack Gap="0.5rem">
+                                <RadzenText TextStyle="TextStyle.Caption" Style="margin: 0; text-transform: uppercase; font-weight: 500; color: var(--rz-text-secondary-color);">Permisiuni principale:</RadzenText>
+                                <RadzenStack Gap="0.25rem">
+                                    @foreach (var permission in GetRolePermissions(roleStats.Role))
+                                    {
+                                        <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" AlignItems="AlignItems.Start">
+                                            <RadzenIcon Icon="check_circle" Style="color: var(--rz-success); font-size: 1rem; margin-top: 0.125rem; flex-shrink: 0;" />
+                                            <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; color: var(--rz-text-secondary-color);">@permission</RadzenText>
+                                        </RadzenStack>
+                                    }
+                                </RadzenStack>
+                            </RadzenStack>
+                        </RadzenStack>
+                    </RadzenCard>
+                </RadzenColumn>
             }
-        </div>
+        </RadzenRow>
 
         <!-- Role Hierarchy -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-            <h2 class="text-lg font-semibold text-gray-900 mb-4">Ierarhie Roluri</h2>
-            <div class="space-y-3">
-                <div class="flex items-center space-x-4 p-4 bg-red-50 rounded-lg border border-red-100">
-                    <div class="flex-1">
-                        <p class="font-medium text-red-900">Administrator</p>
-                        <p class="text-sm text-red-700">Nivel maxim de acces - Poate gestiona tot sistemul</p>
+        <RadzenCard Style="padding: 1.5rem;">
+            <RadzenStack Gap="1rem">
+                <RadzenText TextStyle="TextStyle.H6" Style="margin: 0; font-weight: 600;">Ierarhie Roluri</RadzenText>
+                <RadzenStack Gap="0.75rem">
+                    <div style="padding: 1rem; background: rgba(var(--rz-danger-rgb), 0.1); border: 1px solid rgba(var(--rz-danger-rgb), 0.2); border-radius: 0.5rem;">
+                        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem">
+                            <RadzenStack Style="flex: 1;" Gap="0.25rem">
+                                <RadzenText TextStyle="TextStyle.Subtitle1" Style="margin: 0; font-weight: 500; color: var(--rz-danger);">Administrator</RadzenText>
+                                <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; color: var(--rz-danger-dark);">Nivel maxim de acces - Poate gestiona tot sistemul</RadzenText>
+                            </RadzenStack>
+                            <RadzenText TextStyle="TextStyle.H5" Style="margin: 0; font-weight: bold; color: var(--rz-danger);">1</RadzenText>
+                        </RadzenStack>
                     </div>
-                    <span class="text-2xl font-bold text-red-600">1</span>
-                </div>
 
-                <div class="flex items-center space-x-4 p-4 bg-purple-50 rounded-lg border border-purple-100">
-                    <div class="flex-1">
-                        <p class="font-medium text-purple-900">Rector</p>
-                        <p class="text-sm text-purple-700">Nivel universitate - Acces la toate facultățile</p>
+                    <div style="padding: 1rem; background: rgba(128, 0, 128, 0.1); border: 1px solid rgba(128, 0, 128, 0.2); border-radius: 0.5rem;">
+                        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem">
+                            <RadzenStack Style="flex: 1;" Gap="0.25rem">
+                                <RadzenText TextStyle="TextStyle.Subtitle1" Style="margin: 0; font-weight: 500; color: purple;">Rector</RadzenText>
+                                <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; color: #6b21a8;">Nivel universitate - Acces la toate facultățile</RadzenText>
+                            </RadzenStack>
+                            <RadzenText TextStyle="TextStyle.H5" Style="margin: 0; font-weight: bold; color: purple;">2</RadzenText>
+                        </RadzenStack>
                     </div>
-                    <span class="text-2xl font-bold text-purple-600">2</span>
-                </div>
 
-                <div class="flex items-center space-x-4 p-4 bg-blue-50 rounded-lg border border-blue-100">
-                    <div class="flex-1">
-                        <p class="font-medium text-blue-900">Decan</p>
-                        <p class="text-sm text-blue-700">Nivel facultate - Acces la propria facultate</p>
+                    <div style="padding: 1rem; background: rgba(var(--rz-info-rgb), 0.1); border: 1px solid rgba(var(--rz-info-rgb), 0.2); border-radius: 0.5rem;">
+                        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem">
+                            <RadzenStack Style="flex: 1;" Gap="0.25rem">
+                                <RadzenText TextStyle="TextStyle.Subtitle1" Style="margin: 0; font-weight: 500; color: var(--rz-info);">Decan</RadzenText>
+                                <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; color: var(--rz-info-dark);">Nivel facultate - Acces la propria facultate</RadzenText>
+                            </RadzenStack>
+                            <RadzenText TextStyle="TextStyle.H5" Style="margin: 0; font-weight: bold; color: var(--rz-info);">3</RadzenText>
+                        </RadzenStack>
                     </div>
-                    <span class="text-2xl font-bold text-blue-600">3</span>
-                </div>
 
-                <div class="flex items-center space-x-4 p-4 bg-yellow-50 rounded-lg border border-yellow-100">
-                    <div class="flex-1">
-                        <p class="font-medium text-yellow-900">Secretar / Profesor</p>
-                        <p class="text-sm text-yellow-700">Nivel operațional - Acces limitat la funcții specifice</p>
+                    <div style="padding: 1rem; background: rgba(var(--rz-warning-rgb), 0.1); border: 1px solid rgba(var(--rz-warning-rgb), 0.2); border-radius: 0.5rem;">
+                        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem">
+                            <RadzenStack Style="flex: 1;" Gap="0.25rem">
+                                <RadzenText TextStyle="TextStyle.Subtitle1" Style="margin: 0; font-weight: 500; color: var(--rz-warning);">Secretar / Profesor</RadzenText>
+                                <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; color: var(--rz-warning-dark);">Nivel operațional - Acces limitat la funcții specifice</RadzenText>
+                            </RadzenStack>
+                            <RadzenText TextStyle="TextStyle.H5" Style="margin: 0; font-weight: bold; color: var(--rz-warning);">4</RadzenText>
+                        </RadzenStack>
                     </div>
-                    <span class="text-2xl font-bold text-yellow-600">4</span>
-                </div>
 
-                <div class="flex items-center space-x-4 p-4 bg-green-50 rounded-lg border border-green-100">
-                    <div class="flex-1">
-                        <p class="font-medium text-green-900">Student</p>
-                        <p class="text-sm text-green-700">Nivel utilizator - Acces doar la datele proprii</p>
+                    <div style="padding: 1rem; background: rgba(var(--rz-success-rgb), 0.1); border: 1px solid rgba(var(--rz-success-rgb), 0.2); border-radius: 0.5rem;">
+                        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem">
+                            <RadzenStack Style="flex: 1;" Gap="0.25rem">
+                                <RadzenText TextStyle="TextStyle.Subtitle1" Style="margin: 0; font-weight: 500; color: var(--rz-success);">Student</RadzenText>
+                                <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; color: var(--rz-success-dark);">Nivel utilizator - Acces doar la datele proprii</RadzenText>
+                            </RadzenStack>
+                            <RadzenText TextStyle="TextStyle.H5" Style="margin: 0; font-weight: bold; color: var(--rz-success);">5</RadzenText>
+                        </RadzenStack>
                     </div>
-                    <span class="text-2xl font-bold text-green-600">5</span>
-                </div>
-            </div>
-        </div>
+                </RadzenStack>
+            </RadzenStack>
+        </RadzenCard>
 
         <!-- Total Summary -->
-        <div class="bg-gradient-to-r from-primary-600 to-primary-700 rounded-xl shadow-sm p-6 text-white">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-sm opacity-90">Total Utilizatori în Sistem</p>
-                    <p class="text-3xl font-bold">@totalUsers</p>
-                </div>
-                <svg class="w-16 h-16 opacity-20" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"/>
-                </svg>
-            </div>
-        </div>
+        <RadzenCard Style="background: linear-gradient(to right, var(--rz-primary), var(--rz-primary-dark)); padding: 1.5rem; color: white;">
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
+                <RadzenStack Gap="0.25rem">
+                    <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; opacity: 0.9;">Total Utilizatori în Sistem</RadzenText>
+                    <RadzenText TextStyle="TextStyle.H3" Style="margin: 0; font-weight: bold;">@totalUsers</RadzenText>
+                </RadzenStack>
+                <RadzenIcon Icon="groups" Style="font-size: 4rem; opacity: 0.2;" />
+            </RadzenStack>
+        </RadzenCard>
     }
-</div>
+</RadzenStack>
 
 @code {
     private List<RoleStatsDto> roleStatsList = new();
@@ -152,52 +165,37 @@
         StateHasChanged();
     }
 
-    private string GetRoleIconBg(UserRole role) => role switch
+    private string GetRoleIconBgStyle(UserRole role) => role switch
     {
-        UserRole.Admin => "bg-red-100",
-        UserRole.Rector => "bg-purple-100",
-        UserRole.Dean => "bg-blue-100",
-        UserRole.Secretary => "bg-yellow-100",
-        UserRole.Professor => "bg-primary-100",
-        UserRole.Student => "bg-green-100",
-        _ => "bg-gray-100"
+        UserRole.Admin => "background-color: rgba(var(--rz-danger-rgb), 0.1);",
+        UserRole.Rector => "background-color: rgba(128, 0, 128, 0.1);",
+        UserRole.Dean => "background-color: rgba(var(--rz-info-rgb), 0.1);",
+        UserRole.Secretary => "background-color: rgba(var(--rz-warning-rgb), 0.1);",
+        UserRole.Professor => "background-color: rgba(var(--rz-primary-rgb), 0.1);",
+        UserRole.Student => "background-color: rgba(var(--rz-success-rgb), 0.1);",
+        _ => "background-color: rgba(0, 0, 0, 0.05);"
     };
 
-    private string GetRoleTextColor(UserRole role) => role switch
+    private string GetRoleTextColorStyle(UserRole role) => role switch
     {
-        UserRole.Admin => "text-red-600",
-        UserRole.Rector => "text-purple-600",
-        UserRole.Dean => "text-blue-600",
-        UserRole.Secretary => "text-yellow-600",
-        UserRole.Professor => "text-primary-600",
-        UserRole.Student => "text-green-600",
-        _ => "text-gray-600"
+        UserRole.Admin => "color: var(--rz-danger);",
+        UserRole.Rector => "color: purple;",
+        UserRole.Dean => "color: var(--rz-info);",
+        UserRole.Secretary => "color: var(--rz-warning);",
+        UserRole.Professor => "color: var(--rz-primary);",
+        UserRole.Student => "color: var(--rz-success);",
+        _ => "color: var(--rz-text-color);"
     };
 
     private RenderFragment GetRoleIcon(UserRole role) => role switch
     {
-        UserRole.Admin => @<svg class="w-6 h-6 text-red-600" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-6-3a2 2 0 11-4 0 2 2 0 014 0zm-2 4a5 5 0 00-4.546 2.916A5.986 5.986 0 0010 16a5.986 5.986 0 004.546-2.084A5 5 0 0010 11z" clip-rule="evenodd"/>
-        </svg>,
-        UserRole.Rector => @<svg class="w-6 h-6 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
-            <path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3zM3.31 9.397L5 10.12v4.102a8.969 8.969 0 00-1.05-.174 1 1 0 01-.89-.89 11.115 11.115 0 01.25-3.762zM9.3 16.573A9.026 9.026 0 007 14.935v-3.957l1.818.78a3 3 0 002.364 0l5.508-2.361a11.026 11.026 0 01.25 3.762 1 1 0 01-.89.89 8.968 8.968 0 00-5.35 2.524 1 1 0 01-1.4 0zM6 18a1 1 0 001-1v-2.065a8.935 8.935 0 00-2-.712V17a1 1 0 001 1z"/>
-        </svg>,
-        UserRole.Dean => @<svg class="w-6 h-6 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-            <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z"/>
-        </svg>,
-        UserRole.Secretary => @<svg class="w-6 h-6 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"/>
-        </svg>,
-        UserRole.Professor => @<svg class="w-6 h-6 text-primary-600" fill="currentColor" viewBox="0 0 20 20">
-            <path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3z"/>
-            <path d="M3.5 9.923L5 10.62v3.18a1.5 1.5 0 002.82.71l.26-.52c.267-.533.6-1.017.99-1.44V14a1 1 0 001.928.34l1.014-3.04 1.195-.798a1 1 0 00-.76-1.844L12 8.847V8.62l1.5-.7a1 1 0 00.49-1.32A9.368 9.368 0 0010.5 1.93a1 1 0 00-1 0 9.368 9.368 0 00-3.49 4.67 1 1 0 00.49 1.32l1.5.7v.227l-.447.149a1 1 0 00-.76 1.844l1.195.798 1.014 3.04A1 1 0 0010 14v-1.62c.39.423.723.907.99 1.44l.26.52a1.5 1.5 0 002.82-.71v-3.18l1.5-.7a1 1 0 00.49-1.32A9.368 9.368 0 0012.57 3.6z"/>
-        </svg>,
-        UserRole.Student => @<svg class="w-6 h-6 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-            <path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"/>
-        </svg>,
-        _ => @<svg class="w-6 h-6 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
-            <path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"/>
-        </svg>
+        UserRole.Admin => @<RadzenIcon Icon="admin_panel_settings" Style="font-size: 1.5rem; color: var(--rz-danger);" />,
+        UserRole.Rector => @<RadzenIcon Icon="school" Style="font-size: 1.5rem; color: purple;" />,
+        UserRole.Dean => @<RadzenIcon Icon="supervisor_account" Style="font-size: 1.5rem; color: var(--rz-info);" />,
+        UserRole.Secretary => @<RadzenIcon Icon="event_note" Style="font-size: 1.5rem; color: var(--rz-warning);" />,
+        UserRole.Professor => @<RadzenIcon Icon="cast_for_education" Style="font-size: 1.5rem; color: var(--rz-primary);" />,
+        UserRole.Student => @<RadzenIcon Icon="person" Style="font-size: 1.5rem; color: var(--rz-success);" />,
+        _ => @<RadzenIcon Icon="person" Style="font-size: 1.5rem;" />
     };
 
     private List<string> GetRolePermissions(UserRole role) => role switch

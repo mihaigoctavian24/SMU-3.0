@@ -11,14 +11,26 @@
 @inject IGradeService GradeService
 @inject AuthenticationStateProvider AuthStateProvider
 @inject NavigationManager Navigation
-@inject IJSRuntime JS
+@inject DialogService DialogService
+@inject Radzen.NotificationService RadzenNotificationService
 
-<div class="space-y-6">
+<PageTitle>Note - SMU</PageTitle>
+
+<RadzenStack Gap="1.5rem">
     <!-- Page Header -->
-    <div class="flex items-center justify-between">
-        <div>
-            <h1 class="text-2xl font-bold text-gray-900">Notele Mele</h1>
-            <p class="mt-1 text-sm text-gray-600">
+    <RadzenStack Orientation="Radzen.Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center">
+        <RadzenStack Gap="0.25rem">
+            <RadzenText TextStyle="TextStyle.H4" Style="margin: 0; font-weight: 700;">
+                @if (CurrentRole == UserRole.Student)
+                {
+                    <text>Notele Mele</text>
+                }
+                else
+                {
+                    <text>Note</text>
+                }
+            </RadzenText>
+            <RadzenText TextStyle="TextStyle.Body2" class="rz-color-secondary" Style="margin: 0;">
                 @if (CurrentRole == UserRole.Student)
                 {
                     <text>Vizualizează toate notele tale</text>
@@ -27,178 +39,278 @@
                 {
                     <text>Gestionează notele studenților</text>
                 }
+                else if (CurrentRole == UserRole.Secretary)
+                {
+                    <text>Gestionează și procesează notele studenților</text>
+                }
                 else if (CurrentRole == UserRole.Dean)
                 {
                     <text>Aprobă notele în așteptare</text>
                 }
-            </p>
-        </div>
+            </RadzenText>
+        </RadzenStack>
 
-        @if (CurrentRole == UserRole.Professor || CurrentRole == UserRole.Dean || CurrentRole == UserRole.Admin)
+        @if (CurrentRole == UserRole.Professor || CurrentRole == UserRole.Secretary || CurrentRole == UserRole.Admin)
         {
-            <a href="/note/adauga" class="inline-flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg transition-colors">
-                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                </svg>
-                Adaugă Notă
-            </a>
+            <RadzenButton Text="Adaugă Notă" Icon="add" ButtonStyle="ButtonStyle.Primary"
+                          Click="@(() => Navigation.NavigateTo("/note/adauga"))" />
         }
-    </div>
+        @if (CurrentRole == UserRole.Dean)
+        {
+            <RadzenButton Text="Pagină Aprobare" Icon="check_circle" ButtonStyle="ButtonStyle.Success"
+                          Click="@(() => Navigation.NavigateTo("/note/aprobare"))" />
+        }
+    </RadzenStack>
 
-    <!-- Filters (for Professor/Dean) -->
-    @if (CurrentRole == UserRole.Professor || CurrentRole == UserRole.Dean)
+    <!-- Statistics Panel (for Secretary/Dean) -->
+    @if ((CurrentRole == UserRole.Secretary || CurrentRole == UserRole.Dean) && GradeStats != null)
     {
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Curs</label>
-                    <select @bind="SelectedCourseId" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
-                        <option value="">Toate cursurile</option>
-                        @foreach (var course in Courses)
-                        {
-                            <option value="@course.Id">@course.Name</option>
-                        }
-                    </select>
-                </div>
+        <GradeStatistics Statistics="@GradeStats" />
+    }
 
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Semestru</label>
-                    <select @bind="SelectedSemester" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
-                        <option value="0">Toate semestrele</option>
-                        <option value="1">Semestrul 1</option>
-                        <option value="2">Semestrul 2</option>
-                    </select>
-                </div>
+    <!-- Filters (for Professor/Secretary/Dean) -->
+    @if (CurrentRole == UserRole.Professor || CurrentRole == UserRole.Secretary || CurrentRole == UserRole.Dean)
+    {
+        <RadzenCard>
+            <RadzenRow Gap="1rem" RowGap="1rem">
+                @if (CurrentRole == UserRole.Secretary || CurrentRole == UserRole.Dean)
+                {
+                    <RadzenColumn Size="12" SizeMD="3">
+                        <RadzenFormField Text="Student" Variant="Variant.Outlined" Style="width: 100%;">
+                            <RadzenDropDown @bind-Value="SelectedStudentId" Data="@StudentOptions" TextProperty="Text" ValueProperty="Value"
+                                            Placeholder="Toți studenții" Style="width: 100%;" AllowClear="true" AllowFiltering="true" />
+                        </RadzenFormField>
+                    </RadzenColumn>
+                }
 
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                    <select @bind="SelectedStatus" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
-                        <option value="">Toate statusurile</option>
-                        <option value="Pending">În așteptare</option>
-                        <option value="Approved">Aprobat</option>
-                        <option value="Rejected">Respins</option>
-                    </select>
-                </div>
-            </div>
+                <RadzenColumn Size="12" SizeMD="3">
+                    <RadzenFormField Text="Curs" Variant="Variant.Outlined" Style="width: 100%;">
+                        <RadzenDropDown @bind-Value="SelectedCourseId" Data="@CourseOptions" TextProperty="Text" ValueProperty="Value"
+                                        Placeholder="Toate cursurile" Style="width: 100%;" AllowClear="true" AllowFiltering="true" />
+                    </RadzenFormField>
+                </RadzenColumn>
 
-            <div class="mt-4 flex justify-end">
-                <button @onclick="ApplyFilters" class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg transition-colors">
-                    Aplică Filtre
-                </button>
-            </div>
-        </div>
+                @if (CurrentRole == UserRole.Secretary || CurrentRole == UserRole.Dean)
+                {
+                    <RadzenColumn Size="12" SizeMD="3">
+                        <RadzenFormField Text="Profesor" Variant="Variant.Outlined" Style="width: 100%;">
+                            <RadzenDropDown @bind-Value="SelectedProfessorId" Data="@ProfessorOptions" TextProperty="Text" ValueProperty="Value"
+                                            Placeholder="Toți profesorii" Style="width: 100%;" AllowClear="true" AllowFiltering="true" />
+                        </RadzenFormField>
+                    </RadzenColumn>
+                }
+
+                <RadzenColumn Size="12" SizeMD="3">
+                    <RadzenFormField Text="Tip Notă" Variant="Variant.Outlined" Style="width: 100%;">
+                        <RadzenDropDown @bind-Value="SelectedGradeType" Data="@GradeTypeOptions" TextProperty="Text" ValueProperty="Value"
+                                        Placeholder="Toate tipurile" Style="width: 100%;" AllowClear="true" />
+                    </RadzenFormField>
+                </RadzenColumn>
+
+                <RadzenColumn Size="12" SizeMD="3">
+                    <RadzenFormField Text="Semestru" Variant="Variant.Outlined" Style="width: 100%;">
+                        <RadzenDropDown @bind-Value="SelectedSemester" Data="@SemesterOptions" TextProperty="Text" ValueProperty="Value"
+                                        Style="width: 100%;" AllowClear="true" />
+                    </RadzenFormField>
+                </RadzenColumn>
+
+                <RadzenColumn Size="12" SizeMD="3">
+                    <RadzenFormField Text="Status" Variant="Variant.Outlined" Style="width: 100%;">
+                        <RadzenDropDown @bind-Value="SelectedStatus" Data="@StatusOptions" TextProperty="Text" ValueProperty="Value"
+                                        Placeholder="Toate statusurile" Style="width: 100%;" AllowClear="true" />
+                    </RadzenFormField>
+                </RadzenColumn>
+
+                <RadzenColumn Size="12" SizeMD="3">
+                    <RadzenStack Style="height: 100%;" JustifyContent="JustifyContent.End" Gap="0.5rem">
+                        <RadzenButton Text="Aplică Filtre" Icon="filter_list" ButtonStyle="ButtonStyle.Primary"
+                                      Click="@ApplyFilters" Style="width: 100%;" />
+                        <RadzenButton Text="Resetează" Icon="clear" ButtonStyle="ButtonStyle.Light" Variant="Variant.Outlined"
+                                      Click="@ResetFilters" Style="width: 100%;" />
+                    </RadzenStack>
+                </RadzenColumn>
+            </RadzenRow>
+        </RadzenCard>
     }
 
     <!-- Grades Table -->
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+    <RadzenCard Style="padding: 0; overflow: hidden;">
         @if (IsLoading)
         {
-            <div class="p-8 text-center">
-                <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-                <p class="mt-2 text-gray-600">Se încarcă...</p>
-            </div>
+            <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Style="padding: 3rem 0;">
+                <RadzenProgressBarCircular ShowValue="false" Mode="ProgressBarMode.Indeterminate" Size="ProgressBarCircularSize.Large" />
+                <RadzenText TextStyle="TextStyle.Body2" class="rz-color-secondary" Style="margin-top: 1rem;">
+                    Se încarcă...
+                </RadzenText>
+            </RadzenStack>
         }
         else if (FilteredGrades.Count == 0)
         {
-            <div class="p-8 text-center text-gray-500">
-                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                </svg>
-                <p class="mt-2">Nu există note înregistrate.</p>
-            </div>
+            <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Class="rz-p-6" Gap="1rem">
+                <RadzenIcon Icon="assignment" Style="font-size: 48px; color: var(--rz-text-disabled-color);" />
+                <RadzenText TextStyle="TextStyle.Body1" class="rz-color-secondary" Style="margin: 0;">
+                    Nu există note înregistrate.
+                </RadzenText>
+            </RadzenStack>
         }
         else
         {
-            <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            @if (CurrentRole != UserRole.Student)
-                            {
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student</th>
-                            }
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Curs</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nota</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tip</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                            @if (CurrentRole == UserRole.Professor || CurrentRole == UserRole.Dean)
-                            {
-                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acțiuni</th>
-                            }
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
-                        @foreach (var grade in FilteredGrades)
-                        {
-                            <tr class="hover:bg-gray-50">
-                                @if (CurrentRole != UserRole.Student)
+            <RadzenDataGrid @ref="grid" Data="@FilteredGrades" TItem="GradeListDto"
+                            AllowSorting="true" AllowPaging="false"
+                            Style="border: none;">
+                <Columns>
+                    @if (CurrentRole != UserRole.Student)
+                    {
+                        <RadzenDataGridColumn TItem="GradeListDto" Property="StudentName" Title="Student" Sortable="true">
+                            <Template Context="grade">
+                                <RadzenStack Gap="0.125rem">
+                                    <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; font-weight: 500;">@grade.StudentName</RadzenText>
+                                    <RadzenText TextStyle="TextStyle.Caption" class="rz-color-secondary" Style="margin: 0;">
+                                        @grade.StudentNumber
+                                    </RadzenText>
+                                </RadzenStack>
+                            </Template>
+                        </RadzenDataGridColumn>
+                    }
+                    <RadzenDataGridColumn TItem="GradeListDto" Property="CourseName" Title="Curs" Sortable="true">
+                        <Template Context="grade">
+                            <RadzenStack Gap="0.125rem">
+                                <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; font-weight: 500;">@grade.CourseName</RadzenText>
+                                <RadzenText TextStyle="TextStyle.Caption" class="rz-color-secondary" Style="margin: 0;">
+                                    @grade.Credits credite • Sem. @grade.Semester
+                                </RadzenText>
+                            </RadzenStack>
+                        </Template>
+                    </RadzenDataGridColumn>
+                    @if (CurrentRole == UserRole.Secretary || CurrentRole == UserRole.Dean)
+                    {
+                        <RadzenDataGridColumn TItem="GradeListDto" Property="ProfessorName" Title="Profesor" Sortable="true">
+                            <Template Context="grade">
+                                <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0;">@grade.ProfessorName</RadzenText>
+                            </Template>
+                        </RadzenDataGridColumn>
+                    }
+                    <RadzenDataGridColumn TItem="GradeListDto" Property="Value" Title="Nota" Width="100px" Sortable="true">
+                        <Template Context="grade">
+                            <RadzenBadge BadgeStyle="@GetGradeBadgeStyle(grade.Value)" Text="@grade.Value.ToString("0.00")" IsPill="true" />
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="GradeListDto" Property="Type" Title="Tip" Width="120px" Sortable="true">
+                        <Template Context="grade">
+                            <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0;">@GetGradeTypeLabel(grade.Type)</RadzenText>
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="GradeListDto" Property="ExamDate" Title="Data" Width="120px" Sortable="true">
+                        <Template Context="grade">
+                            <RadzenText TextStyle="TextStyle.Body2" class="rz-color-secondary" Style="margin: 0;">
+                                @grade.ExamDate.ToString("dd.MM.yyyy")
+                            </RadzenText>
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="GradeListDto" Property="Status" Title="Status" Width="130px" Sortable="true">
+                        <Template Context="grade">
+                            <RadzenBadge BadgeStyle="@GetStatusBadgeStyle(grade.Status)" Text="@GetStatusLabel(grade.Status)" IsPill="true" />
+                        </Template>
+                    </RadzenDataGridColumn>
+                    @if (CurrentRole == UserRole.Professor || CurrentRole == UserRole.Secretary || CurrentRole == UserRole.Dean)
+                    {
+                        <RadzenDataGridColumn TItem="GradeListDto" Title="Acțiuni" Width="140px" TextAlign="TextAlign.End" Sortable="false">
+                            <Template Context="grade">
+                                @if (grade.Status == GradeStatus.Pending && (CurrentRole == UserRole.Professor || CurrentRole == UserRole.Secretary))
                                 {
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">@grade.StudentName</td>
+                                    <RadzenButton Icon="delete" ButtonStyle="ButtonStyle.Danger" Variant="Variant.Text" Size="ButtonSize.Small"
+                                                  Click="@(() => ConfirmDeleteGrade(grade.Id))"
+                                                  MouseEnter="@(args => ShowTooltip(args, "Șterge"))" />
                                 }
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="text-sm font-medium text-gray-900">@grade.CourseName</div>
-                                    <div class="text-sm text-gray-500">@grade.Credits credite • Sem. @grade.Semester</div>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <span class="@GetGradeBadgeClass(grade.Value)">
-                                        @grade.Value.ToString("0.00")
-                                    </span>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">@GetGradeTypeLabel(grade.Type)</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">@grade.ExamDate.ToString("dd.MM.yyyy")</td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <span class="@GetStatusBadgeClass(grade.Status)">
-                                        @GetStatusLabel(grade.Status)
-                                    </span>
-                                </td>
-                                @if (CurrentRole == UserRole.Professor || CurrentRole == UserRole.Dean)
+                                @if (grade.Status == GradeStatus.Pending && CurrentRole == UserRole.Dean)
                                 {
-                                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                        @if (grade.Status == GradeStatus.Pending && CurrentRole == UserRole.Professor)
-                                        {
-                                            <button @onclick="() => DeleteGrade(grade.Id)" class="text-danger-600 hover:text-danger-900 mr-3">Șterge</button>
-                                        }
-                                    </td>
+                                    <RadzenButton Icon="check" ButtonStyle="ButtonStyle.Success" Variant="Variant.Text" Size="ButtonSize.Small"
+                                                  Click="@(() => ApproveGrade(grade.Id))"
+                                                  MouseEnter="@(args => ShowTooltip(args, "Aprobă"))" />
+                                    <RadzenButton Icon="close" ButtonStyle="ButtonStyle.Danger" Variant="Variant.Text" Size="ButtonSize.Small"
+                                                  Click="@(() => RejectGrade(grade.Id))"
+                                                  MouseEnter="@(args => ShowTooltip(args, "Respinge"))" />
                                 }
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
+                            </Template>
+                        </RadzenDataGridColumn>
+                    }
+                </Columns>
+            </RadzenDataGrid>
 
             <!-- Average Display (Student View) -->
             @if (CurrentRole == UserRole.Student && StudentAverage != null)
             {
-                <div class="px-6 py-4 bg-gray-50 border-t border-gray-200">
-                    <div class="flex items-center justify-between">
-                        <span class="text-sm font-medium text-gray-700">Media Generală (ponderată cu credite):</span>
-                        <span class="text-xl font-bold @GetGradeBadgeClass(StudentAverage.WeightedAverage)">
-                            @StudentAverage.WeightedAverage.ToString("0.00")
-                        </span>
-                    </div>
-                    <div class="mt-1 text-sm text-gray-500">
-                        @StudentAverage.TotalCredits credite acumulate • @StudentAverage.CompletedCourses cursuri finalizate
-                    </div>
-                </div>
+                <RadzenStack Orientation="Radzen.Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center"
+                             Class="rz-p-4" Style="border-top: 1px solid var(--rz-base-300); background: var(--rz-base-100);">
+                    <RadzenStack Gap="0.25rem">
+                        <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; font-weight: 500;">
+                            Media Generală (ponderată cu credite)
+                        </RadzenText>
+                        <RadzenText TextStyle="TextStyle.Caption" class="rz-color-secondary" Style="margin: 0;">
+                            @StudentAverage.TotalCredits credite acumulate • @StudentAverage.CompletedCourses cursuri finalizate
+                        </RadzenText>
+                    </RadzenStack>
+                    <RadzenBadge BadgeStyle="@GetGradeBadgeStyle(StudentAverage.WeightedAverage)"
+                                Text="@StudentAverage.WeightedAverage.ToString("0.00")"
+                                IsPill="true" Style="font-size: 1.25rem; padding: 0.5rem 1rem;" />
+                </RadzenStack>
             }
         }
-    </div>
-</div>
+    </RadzenCard>
+</RadzenStack>
 
 @code {
+    private RadzenDataGrid<GradeListDto>? grid;
     private List<GradeListDto> Grades = new();
     private List<GradeListDto> FilteredGrades = new();
     private List<Course> Courses = new();
     private StudentAverageDto? StudentAverage;
+    private GradeStatisticsDto? GradeStats;
     private bool IsLoading = true;
     private UserRole CurrentRole;
     private Guid CurrentUserId;
 
+    // Filter options
+    private List<DropdownOption<string?>> StudentOptions = new();
+    private List<DropdownOption<string?>> CourseOptions = new();
+    private List<DropdownOption<string?>> ProfessorOptions = new();
+    private List<DropdownOption<int>> SemesterOptions = new()
+    {
+        new() { Text = "Toate semestrele", Value = 0 },
+        new() { Text = "Semestrul 1", Value = 1 },
+        new() { Text = "Semestrul 2", Value = 2 }
+    };
+    private List<DropdownOption<string?>> StatusOptions = new()
+    {
+        new() { Text = "Toate statusurile", Value = null },
+        new() { Text = "În așteptare", Value = "Pending" },
+        new() { Text = "Aprobat", Value = "Approved" },
+        new() { Text = "Respins", Value = "Rejected" }
+    };
+    private List<DropdownOption<string?>> GradeTypeOptions = new()
+    {
+        new() { Text = "Toate tipurile", Value = null },
+        new() { Text = "Examen", Value = "Exam" },
+        new() { Text = "Laborator", Value = "Lab" },
+        new() { Text = "Seminar", Value = "Seminar" },
+        new() { Text = "Proiect", Value = "Project" },
+        new() { Text = "Final", Value = "Final" }
+    };
+
+    // Helper class for typed dropdown options
+    private class DropdownOption<T>
+    {
+        public string Text { get; set; } = string.Empty;
+        public T? Value { get; set; }
+    }
+
     // Filters
-    private string SelectedCourseId = "";
+    private string? SelectedStudentId;
+    private string? SelectedCourseId;
+    private string? SelectedProfessorId;
+    private string? SelectedGradeType;
     private int SelectedSemester = 0;
-    private string SelectedStatus = "";
+    private string? SelectedStatus;
 
     protected override async Task OnInitializedAsync()
     {
@@ -240,6 +352,10 @@
                     .OrderBy(c => c.Name)
                     .ToListAsync();
 
+                // Build course options for dropdown
+                CourseOptions = new List<DropdownOption<string?>> { new() { Text = "Toate cursurile", Value = null } };
+                CourseOptions.AddRange(Courses.Select(c => new DropdownOption<string?> { Text = c.Name, Value = c.Id.ToString() }));
+
                 // Load all grades for professor's courses
                 var professorCourseIds = Courses.Select(c => c.Id).ToList();
                 Grades = await DbContext.Grades
@@ -247,13 +363,17 @@
                     .Include(g => g.Student)
                         .ThenInclude(s => s.User)
                     .Include(g => g.Course)
+                        .ThenInclude(c => c.Professor)
+                            .ThenInclude(p => p.User)
                     .Include(g => g.EnteredBy)
                     .OrderByDescending(g => g.ExamDate)
                     .Select(g => new GradeListDto
                     {
                         Id = g.Id,
                         StudentName = $"{g.Student.User.FirstName} {g.Student.User.LastName}",
+                        StudentNumber = g.Student.StudentNumber,
                         CourseName = g.Course.Name,
+                        ProfessorName = g.Course.Professor != null ? $"{g.Course.Professor.User.FirstName} {g.Course.Professor.User.LastName}" : "",
                         Value = g.Value,
                         Type = g.Type,
                         Status = g.Status,
@@ -265,20 +385,119 @@
                     .ToListAsync();
             }
         }
-        else if (CurrentRole == UserRole.Dean)
+        else if (CurrentRole == UserRole.Secretary || CurrentRole == UserRole.Dean)
         {
-            var professor = await DbContext.Professors
-                .Include(p => p.Faculty)
-                .FirstOrDefaultAsync(p => p.UserId == CurrentUserId);
+            // Secretary and Dean's faculty - determine faculty ID
+            Guid? facultyId = null;
 
-            if (professor?.FacultyId != null)
+            if (CurrentRole == UserRole.Dean)
             {
-                Grades = await GradeService.GetPendingForApprovalAsync(professor.FacultyId);
+                var faculty = await DbContext.Faculties
+                    .FirstOrDefaultAsync(f => f.DeanId == CurrentUserId);
+                facultyId = faculty?.Id;
+            }
+            else if (CurrentRole == UserRole.Secretary)
+            {
+                // Secretaries have access to all faculties
+                facultyId = null;
+            }
 
-                Courses = await DbContext.Courses
-                    .Where(c => c.Program.FacultyId == professor.FacultyId)
+            if (CurrentRole == UserRole.Secretary || facultyId != null)
+            {
+                // Use split query to avoid cartesian explosion
+                var gradesQuery = DbContext.Grades
+                    .Include(g => g.Student)
+                        .ThenInclude(s => s.User)
+                    .Include(g => g.Course)
+                        .ThenInclude(c => c.Program)
+                            .ThenInclude(p => p.Faculty)
+                    .Include(g => g.Course)
+                        .ThenInclude(c => c.Professor)
+                            .ThenInclude(p => p.User)
+                    .Include(g => g.EnteredBy)
+                    .AsSplitQuery(); // Important: Use split query for complex includes
+
+                // Filter by faculty if applicable (Dean only)
+                if (facultyId.HasValue)
+                {
+                    gradesQuery = gradesQuery.Where(g => g.Course.Program.FacultyId == facultyId.Value);
+                }
+
+                // Load grades with split queries
+                var gradeEntities = await gradesQuery
+                    .OrderByDescending(g => g.Status == GradeStatus.Pending ? 0 : 1)
+                    .ThenByDescending(g => g.ExamDate)
+                    .ToListAsync();
+
+                // Map to DTOs
+                Grades = gradeEntities.Select(g => new GradeListDto
+                {
+                    Id = g.Id,
+                    StudentName = $"{g.Student.User.FirstName} {g.Student.User.LastName}",
+                    StudentNumber = g.Student.StudentNumber,
+                    CourseName = g.Course.Name,
+                    ProfessorName = g.Course.Professor != null ? $"{g.Course.Professor.User.FirstName} {g.Course.Professor.User.LastName}" : "",
+                    Value = g.Value,
+                    Type = g.Type,
+                    Status = g.Status,
+                    ExamDate = g.ExamDate,
+                    EnteredByName = g.EnteredBy != null ? $"{g.EnteredBy.FirstName} {g.EnteredBy.LastName}" : null,
+                    Credits = g.Course.Credits,
+                    Semester = g.Course.Semester
+                }).ToList();
+
+                // Load courses with split query
+                var coursesQuery = DbContext.Courses
+                    .Include(c => c.Program)
+                        .ThenInclude(p => p.Faculty)
+                    .AsSplitQuery();
+
+                if (facultyId.HasValue)
+                {
+                    coursesQuery = coursesQuery.Where(c => c.Program.FacultyId == facultyId.Value);
+                }
+
+                Courses = await coursesQuery
                     .OrderBy(c => c.Name)
                     .ToListAsync();
+
+                // Build course options
+                CourseOptions = new List<DropdownOption<string?>> { new() { Text = "Toate cursurile", Value = null } };
+                CourseOptions.AddRange(Courses.Select(c => new DropdownOption<string?> { Text = c.Name, Value = c.Id.ToString() }));
+
+                // Build student options
+                var students = await DbContext.Students
+                    .Include(s => s.User)
+                    .Include(s => s.Group)
+                        .ThenInclude(g => g.Program)
+                    .Where(s => !facultyId.HasValue || s.Group.Program.FacultyId == facultyId.Value)
+                    .OrderBy(s => s.User.LastName)
+                    .ThenBy(s => s.User.FirstName)
+                    .ToListAsync();
+
+                StudentOptions = new List<DropdownOption<string?>> { new() { Text = "Toți studenții", Value = null } };
+                StudentOptions.AddRange(students.Select(s => new DropdownOption<string?>
+                {
+                    Text = $"{s.User.FirstName} {s.User.LastName} ({s.StudentNumber})",
+                    Value = s.Id.ToString()
+                }));
+
+                // Build professor options
+                var professors = await DbContext.Professors
+                    .Include(p => p.User)
+                    .OrderBy(p => p.User.LastName)
+                    .ThenBy(p => p.User.FirstName)
+                    .ToListAsync();
+
+                ProfessorOptions = new List<DropdownOption<string?>> { new() { Text = "Toți profesorii", Value = null } };
+                ProfessorOptions.AddRange(professors.Select(p => new DropdownOption<string?>
+                {
+                    Text = $"{p.User.FirstName} {p.User.LastName}",
+                    Value = p.Id.ToString()
+                }));
+
+                // Load statistics
+                GradeStats = await GradeService.GetStatisticsAsync(facultyId);
             }
         }
 
@@ -290,10 +509,33 @@
     {
         FilteredGrades = Grades;
 
+        if (!string.IsNullOrEmpty(SelectedStudentId))
+        {
+            var studentId = Guid.Parse(SelectedStudentId);
+            FilteredGrades = FilteredGrades.Where(g => g.StudentName == Grades.First(gr => gr.Id == studentId || gr.StudentName.Contains(SelectedStudentId)).StudentName).ToList();
+        }
+
         if (!string.IsNullOrEmpty(SelectedCourseId))
         {
             var courseId = Guid.Parse(SelectedCourseId);
             FilteredGrades = FilteredGrades.Where(g => g.CourseName == Courses.First(c => c.Id == courseId).Name).ToList();
+        }
+
+        if (!string.IsNullOrEmpty(SelectedProfessorId))
+        {
+            var professorId = Guid.Parse(SelectedProfessorId);
+            var professor = DbContext.Professors.Include(p => p.User).FirstOrDefault(p => p.Id == professorId);
+            if (professor != null)
+            {
+                var profName = $"{professor.User.FirstName} {professor.User.LastName}";
+                FilteredGrades = FilteredGrades.Where(g => g.ProfessorName == profName).ToList();
+            }
+        }
+
+        if (!string.IsNullOrEmpty(SelectedGradeType))
+        {
+            var gradeType = Enum.Parse<GradeType>(SelectedGradeType);
+            FilteredGrades = FilteredGrades.Where(g => g.Type == gradeType).ToList();
         }
 
         if (SelectedSemester > 0)
@@ -308,62 +550,155 @@
         }
     }
 
-    private async Task DeleteGrade(Guid gradeId)
+    private void ResetFilters()
     {
-        var confirmed = await JS.InvokeAsync<bool>("confirm", "Sigur doriți să ștergeți această notă?");
-        if (confirmed)
-        {
-            var result = await GradeService.DeleteAsync(gradeId);
-            if (result.Succeeded)
+        SelectedStudentId = null;
+        SelectedCourseId = null;
+        SelectedProfessorId = null;
+        SelectedGradeType = null;
+        SelectedSemester = 0;
+        SelectedStatus = null;
+        FilteredGrades = Grades;
+    }
+
+    private async Task ConfirmDeleteGrade(Guid gradeId)
+    {
+        var result = await DialogService.Confirm(
+            "Sigur doriți să ștergeți această notă?",
+            "Confirmare Ștergere",
+            new ConfirmOptions
             {
+                OkButtonText = "Șterge",
+                CancelButtonText = "Anulează"
+            });
+
+        if (result == true)
+        {
+            var deleteResult = await GradeService.DeleteAsync(gradeId);
+            if (deleteResult.Succeeded)
+            {
+                RadzenNotificationService.Notify(new NotificationMessage
+                {
+                    Severity = NotificationSeverity.Success,
+                    Summary = "Succes",
+                    Detail = "Nota a fost ștearsă cu succes.",
+                    Duration = 4000
+                });
                 await LoadData();
+            }
+            else
+            {
+                RadzenNotificationService.Notify(new NotificationMessage
+                {
+                    Severity = NotificationSeverity.Error,
+                    Summary = "Eroare",
+                    Detail = deleteResult.ErrorMessage ?? "Nu s-a putut șterge nota.",
+                    Duration = 4000
+                });
             }
         }
     }
 
-    private string GetGradeBadgeClass(decimal value)
+    private async Task ApproveGrade(Guid gradeId)
     {
-        return value switch
+        var result = await GradeService.ApproveAsync(gradeId, CurrentUserId);
+        if (result.Succeeded)
         {
-            >= 9 => "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-success-100 text-success-700",
-            >= 7 => "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-info-100 text-info-700",
-            >= 5 => "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-warning-100 text-warning-700",
-            _ => "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-danger-100 text-danger-700"
-        };
+            RadzenNotificationService.Notify(new NotificationMessage
+            {
+                Severity = NotificationSeverity.Success,
+                Summary = "Succes",
+                Detail = "Nota a fost aprobată cu succes.",
+                Duration = 4000
+            });
+            await LoadData();
+        }
+        else
+        {
+            RadzenNotificationService.Notify(new NotificationMessage
+            {
+                Severity = NotificationSeverity.Error,
+                Summary = "Eroare",
+                Detail = result.ErrorMessage ?? "Nu s-a putut aproba nota.",
+                Duration = 4000
+            });
+        }
     }
 
-    private string GetStatusBadgeClass(GradeStatus status)
+    private async Task RejectGrade(Guid gradeId)
     {
-        return status switch
+        var confirmed = await DialogService.Confirm(
+            "Sigur doriți să respingeți această notă?",
+            "Confirmare Respingere",
+            new ConfirmOptions
+            {
+                OkButtonText = "Respinge",
+                CancelButtonText = "Anulează"
+            });
+
+        if (confirmed == true)
         {
-            GradeStatus.Pending => "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-warning-100 text-warning-700",
-            GradeStatus.Approved => "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-success-100 text-success-700",
-            GradeStatus.Rejected => "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-danger-100 text-danger-700",
-            _ => "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700"
-        };
+            var result = await GradeService.RejectAsync(gradeId, CurrentUserId, "Respinsă de decan");
+            if (result.Succeeded)
+            {
+                RadzenNotificationService.Notify(new NotificationMessage
+                {
+                    Severity = NotificationSeverity.Warning,
+                    Summary = "Notă Respinsă",
+                    Detail = "Nota a fost respinsă.",
+                    Duration = 4000
+                });
+                await LoadData();
+            }
+            else
+            {
+                RadzenNotificationService.Notify(new NotificationMessage
+                {
+                    Severity = NotificationSeverity.Error,
+                    Summary = "Eroare",
+                    Detail = result.ErrorMessage ?? "Nu s-a putut respinge nota.",
+                    Duration = 4000
+                });
+            }
+        }
     }
 
-    private string GetStatusLabel(GradeStatus status)
+    private void ShowTooltip(ElementReference elementReference, string text)
     {
-        return status switch
-        {
-            GradeStatus.Pending => "În așteptare",
-            GradeStatus.Approved => "Aprobat",
-            GradeStatus.Rejected => "Respins",
-            _ => status.ToString()
-        };
+        // Tooltip functionality - could be enhanced
     }
 
-    private string GetGradeTypeLabel(GradeType type)
+    private BadgeStyle GetGradeBadgeStyle(decimal value) => value switch
     {
-        return type switch
-        {
-            GradeType.Exam => "Examen",
-            GradeType.Lab => "Laborator",
-            GradeType.Seminar => "Seminar",
-            GradeType.Project => "Proiect",
-            GradeType.Final => "Final",
-            _ => type.ToString()
-        };
-    }
+        >= 9 => BadgeStyle.Success,
+        >= 7 => BadgeStyle.Info,
+        >= 5 => BadgeStyle.Warning,
+        _ => BadgeStyle.Danger
+    };
+
+    private BadgeStyle GetStatusBadgeStyle(GradeStatus status) => status switch
+    {
+        GradeStatus.Pending => BadgeStyle.Warning,
+        GradeStatus.Approved => BadgeStyle.Success,
+        GradeStatus.Rejected => BadgeStyle.Danger,
+        _ => BadgeStyle.Light
+    };
+
+    private string GetStatusLabel(GradeStatus status) => status switch
+    {
+        GradeStatus.Pending => "În așteptare",
+        GradeStatus.Approved => "Aprobat",
+        GradeStatus.Rejected => "Respins",
+        _ => status.ToString()
+    };
+
+    private string GetGradeTypeLabel(GradeType type) => type switch
+    {
+        GradeType.Exam => "Examen",
+        GradeType.Lab => "Laborator",
+        GradeType.Seminar => "Seminar",
+        GradeType.Project => "Proiect",
+        GradeType.Final => "Final",
+        _ => type.ToString()
+    };
 }

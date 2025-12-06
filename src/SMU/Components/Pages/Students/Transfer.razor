@@ -1,0 +1,326 @@
+@page "/studenti/transfer"
+@using SMU.Services
+@using SMU.Services.DTOs
+@using SMU.Data.Entities
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@inject IStudentService StudentService
+@inject IGroupService GroupService
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Navigation
+@inject Radzen.NotificationService NotificationService
+@attribute [Authorize(Roles = "Secretary,Dean,Admin")]
+
+<PageTitle>Transfer Student - SMU</PageTitle>
+
+<RadzenStack Gap="1.5rem">
+    <!-- Page Header -->
+    <RadzenStack Orientation="Radzen.Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center">
+        <RadzenStack Gap="0.25rem">
+            <RadzenText TextStyle="TextStyle.H4" Style="margin: 0; font-weight: 700;">Transfer Student</RadzenText>
+            <RadzenText TextStyle="TextStyle.Body2" class="rz-color-secondary" Style="margin: 0;">
+                Transferă studenți între grupe
+            </RadzenText>
+        </RadzenStack>
+        <RadzenButton Icon="arrow_back" Text="Înapoi" ButtonStyle="ButtonStyle.Light" Variant="Variant.Text" Click="@(() => Navigation.NavigateTo("/dashboard"))" />
+    </RadzenStack>
+
+    @if (isLoading)
+    {
+        <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Style="padding: 3rem 0;">
+            <RadzenProgressBarCircular ShowValue="false" Mode="ProgressBarMode.Indeterminate" Size="ProgressBarCircularSize.Large" />
+            <RadzenText TextStyle="TextStyle.Body2" class="rz-color-secondary" Style="margin-top: 1rem;">
+                Se încarcă datele...
+            </RadzenText>
+        </RadzenStack>
+    }
+    else
+    {
+        <RadzenRow Gap="1.5rem" RowGap="1.5rem">
+            <!-- Student Selection -->
+            <RadzenColumn Size="12" SizeLG="6">
+                <RadzenCard>
+                    <RadzenStack Class="rz-p-4" Style="border-bottom: 1px solid var(--rz-base-300);">
+                        <RadzenText TextStyle="TextStyle.H6" Style="margin: 0; font-weight: 600;">
+                            1. Selectează Studentul
+                        </RadzenText>
+                    </RadzenStack>
+
+                    <RadzenStack Gap="1rem" Class="rz-p-4">
+                        <RadzenStack Gap="0.25rem">
+                            <RadzenLabel Text="Caută Student" />
+                            <RadzenTextBox @bind-Value="studentSearchQuery" Placeholder="Nume sau nr. matricol"
+                                           Style="width: 100%;" @oninput="@OnStudentSearchChange" />
+                        </RadzenStack>
+
+                        @if (!filteredStudents.Any())
+                        {
+                            <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Style="padding: 2rem;">
+                                <RadzenIcon Icon="person_search" Style="font-size: 32px; color: var(--rz-base-500);" />
+                                <RadzenText TextStyle="TextStyle.Body2" class="rz-color-secondary" Style="margin-top: 0.5rem;">
+                                    Caută un student pentru a-l transfera
+                                </RadzenText>
+                            </RadzenStack>
+                        }
+                        else
+                        {
+                            <RadzenStack Gap="0.5rem" Style="max-height: 400px; overflow-y: auto;">
+                                @foreach (var student in filteredStudents.Take(10))
+                                {
+                                    <RadzenCard Style="@GetStudentCardStyle(student)" @onclick="@(() => SelectStudent(student))" class="@(selectedStudent?.Id == student.Id ? "selected-card" : "")">
+                                        <RadzenStack Orientation="Radzen.Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center">
+                                            <RadzenStack Gap="0.25rem">
+                                                <RadzenText TextStyle="TextStyle.Subtitle2" Style="margin: 0; font-weight: 600;">
+                                                    @student.FullName
+                                                </RadzenText>
+                                                <RadzenText TextStyle="TextStyle.Caption" class="rz-color-secondary" Style="margin: 0;">
+                                                    @student.StudentNumber - @student.GroupName
+                                                </RadzenText>
+                                                <RadzenText TextStyle="TextStyle.Caption" class="rz-color-secondary" Style="margin: 0;">
+                                                    @student.ProgramName
+                                                </RadzenText>
+                                            </RadzenStack>
+                                            @if (selectedStudent?.Id == student.Id)
+                                            {
+                                                <RadzenIcon Icon="check_circle" Style="color: var(--rz-success); font-size: 24px;" />
+                                            }
+                                        </RadzenStack>
+                                    </RadzenCard>
+                                }
+                            </RadzenStack>
+                        }
+                    </RadzenStack>
+                </RadzenCard>
+            </RadzenColumn>
+
+            <!-- Group Selection -->
+            <RadzenColumn Size="12" SizeLG="6">
+                <RadzenCard>
+                    <RadzenStack Class="rz-p-4" Style="border-bottom: 1px solid var(--rz-base-300);">
+                        <RadzenText TextStyle="TextStyle.H6" Style="margin: 0; font-weight: 600;">
+                            2. Selectează Grupa Nouă
+                        </RadzenText>
+                    </RadzenStack>
+
+                    <RadzenStack Gap="1rem" Class="rz-p-4">
+                        @if (selectedStudent == null)
+                        {
+                            <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Style="padding: 2rem;">
+                                <RadzenIcon Icon="group" Style="font-size: 32px; color: var(--rz-base-500);" />
+                                <RadzenText TextStyle="TextStyle.Body2" class="rz-color-secondary" Style="margin-top: 0.5rem;">
+                                    Selectează mai întâi un student
+                                </RadzenText>
+                            </RadzenStack>
+                        }
+                        else
+                        {
+                            <RadzenStack Gap="0.25rem">
+                                <RadzenLabel Text="Grupa Actuală" />
+                                <RadzenTextBox Value="@($"{selectedStudent.GroupName} ({selectedStudent.ProgramName})")" Disabled="true" Style="width: 100%;" />
+                            </RadzenStack>
+
+                            <RadzenStack Gap="0.25rem">
+                                <RadzenLabel Text="Grup Nou" />
+                                <RadzenDropDown TValue="Guid?" @bind-Value="selectedGroupId" Data="@availableGroups"
+                                                TextProperty="Name" ValueProperty="Id"
+                                                Placeholder="Selectează grupa nouă" AllowClear="false"
+                                                Style="width: 100%;">
+                                    <Template Context="groupItem">
+                                        <div>
+                                            <div style="font-weight: 600;">@((groupItem as GroupListDto)?.Name)</div>
+                                            <div style="font-size: 0.85em; color: var(--rz-text-secondary-color);">@((groupItem as GroupListDto)?.ProgramName) - Anul @((groupItem as GroupListDto)?.Year)</div>
+                                        </div>
+                                    </Template>
+                                </RadzenDropDown>
+                            </RadzenStack>
+
+                            <RadzenButton Text="Transferă Student" Icon="swap_horiz" ButtonStyle="ButtonStyle.Primary"
+                                          Click="@TransferStudent" Disabled="@(selectedGroupId == null || selectedStudent == null)"
+                                          Style="width: 100%; margin-top: 1rem;" />
+                        }
+                    </RadzenStack>
+                </RadzenCard>
+            </RadzenColumn>
+        </RadzenRow>
+
+        <!-- Transfer History -->
+        <RadzenCard Style="padding: 0; overflow: hidden;">
+            <RadzenStack Class="rz-p-4" Style="border-bottom: 1px solid var(--rz-base-300);">
+                <RadzenText TextStyle="TextStyle.H6" Style="margin: 0; font-weight: 600;">
+                    Istoric Transferuri Recente
+                </RadzenText>
+            </RadzenStack>
+
+            <div style="padding: 1rem;">
+                <RadzenText TextStyle="TextStyle.Body2" class="rz-color-secondary">
+                    Funcționalitate în curs de dezvoltare
+                </RadzenText>
+            </div>
+        </RadzenCard>
+    }
+</RadzenStack>
+
+<style>
+    .selected-card {
+        border: 2px solid var(--rz-success) !important;
+        background: rgba(34, 197, 94, 0.05) !important;
+    }
+</style>
+
+@code {
+    private bool isLoading = true;
+    private Guid? facultyId;
+
+    private List<StudentListDto> allStudents = new();
+    private List<StudentListDto> filteredStudents = new();
+    private StudentListDto? selectedStudent;
+
+    private List<GroupListDto> availableGroups = new();
+    private Guid? selectedGroupId;
+
+    private string studentSearchQuery = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        try
+        {
+            isLoading = true;
+
+            // Get faculty ID from claims
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+            var facultyIdClaim = user.FindFirst("FacultyId")?.Value;
+
+            if (Guid.TryParse(facultyIdClaim, out var parsedFacultyId))
+            {
+                facultyId = parsedFacultyId;
+            }
+
+            // Load all students for the faculty
+            var studentFilter = new StudentFilter { FacultyId = facultyId };
+            var studentsResult = await StudentService.GetAllAsync(studentFilter, page: 1, pageSize: 1000);
+            allStudents = studentsResult.Items.ToList();
+
+            // Load all groups for dropdown
+            var groupFilter = new GroupFilter { FacultyId = facultyId };
+            var groupsResult = await GroupService.GetAllAsync(groupFilter, page: 1, pageSize: 1000);
+            availableGroups = groupsResult.Items.ToList();
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(new NotificationMessage
+            {
+                Severity = NotificationSeverity.Error,
+                Summary = "Eroare",
+                Detail = $"Nu s-au putut încărca datele: {ex.Message}",
+                Duration = 4000
+            });
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void OnStudentSearchChange(ChangeEventArgs e)
+    {
+        studentSearchQuery = e.Value?.ToString() ?? "";
+        ApplyStudentFilter();
+    }
+
+    private void ApplyStudentFilter()
+    {
+        if (string.IsNullOrWhiteSpace(studentSearchQuery))
+        {
+            filteredStudents = new List<StudentListDto>();
+            return;
+        }
+
+        var query = studentSearchQuery.ToLower();
+        filteredStudents = allStudents
+            .Where(s =>
+                s.FullName.ToLower().Contains(query) ||
+                s.StudentNumber.ToLower().Contains(query)
+            )
+            .ToList();
+    }
+
+    private void SelectStudent(StudentListDto student)
+    {
+        selectedStudent = student;
+        selectedGroupId = null; // Reset group selection
+        StateHasChanged();
+    }
+
+    private string GetStudentCardStyle(StudentListDto student)
+    {
+        var baseStyle = "cursor: pointer; transition: all 0.2s; padding: 0.75rem;";
+        if (selectedStudent?.Id == student.Id)
+        {
+            return baseStyle + " border: 2px solid var(--rz-success); background: rgba(34, 197, 94, 0.05);";
+        }
+        return baseStyle + " border: 1px solid var(--rz-base-300);";
+    }
+
+    private async Task TransferStudent()
+    {
+        if (selectedStudent == null || selectedGroupId == null)
+        {
+            return;
+        }
+
+        try
+        {
+            var newGroup = availableGroups.FirstOrDefault(g => g.Id == selectedGroupId.Value);
+            if (newGroup == null)
+            {
+                return;
+            }
+
+            var result = await StudentService.TransferGroupAsync(selectedStudent.Id, selectedGroupId.Value);
+
+            if (result.Succeeded)
+            {
+                NotificationService.Notify(new NotificationMessage
+                {
+                    Severity = NotificationSeverity.Success,
+                    Summary = "Succes",
+                    Detail = $"{selectedStudent.FullName} a fost transferat cu succes la {newGroup.Name}!",
+                    Duration = 4000
+                });
+
+                // Reload data
+                selectedStudent = null;
+                selectedGroupId = null;
+                studentSearchQuery = "";
+                filteredStudents = new List<StudentListDto>();
+                await LoadData();
+            }
+            else
+            {
+                NotificationService.Notify(new NotificationMessage
+                {
+                    Severity = NotificationSeverity.Error,
+                    Summary = "Eroare",
+                    Detail = result.ErrorMessage ?? "Nu s-a putut transfera studentul",
+                    Duration = 4000
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(new NotificationMessage
+            {
+                Severity = NotificationSeverity.Error,
+                Summary = "Eroare",
+                Detail = $"Eroare la transferul studentului: {ex.Message}",
+                Duration = 4000
+            });
+        }
+    }
+}

@@ -5,236 +5,188 @@
 @using SMU.Services
 @using SMU.Data.Entities
 @using System.Security.Claims
+@using Radzen
+@using SMU.Data
+@using Microsoft.EntityFrameworkCore
 @attribute [Authorize]
 @inject IExportService ExportService
 @inject IJSRuntime JS
 @inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Navigation
+@inject ApplicationDbContext DbContext
 
 <PageTitle>Export - SMU</PageTitle>
 
-<div class="space-y-6">
+<RadzenStack Gap="1.5rem">
     <!-- Header -->
-    <div>
-        <h1 class="text-2xl font-bold text-gray-900">Export Documente și Date</h1>
-        <p class="mt-1 text-sm text-gray-500">Generează și descarcă documente PDF și fișiere Excel</p>
-    </div>
+    <RadzenStack Gap="0.25rem">
+        <RadzenText TextStyle="TextStyle.H4" Style="margin: 0; font-weight: bold;">Export Documente și Date</RadzenText>
+        <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; color: var(--rz-text-secondary-color);">Generează și descarcă documente PDF și fișiere Excel</RadzenText>
+    </RadzenStack>
 
     @if (isLoading)
     {
-        <div class="flex items-center justify-center py-12">
-            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-        </div>
+        <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Style="padding: 3rem 0;">
+            <RadzenProgressBarCircular ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
+        </RadzenStack>
     }
     else
     {
         <!-- Student Documents Section -->
         @if (userRole == UserRole.Student)
         {
-            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                    <svg class="w-5 h-5 mr-2 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                    </svg>
-                    Documente Student
-                </h2>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <!-- Situație Școlară -->
-                    <div class="border border-gray-200 rounded-lg p-4 hover:border-primary-300 transition-colors">
-                        <h3 class="font-medium text-gray-900 mb-2">Situație Școlară</h3>
-                        <p class="text-sm text-gray-600 mb-4">Document cuprinzător cu toate notele, creditele și media generală</p>
-                        <button @onclick="DownloadSituatieScolara"
-                                disabled="@exportingPdf"
-                                class="w-full btn-primary justify-center">
-                            @if (exportingPdf)
-                            {
-                                <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                                <span>Generare PDF...</span>
-                            }
-                            else
-                            {
-                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                                </svg>
-                                <span>Descarcă PDF</span>
-                            }
-                        </button>
-                    </div>
+            <RadzenCard Style="padding: 1.5rem;">
+                <RadzenStack Gap="1rem">
+                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
+                        <RadzenIcon Icon="description" Style="color: var(--rz-primary);" />
+                        <RadzenText TextStyle="TextStyle.H6" Style="margin: 0; font-weight: 600;">Documente Student</RadzenText>
+                    </RadzenStack>
 
-                    <!-- Adeverință Student -->
-                    <div class="border border-gray-200 rounded-lg p-4 hover:border-primary-300 transition-colors">
-                        <h3 class="font-medium text-gray-900 mb-2">Adeverință Student</h3>
-                        <p class="text-sm text-gray-600 mb-2">Document oficial care atestă calitatea de student</p>
-                        <div class="mb-4">
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Scop adeverință</label>
-                            <select @bind="certificatePurpose" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
-                                <option value="Bursa">Pentru bursă</option>
-                                <option value="Angajare">Pentru angajare</option>
-                                <option value="Calatorie">Pentru călătorie</option>
-                                <option value="Altele">Altele</option>
-                            </select>
-                        </div>
-                        <button @onclick="DownloadAdeverinta"
-                                disabled="@exportingPdf"
-                                class="w-full btn-primary justify-center">
-                            @if (exportingPdf)
-                            {
-                                <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                                <span>Generare PDF...</span>
-                            }
-                            else
-                            {
-                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                                </svg>
-                                <span>Descarcă PDF</span>
-                            }
-                        </button>
-                    </div>
-                </div>
-            </div>
+                    <RadzenRow Gap="1rem" RowGap="1rem">
+                        <!-- Situație Școlară -->
+                        <RadzenColumn Size="12" SizeMD="6">
+                            <RadzenCard Variant="Variant.Outlined" Style="padding: 1rem;">
+                                <RadzenStack Gap="0.5rem">
+                                    <RadzenText TextStyle="TextStyle.Body1" Style="margin: 0; font-weight: 500;">Situație Școlară</RadzenText>
+                                    <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; color: var(--rz-text-secondary-color);">Document cuprinzător cu toate notele, creditele și media generală</RadzenText>
+                                    <RadzenButton ButtonStyle="ButtonStyle.Primary"
+                                                  Click="DownloadSituatieScolara"
+                                                  IsBusy="@exportingPdf"
+                                                  Disabled="@exportingPdf"
+                                                  Icon="download"
+                                                  Text="@(exportingPdf ? "Generare PDF..." : "Descarcă PDF")"
+                                                  Style="width: 100%; margin-top: 0.5rem;" />
+                                </RadzenStack>
+                            </RadzenCard>
+                        </RadzenColumn>
+
+                        <!-- Adeverință Student -->
+                        <RadzenColumn Size="12" SizeMD="6">
+                            <RadzenCard Variant="Variant.Outlined" Style="padding: 1rem;">
+                                <RadzenStack Gap="0.5rem">
+                                    <RadzenText TextStyle="TextStyle.Body1" Style="margin: 0; font-weight: 500;">Adeverință Student</RadzenText>
+                                    <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; color: var(--rz-text-secondary-color);">Document oficial care atestă calitatea de student</RadzenText>
+
+                                    <RadzenFormField Text="Scop adeverință" Variant="Variant.Outlined" Style="width: 100%; margin-top: 0.5rem;">
+                                        <RadzenDropDown @bind-Value="certificatePurpose"
+                                                        Data="@purposeOptions"
+                                                        TextProperty="Text"
+                                                        ValueProperty="Value"
+                                                        Style="width: 100%;" />
+                                    </RadzenFormField>
+
+                                    <RadzenButton ButtonStyle="ButtonStyle.Primary"
+                                                  Click="DownloadAdeverinta"
+                                                  IsBusy="@exportingPdf"
+                                                  Disabled="@exportingPdf"
+                                                  Icon="download"
+                                                  Text="@(exportingPdf ? "Generare PDF..." : "Descarcă PDF")"
+                                                  Style="width: 100%; margin-top: 0.5rem;" />
+                                </RadzenStack>
+                            </RadzenCard>
+                        </RadzenColumn>
+                    </RadzenRow>
+                </RadzenStack>
+            </RadzenCard>
         }
 
         <!-- Data Export Section (Secretary, Dean, Admin) -->
         @if (userRole == UserRole.Secretary || userRole == UserRole.Dean || userRole == UserRole.Admin)
         {
-            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                    <svg class="w-5 h-5 mr-2 text-success-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
-                    </svg>
-                    Export Date (Excel)
-                </h2>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <!-- Export Students -->
-                    <div class="border border-gray-200 rounded-lg p-4 hover:border-success-300 transition-colors">
-                        <h3 class="font-medium text-gray-900 mb-2">Export Studenți</h3>
-                        <p class="text-sm text-gray-600 mb-4">Listă completă cu toți studenții înscriși</p>
-                        <button @onclick="DownloadStudentsExcel"
-                                disabled="@exportingExcel"
-                                class="w-full btn-outline justify-center">
-                            @if (exportingExcel)
-                            {
-                                <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-600 mr-2"></div>
-                                <span>Generare Excel...</span>
-                            }
-                            else
-                            {
-                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                                </svg>
-                                <span>Descarcă Excel</span>
-                            }
-                        </button>
-                    </div>
+            <RadzenCard Style="padding: 1.5rem;">
+                <RadzenStack Gap="1rem">
+                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
+                        <RadzenIcon Icon="table_chart" Style="color: var(--rz-success);" />
+                        <RadzenText TextStyle="TextStyle.H6" Style="margin: 0; font-weight: 600;">Export Date (Excel)</RadzenText>
+                        @if (userRole == UserRole.Dean && !string.IsNullOrEmpty(facultyName))
+                        {
+                            <RadzenBadge BadgeStyle="BadgeStyle.Info" Variant="Variant.Flat" Text="@facultyName" />
+                        }
+                    </RadzenStack>
 
-                    <!-- Export Grades -->
-                    <div class="border border-gray-200 rounded-lg p-4 hover:border-success-300 transition-colors">
-                        <h3 class="font-medium text-gray-900 mb-2">Export Note</h3>
-                        <p class="text-sm text-gray-600 mb-4">Toate notele înregistrate în sistem</p>
-                        <button @onclick="DownloadGradesExcel"
-                                disabled="@exportingExcel"
-                                class="w-full btn-outline justify-center">
-                            @if (exportingExcel)
-                            {
-                                <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-600 mr-2"></div>
-                                <span>Generare Excel...</span>
-                            }
-                            else
-                            {
-                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                                </svg>
-                                <span>Descarcă Excel</span>
-                            }
-                        </button>
-                    </div>
+                    @if (userRole == UserRole.Dean)
+                    {
+                        <RadzenAlert AlertStyle="AlertStyle.Info" Variant="Variant.Flat" Shade="Shade.Lighter" Size="AlertSize.Small">
+                            Exporturile vor conține doar datele facultății dumneavoastră.
+                        </RadzenAlert>
+                    }
 
-                    <!-- Export Attendance -->
-                    <div class="border border-gray-200 rounded-lg p-4 hover:border-success-300 transition-colors">
-                        <h3 class="font-medium text-gray-900 mb-2">Export Prezențe</h3>
-                        <p class="text-sm text-gray-600 mb-4">Istoric complet al prezențelor</p>
-                        <button @onclick="DownloadAttendanceExcel"
-                                disabled="@exportingExcel"
-                                class="w-full btn-outline justify-center">
-                            @if (exportingExcel)
-                            {
-                                <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-600 mr-2"></div>
-                                <span>Generare Excel...</span>
-                            }
-                            else
-                            {
-                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                                </svg>
-                                <span>Descarcă Excel</span>
-                            }
-                        </button>
-                    </div>
-                </div>
-            </div>
+                    <RadzenRow Gap="1rem" RowGap="1rem">
+                        <!-- Export Students -->
+                        <RadzenColumn Size="12" SizeMD="4">
+                            <RadzenCard Variant="Variant.Outlined" Style="padding: 1rem;">
+                                <RadzenStack Gap="0.5rem">
+                                    <RadzenText TextStyle="TextStyle.Body1" Style="margin: 0; font-weight: 500;">Export Studenți</RadzenText>
+                                    <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; color: var(--rz-text-secondary-color);">@(userRole == UserRole.Dean ? "Studenții din facultatea dumneavoastră" : "Listă completă cu toți studenții înscriși")</RadzenText>
+                                    <RadzenButton ButtonStyle="ButtonStyle.Success"
+                                                  Click="DownloadStudentsExcel"
+                                                  IsBusy="@exportingExcel"
+                                                  Disabled="@exportingExcel"
+                                                  Icon="download"
+                                                  Text="@(exportingExcel ? "Generare Excel..." : "Descarcă Excel")"
+                                                  Style="width: 100%; margin-top: 0.5rem;" />
+                                </RadzenStack>
+                            </RadzenCard>
+                        </RadzenColumn>
+
+                        <!-- Export Grades -->
+                        <RadzenColumn Size="12" SizeMD="4">
+                            <RadzenCard Variant="Variant.Outlined" Style="padding: 1rem;">
+                                <RadzenStack Gap="0.5rem">
+                                    <RadzenText TextStyle="TextStyle.Body1" Style="margin: 0; font-weight: 500;">Export Note</RadzenText>
+                                    <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; color: var(--rz-text-secondary-color);">Toate notele înregistrate în sistem</RadzenText>
+                                    <RadzenButton ButtonStyle="ButtonStyle.Success"
+                                                  Click="DownloadGradesExcel"
+                                                  IsBusy="@exportingExcel"
+                                                  Disabled="@exportingExcel"
+                                                  Icon="download"
+                                                  Text="@(exportingExcel ? "Generare Excel..." : "Descarcă Excel")"
+                                                  Style="width: 100%; margin-top: 0.5rem;" />
+                                </RadzenStack>
+                            </RadzenCard>
+                        </RadzenColumn>
+
+                        <!-- Export Attendance -->
+                        <RadzenColumn Size="12" SizeMD="4">
+                            <RadzenCard Variant="Variant.Outlined" Style="padding: 1rem;">
+                                <RadzenStack Gap="0.5rem">
+                                    <RadzenText TextStyle="TextStyle.Body1" Style="margin: 0; font-weight: 500;">Export Prezențe</RadzenText>
+                                    <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; color: var(--rz-text-secondary-color);">Istoric complet al prezențelor</RadzenText>
+                                    <RadzenButton ButtonStyle="ButtonStyle.Success"
+                                                  Click="DownloadAttendanceExcel"
+                                                  IsBusy="@exportingExcel"
+                                                  Disabled="@exportingExcel"
+                                                  Icon="download"
+                                                  Text="@(exportingExcel ? "Generare Excel..." : "Descarcă Excel")"
+                                                  Style="width: 100%; margin-top: 0.5rem;" />
+                                </RadzenStack>
+                            </RadzenCard>
+                        </RadzenColumn>
+                    </RadzenRow>
+                </RadzenStack>
+            </RadzenCard>
         }
 
-        <!-- Reports Section (Dean, Rector, Admin) -->
-        @if (userRole == UserRole.Dean || userRole == UserRole.Rector || userRole == UserRole.Admin)
-        {
-            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                    <svg class="w-5 h-5 mr-2 text-info-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                    </svg>
-                    Rapoarte (PDF)
-                </h2>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <!-- Course Catalog -->
-                    <div class="border border-gray-200 rounded-lg p-4 hover:border-info-300 transition-colors">
-                        <h3 class="font-medium text-gray-900 mb-2">Catalog Note Curs</h3>
-                        <p class="text-sm text-gray-600 mb-4">Raport cu toate notele pentru un curs specific</p>
-                        <p class="text-xs text-gray-500 mb-3">Disponibil din pagina cursului</p>
-                        <a href="/note" class="w-full btn-outline justify-center inline-flex items-center">
-                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
-                            </svg>
-                            <span>Mergi la Note</span>
-                        </a>
-                    </div>
-
-                    <!-- Faculty Report -->
-                    <div class="border border-gray-200 rounded-lg p-4 hover:border-info-300 transition-colors">
-                        <h3 class="font-medium text-gray-900 mb-2">Raport Facultate</h3>
-                        <p class="text-sm text-gray-600 mb-4">Statistici și analize la nivel de facultate</p>
-                        <p class="text-xs text-gray-500 mb-3">Disponibil din pagina facultății</p>
-                        <a href="/facultati" class="w-full btn-outline justify-center inline-flex items-center">
-                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-                            </svg>
-                            <span>Mergi la Facultăți</span>
-                        </a>
-                    </div>
-                </div>
-            </div>
-        }
     }
-</div>
+</RadzenStack>
 
-<!-- Success Toast -->
+<!-- Success Alert -->
 @if (showSuccessToast)
 {
-    <div class="fixed bottom-4 right-4 bg-success-600 text-white px-6 py-3 rounded-lg shadow-lg flex items-center space-x-2 animate-slide-up z-50">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-        </svg>
-        <span>@successMessage</span>
+    <div style="position: fixed; bottom: 1rem; right: 1rem; z-index: 1050;">
+        <RadzenAlert AlertStyle="AlertStyle.Success" Variant="Variant.Flat" Shade="Shade.Darker">
+            @successMessage
+        </RadzenAlert>
     </div>
 }
 
-<!-- Error Toast -->
+<!-- Error Alert -->
 @if (showErrorToast)
 {
-    <div class="fixed bottom-4 right-4 bg-red-600 text-white px-6 py-3 rounded-lg shadow-lg flex items-center space-x-2 animate-slide-up z-50">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-        </svg>
-        <span>@errorMessage</span>
+    <div style="position: fixed; bottom: 1rem; right: 1rem; z-index: 1050;">
+        <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat" Shade="Shade.Darker">
+            @errorMessage
+        </RadzenAlert>
     </div>
 }
 
@@ -249,7 +201,23 @@
 
     private UserRole userRole;
     private Guid? currentUserId;
+    private Guid? currentFacultyId;
+    private string? facultyName;
     private string certificatePurpose = "Bursa";
+
+    private List<PurposeOption> purposeOptions = new()
+    {
+        new PurposeOption { Value = "Bursa", Text = "Pentru bursă" },
+        new PurposeOption { Value = "Angajare", Text = "Pentru angajare" },
+        new PurposeOption { Value = "Calatorie", Text = "Pentru călătorie" },
+        new PurposeOption { Value = "Altele", Text = "Altele" }
+    };
+
+    private class PurposeOption
+    {
+        public string Value { get; set; } = string.Empty;
+        public string Text { get; set; } = string.Empty;
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -270,6 +238,17 @@
                 if (Guid.TryParse(userIdClaim, out var userId))
                 {
                     currentUserId = userId;
+
+                    // Load faculty for Dean
+                    if (userRole == UserRole.Dean)
+                    {
+                        var faculty = await DbContext.Faculties.FirstOrDefaultAsync(f => f.DeanId == userId);
+                        if (faculty != null)
+                        {
+                            currentFacultyId = faculty.Id;
+                            facultyName = faculty.Name;
+                        }
+                    }
                 }
             }
         }
@@ -340,8 +319,13 @@
 
         try
         {
-            var excelBytes = await ExportService.ExportStudentsToExcel();
-            await DownloadFile(excelBytes, $"Studenti_{DateTime.Now:yyyyMMdd}.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+            // Dean exports only their faculty's students
+            var facultyFilter = userRole == UserRole.Dean ? currentFacultyId : null;
+            var excelBytes = await ExportService.ExportStudentsToExcel(facultyFilter);
+            var fileName = userRole == UserRole.Dean && !string.IsNullOrEmpty(facultyName)
+                ? $"Studenti_{facultyName.Replace(" ", "_")}_{DateTime.Now:yyyyMMdd}.xlsx"
+                : $"Studenti_{DateTime.Now:yyyyMMdd}.xlsx";
+            await DownloadFile(excelBytes, fileName, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
             ShowSuccess("Export studenți generat cu succes!");
         }
         catch (Exception ex)
@@ -362,8 +346,13 @@
 
         try
         {
+            // Note: ExportGradesToExcel doesn't support faculty filter yet
+            // TODO: Add faculty filtering support to ExportGradesToExcel if needed
             var excelBytes = await ExportService.ExportGradesToExcel();
-            await DownloadFile(excelBytes, $"Note_{DateTime.Now:yyyyMMdd}.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+            var fileName = userRole == UserRole.Dean && !string.IsNullOrEmpty(facultyName)
+                ? $"Note_{facultyName.Replace(" ", "_")}_{DateTime.Now:yyyyMMdd}.xlsx"
+                : $"Note_{DateTime.Now:yyyyMMdd}.xlsx";
+            await DownloadFile(excelBytes, fileName, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
             ShowSuccess("Export note generat cu succes!");
         }
         catch (Exception ex)
@@ -384,8 +373,13 @@
 
         try
         {
+            // Note: ExportAttendanceToExcel doesn't support faculty filter yet
+            // TODO: Add faculty filtering support to ExportAttendanceToExcel if needed
             var excelBytes = await ExportService.ExportAttendanceToExcel();
-            await DownloadFile(excelBytes, $"Prezente_{DateTime.Now:yyyyMMdd}.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+            var fileName = userRole == UserRole.Dean && !string.IsNullOrEmpty(facultyName)
+                ? $"Prezente_{facultyName.Replace(" ", "_")}_{DateTime.Now:yyyyMMdd}.xlsx"
+                : $"Prezente_{DateTime.Now:yyyyMMdd}.xlsx";
+            await DownloadFile(excelBytes, fileName, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
             ShowSuccess("Export prezențe generat cu succes!");
         }
         catch (Exception ex)

@@ -1,178 +1,254 @@
 @using SMU.Components.Shared
 @using SMU.Data
 @using SMU.Data.Entities
-@using Microsoft.EntityFrameworkCore
-@inject ApplicationDbContext DbContext
+@using SMU.Services
+@using SMU.Services.DTOs
+@using Microsoft.AspNetCore.Components.Authorization
+@inject IGradeService GradeService
+@inject IScheduleService ScheduleService
+@inject INotificationService NotificationService
+@inject IStudentService StudentService
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager NavigationManager
 
-<div class="space-y-6">
-    <!-- Welcome Header -->
-    <div class="bg-gradient-to-r from-primary-600 to-primary-700 rounded-xl p-6 text-white">
-        <h1 class="text-2xl font-bold">Bine ai venit, @UserName!</h1>
-        <p class="mt-1 text-primary-100">Iata un sumar al activitatii tale academice.</p>
-    </div>
+<RadzenStack Gap="1.5rem">
+    @if (_isLoading)
+    {
+        <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Style="padding: 3rem 0;">
+            <RadzenProgressBarCircular ShowValue="false" Mode="ProgressBarMode.Indeterminate" Size="ProgressBarCircularSize.Large" />
+            <RadzenText TextStyle="TextStyle.Body2" class="rz-color-secondary" Style="margin-top: 1rem;">
+                Se încarcă datele...
+            </RadzenText>
+        </RadzenStack>
+    }
+    else if (_studentId == null)
+    {
+        <RadzenAlert AlertStyle="AlertStyle.Warning" Variant="Variant.Flat" ShowIcon="true" Size="AlertSize.Medium">
+            <RadzenStack Gap="0.5rem">
+                <RadzenText TextStyle="TextStyle.Subtitle1" Style="margin: 0; font-weight: 600;">
+                    Nu ești autentificat ca student
+                </RadzenText>
+                <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0;">
+                    Contul tău nu este asociat cu un profil de student.
+                </RadzenText>
+            </RadzenStack>
+        </RadzenAlert>
+    }
+    else
+    {
+        <!-- Welcome Header -->
+        <RadzenCard Style="background: linear-gradient(135deg, var(--rz-primary) 0%, var(--rz-primary-dark) 100%); padding: 1.5rem;">
+            <RadzenStack>
+                <RadzenText TextStyle="TextStyle.H5" Style="margin: 0; color: white; font-weight: 700;">
+                    Bine ai venit, @UserName!
+                </RadzenText>
+                <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; color: rgba(255,255,255,0.85);">
+                    Iată un sumar al activității tale academice.
+                </RadzenText>
+            </RadzenStack>
+        </RadzenCard>
 
-    <!-- Stats Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatsCard
-            Label="Media Generala"
-            Value="@AverageGrade.ToString("0.00")"
-            Subtitle="@(TotalCredits > 0 ? $"{TotalCredits} credite acumulate" : "Nicio nota inregistrata")"
-            IconType="academic"
-            IconBgClass="bg-success-100"
-            IconClass="text-success-600"
-            ShowTrend="@(GradeTrend != 0)"
-            TrendValue="@GradeTrend"
-            ActionLink="/note"
-            ActionText="Vezi toate notele" />
+        <!-- Stats Cards -->
+        <RadzenRow Gap="1.5rem" RowGap="1.5rem">
+            <RadzenColumn Size="12" SizeMD="6" SizeLG="3">
+                <StatsCard
+                    Label="Media Generală"
+                    Value="@(AverageGrade > 0 ? AverageGrade.ToString("0.00") : "-")"
+                    Subtitle="@(TotalCredits > 0 ? $"{TotalCredits} credite acumulate" : "Nicio notă înregistrată")"
+                    IconType="academic"
+                    IconBgClass="bg-success-100"
+                    IconClass="text-success-600"
+                    ShowTrend="@(GradeTrend != 0)"
+                    TrendValue="@GradeTrend"
+                    ActionLink="/note"
+                    ActionText="Vezi toate notele" />
+            </RadzenColumn>
 
-        <StatsCard
-            Label="Rata Prezenta"
-            Value="@(AttendanceRate.ToString("0") + "%")"
-            Subtitle="@(TotalClasses > 0 ? $"{PresentClasses}/{TotalClasses} ore" : "Nicio prezenta")"
-            IconType="attendance"
-            IconBgClass="bg-primary-100"
-            IconClass="text-primary-600"
-            ActionLink="/prezente"
-            ActionText="Vezi prezentele" />
+            <RadzenColumn Size="12" SizeMD="6" SizeLG="3">
+                <StatsCard
+                    Label="Rata Prezență"
+                    Value="@(AttendanceRate.ToString("0") + "%")"
+                    Subtitle="@(TotalClasses > 0 ? $"{PresentClasses}/{TotalClasses} ore" : "Nicio prezență")"
+                    IconType="attendance"
+                    IconBgClass="bg-primary-100"
+                    IconClass="text-primary-600"
+                    ActionLink="/prezente"
+                    ActionText="Vezi prezențele" />
+            </RadzenColumn>
 
-        <StatsCard
-            Label="Credite Acumulate"
-            Value="@TotalCredits.ToString()"
-            Subtitle="@($"din {RequiredCredits} necesare")"
-            IconType="book"
-            IconBgClass="bg-info-100"
-            IconClass="text-info-600" />
+            <RadzenColumn Size="12" SizeMD="6" SizeLG="3">
+                <StatsCard
+                    Label="Credite Acumulate"
+                    Value="@TotalCredits.ToString()"
+                    Subtitle="@($"din {RequiredCredits} necesare")"
+                    IconType="book"
+                    IconBgClass="bg-info-100"
+                    IconClass="text-info-600" />
+            </RadzenColumn>
 
-        <StatsCard
-            Label="Note Recente"
-            Value="@RecentGradesCount.ToString()"
-            Subtitle="in ultimele 30 de zile"
-            IconType="grades"
-            IconBgClass="bg-warning-100"
-            IconClass="text-warning-600"
-            ActionLink="/note"
-            ActionText="Vezi notele" />
-    </div>
+            <RadzenColumn Size="12" SizeMD="6" SizeLG="3">
+                <StatsCard
+                    Label="Note Recente"
+                    Value="@RecentGradesCount.ToString()"
+                    Subtitle="în ultimele 30 de zile"
+                    IconType="grades"
+                    IconBgClass="bg-warning-100"
+                    IconClass="text-warning-600"
+                    ActionLink="/note"
+                    ActionText="Vezi notele" />
+            </RadzenColumn>
+        </RadzenRow>
 
-    <!-- Content Grid -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <!-- Recent Grades -->
-        <div class="lg:col-span-2">
-            <RecentActivityList
-                Title="Ultimele Note"
-                Items="@RecentGrades"
-                ViewAllLink="/note"
-                EmptyMessage="Nu ai note inregistrate inca." />
-        </div>
+        <!-- Content Grid -->
+        <RadzenRow Gap="1.5rem" RowGap="1.5rem">
+            <!-- Recent Grades -->
+            <RadzenColumn Size="12" SizeLG="8">
+                <RecentActivityList
+                    Title="Ultimele Note"
+                    Items="@RecentGrades"
+                    ViewAllLink="/note"
+                    EmptyMessage="Nu ai note înregistrate încă." />
+            </RadzenColumn>
 
-        <!-- Quick Actions & Notifications -->
-        <div class="space-y-6">
-            <!-- Quick Actions -->
-            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                <h3 class="text-lg font-semibold text-gray-900 mb-4">Actiuni Rapide</h3>
-                <div class="space-y-3">
-                    <QuickActionButton
-                        Text="Vezi Orarul"
-                        IconType="calendar"
-                        Variant="outline-primary"
-                        FullWidth="true"
-                        IsLink="true"
-                        Link="/orar" />
-                    <QuickActionButton
-                        Text="Solicita Document"
-                        IconType="document"
-                        Variant="outline"
-                        FullWidth="true"
-                        IsLink="true"
-                        Link="/cereri/nou" />
-                    <QuickActionButton
-                        Text="Vezi Prezentele"
-                        IconType="check"
-                        Variant="outline"
-                        FullWidth="true"
-                        IsLink="true"
-                        Link="/prezente" />
-                </div>
-            </div>
+            <!-- Quick Actions & Notifications -->
+            <RadzenColumn Size="12" SizeLG="4">
+                <RadzenStack Gap="1.5rem">
+                    <!-- Quick Actions -->
+                    <RadzenCard>
+                        <RadzenText TextStyle="TextStyle.H6" Style="margin: 0 0 1rem 0; font-weight: 600;">
+                            Acțiuni Rapide
+                        </RadzenText>
+                        <RadzenStack Gap="0.75rem">
+                            <QuickActionButton
+                                Text="Vezi Orarul"
+                                IconType="calendar"
+                                Variant="outline-primary"
+                                FullWidth="true"
+                                IsLink="true"
+                                Link="/orar" />
+                            <QuickActionButton
+                                Text="Cererile Mele"
+                                IconType="document"
+                                Variant="outline-primary"
+                                FullWidth="true"
+                                IsLink="true"
+                                Link="/cereri" />
+                            <QuickActionButton
+                                Text="Solicită Document"
+                                IconType="document"
+                                Variant="outline-primary"
+                                FullWidth="true"
+                                IsLink="true"
+                                Link="/cereri/nou" />
+                            <QuickActionButton
+                                Text="Vezi Prezențele"
+                                IconType="check"
+                                Variant="outline-primary"
+                                FullWidth="true"
+                                IsLink="true"
+                                Link="/prezente" />
+                        </RadzenStack>
+                    </RadzenCard>
 
-            <!-- Notifications -->
-            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                <div class="px-6 py-4 border-b border-gray-100">
-                    <h3 class="text-lg font-semibold text-gray-900">Notificari</h3>
-                </div>
-                @if (Notifications.Any())
-                {
-                    <ul class="divide-y divide-gray-100">
-                        @foreach (var notification in Notifications.Take(3))
+                    <!-- Notifications -->
+                    <RadzenCard Style="padding: 0; overflow: hidden;">
+                        <RadzenStack Orientation="Radzen.Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center"
+                                     Class="rz-p-4" Style="border-bottom: 1px solid var(--rz-base-300);">
+                            <RadzenText TextStyle="TextStyle.H6" Style="margin: 0; font-weight: 600;">Notificări</RadzenText>
+                        </RadzenStack>
+                        @if (Notifications.Any())
                         {
-                            <li class="px-6 py-4 hover:bg-gray-50">
-                                <div class="flex items-start space-x-3">
-                                    <div class="flex-shrink-0 w-2 h-2 mt-2 rounded-full @(notification.IsRead ? "bg-gray-300" : "bg-primary-500")"></div>
-                                    <div class="flex-1 min-w-0">
-                                        <p class="text-sm font-medium text-gray-900 truncate">@notification.Title</p>
-                                        <p class="text-xs text-gray-500 mt-1">@notification.CreatedAt.ToString("dd MMM, HH:mm")</p>
-                                    </div>
-                                </div>
-                            </li>
+                            <RadzenStack Gap="0">
+                                @foreach (var notification in Notifications.Take(3))
+                                {
+                                    <RadzenStack Orientation="Radzen.Orientation.Horizontal" AlignItems="AlignItems.Start" Gap="0.75rem"
+                                                 Class="rz-p-4" Style="border-bottom: 1px solid var(--rz-base-200);">
+                                        <div style="@($"width: 8px; height: 8px; border-radius: 50%; margin-top: 6px; background: {(notification.IsRead ? "var(--rz-base-400)" : "var(--rz-primary)")};")"></div>
+                                        <RadzenStack Gap="0.25rem" Style="flex: 1; min-width: 0; cursor: pointer;"
+                                                     Class="notification-content"
+                                                     @onclick="@(() => HandleNotificationClick(notification))">
+                                            <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                                @notification.Title
+                                            </RadzenText>
+                                            <RadzenText TextStyle="TextStyle.Caption" Style="margin: 0; color: var(--rz-text-disabled-color);">
+                                                @notification.CreatedAt.ToString("dd MMM, HH:mm")
+                                            </RadzenText>
+                                        </RadzenStack>
+                                        <RadzenButton Icon="close"
+                                                      ButtonStyle="ButtonStyle.Light"
+                                                      Variant="Variant.Text"
+                                                      Size="ButtonSize.Small"
+                                                      Click="@(async (args) => await HandleDeleteNotification(notification.Id, args))"
+                                                      Style="min-width: auto; padding: 0.25rem;" />
+                                    </RadzenStack>
+                                }
+                            </RadzenStack>
                         }
-                    </ul>
-                }
-                else
-                {
-                    <div class="px-6 py-8 text-center">
-                        <svg class="w-10 h-10 mx-auto text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
-                        </svg>
-                        <p class="text-sm text-gray-500">Nu ai notificari noi</p>
-                    </div>
-                }
-            </div>
-        </div>
-    </div>
+                        else
+                        {
+                            <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Class="rz-p-6" Gap="0.75rem">
+                                <RadzenIcon Icon="notifications_none" Style="font-size: 40px; color: var(--rz-text-disabled-color);" />
+                                <RadzenText TextStyle="TextStyle.Body2" class="rz-color-secondary" Style="margin: 0;">
+                                    Nu ai notificări noi
+                                </RadzenText>
+                            </RadzenStack>
+                        }
+                    </RadzenCard>
+                </RadzenStack>
+            </RadzenColumn>
+        </RadzenRow>
 
-    <!-- Upcoming Schedule -->
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-            <h3 class="text-lg font-semibold text-gray-900">Orarul de Azi</h3>
-            <a href="/orar" class="text-sm font-medium text-primary-600 hover:text-primary-700">Vezi tot orarul</a>
-        </div>
-        @if (TodaySchedule.Any())
-        {
-            <div class="divide-y divide-gray-100">
-                @foreach (var entry in TodaySchedule)
-                {
-                    <div class="px-6 py-4 flex items-center space-x-4">
-                        <div class="flex-shrink-0 w-16 text-center">
-                            <span class="text-lg font-semibold text-gray-900">@entry.StartTime.ToString(@"hh\:mm")</span>
-                        </div>
-                        <div class="flex-shrink-0 h-12 w-1 rounded-full bg-primary-500"></div>
-                        <div class="flex-1">
-                            <p class="font-medium text-gray-900">@entry.CourseName</p>
-                            <p class="text-sm text-gray-500">@entry.Room - @entry.Type</p>
-                        </div>
-                        <div class="flex-shrink-0">
-                            <span class="px-3 py-1 text-xs font-medium rounded-full @GetScheduleTypeClass(entry.Type)">
-                                @entry.Type
-                            </span>
-                        </div>
-                    </div>
-                }
-            </div>
-        }
-        else
-        {
-            <div class="px-6 py-12 text-center">
-                <svg class="w-12 h-12 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                </svg>
-                <p class="text-gray-500">Nu ai ore programate astazi</p>
-            </div>
-        }
-    </div>
-</div>
+        <!-- Upcoming Schedule -->
+        <RadzenCard Style="padding: 0; overflow: hidden;">
+            <RadzenStack Orientation="Radzen.Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center"
+                         Class="rz-p-4" Style="border-bottom: 1px solid var(--rz-base-300);">
+                <RadzenText TextStyle="TextStyle.H6" Style="margin: 0; font-weight: 600;">Orarul de Azi</RadzenText>
+                <RadzenLink Path="/orar" Text="Vezi tot orarul" Style="font-weight: 500;" />
+            </RadzenStack>
+            @if (TodaySchedule.Any())
+            {
+                <RadzenStack Gap="0">
+                    @foreach (var entry in TodaySchedule)
+                    {
+                        <RadzenStack Orientation="Radzen.Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem"
+                                     Class="rz-p-4" Style="border-bottom: 1px solid var(--rz-base-200);">
+                            <RadzenText TextStyle="TextStyle.Subtitle1" Style="margin: 0; font-weight: 600; width: 60px; text-align: center;">
+                                @entry.StartTime.ToString(@"hh\:mm")
+                            </RadzenText>
+                            <div style="width: 4px; height: 48px; border-radius: 2px; background: var(--rz-primary);"></div>
+                            <RadzenStack Gap="0.25rem" Style="flex: 1;">
+                                <RadzenText TextStyle="TextStyle.Body1" Style="margin: 0; font-weight: 500;">
+                                    @entry.CourseName
+                                </RadzenText>
+                                <RadzenText TextStyle="TextStyle.Body2" class="rz-color-secondary" Style="margin: 0;">
+                                    @entry.Room - @entry.TypeLabel
+                                </RadzenText>
+                            </RadzenStack>
+                            <RadzenBadge BadgeStyle="@GetScheduleBadgeStyle(entry.Type)" Text="@entry.TypeLabel" IsPill="true" />
+                        </RadzenStack>
+                    }
+                </RadzenStack>
+            }
+            else
+            {
+                <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Class="rz-p-6" Gap="1rem">
+                    <RadzenIcon Icon="event_available" Style="font-size: 48px; color: var(--rz-text-disabled-color);" />
+                    <RadzenText TextStyle="TextStyle.Body1" class="rz-color-secondary" Style="margin: 0;">
+                        Nu ai ore programate astăzi
+                    </RadzenText>
+                </RadzenStack>
+            }
+        </RadzenCard>
+    }
+</RadzenStack>
 
 @code {
     [Parameter] public string UserName { get; set; } = "Student";
+
+    // State
+    private bool _isLoading = true;
+    private Guid? _studentId;
+    private Guid? _userId;
 
     // Stats
     private decimal AverageGrade = 0;
@@ -196,99 +272,155 @@
 
     private async Task LoadDashboardData()
     {
-        // For now, we'll use demo data since we don't have a logged-in student context yet
-        // In production, this would query based on the authenticated user's student ID
-
-        // Demo stats
-        AverageGrade = 8.75m;
-        GradeTrend = 2.5m;
-        TotalCredits = 45;
-        AttendanceRate = 92;
-        PresentClasses = 46;
-        TotalClasses = 50;
-        RecentGradesCount = 3;
-
-        // Demo recent grades
-        RecentGrades = new List<RecentActivityList.ActivityItem>
+        try
         {
-            new() {
-                Title = "Programare Orientata pe Obiecte",
-                Description = "Nota: 9 - Examen final",
-                Timestamp = DateTime.Now.AddDays(-2),
-                Type = "grade",
-                Badge = "9",
-                BadgeType = "success"
-            },
-            new() {
-                Title = "Baze de Date",
-                Description = "Nota: 8 - Proiect semestrial",
-                Timestamp = DateTime.Now.AddDays(-5),
-                Type = "grade",
-                Badge = "8",
-                BadgeType = "success"
-            },
-            new() {
-                Title = "Algoritmi si Structuri de Date",
-                Description = "Nota: 10 - Laborator",
-                Timestamp = DateTime.Now.AddDays(-7),
-                Type = "grade",
-                Badge = "10",
-                BadgeType = "success"
-            },
-            new() {
-                Title = "Matematica Discreta",
-                Description = "Nota: 7 - Examen partial",
-                Timestamp = DateTime.Now.AddDays(-10),
-                Type = "grade",
-                Badge = "7",
-                BadgeType = "warning"
-            }
-        };
+            _isLoading = true;
 
-        // Demo notifications
-        Notifications = new List<NotificationDto>
-        {
-            new() { Title = "Nota noua la POO", CreatedAt = DateTime.Now.AddHours(-2), IsRead = false },
-            new() { Title = "Adeverinta aprobata", CreatedAt = DateTime.Now.AddDays(-1), IsRead = true },
-            new() { Title = "Modificare orar luni", CreatedAt = DateTime.Now.AddDays(-3), IsRead = true }
-        };
+            // Get current user claims
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
 
-        // Demo schedule for today
-        var dayOfWeek = DateTime.Now.DayOfWeek;
-        if (dayOfWeek != DayOfWeek.Saturday && dayOfWeek != DayOfWeek.Sunday)
-        {
-            TodaySchedule = new List<ScheduleEntryDto>
+            // Get StudentId from claims
+            var studentIdClaim = user.FindFirst("StudentId")?.Value;
+            var userIdClaim = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
+            if (Guid.TryParse(studentIdClaim, out var studentId))
             {
-                new() { StartTime = new TimeSpan(8, 0, 0), CourseName = "Programare Web", Room = "C308", Type = "Curs" },
-                new() { StartTime = new TimeSpan(10, 0, 0), CourseName = "Baze de Date", Room = "Lab 2", Type = "Laborator" },
-                new() { StartTime = new TimeSpan(14, 0, 0), CourseName = "Algoritmi", Room = "C201", Type = "Seminar" }
-            };
-        }
+                _studentId = studentId;
+            }
 
-        await Task.CompletedTask;
+            if (Guid.TryParse(userIdClaim, out var userId))
+            {
+                _userId = userId;
+            }
+
+            if (_studentId == null)
+            {
+                _isLoading = false;
+                return;
+            }
+
+            // Load student details for stats
+            var studentDetail = await StudentService.GetByIdAsync(_studentId.Value);
+            if (studentDetail != null)
+            {
+                AverageGrade = studentDetail.AverageGrade ?? 0;
+                AttendanceRate = studentDetail.AttendanceRate;
+                TotalCredits = studentDetail.TotalCredits;
+            }
+
+            // Load grades
+            var grades = await GradeService.GetByStudentAsync(_studentId.Value);
+            var recentThreshold = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-30));
+            var recentGradesList = grades.Where(g => g.ExamDate >= recentThreshold).ToList();
+            RecentGradesCount = recentGradesList.Count;
+
+            // Map grades to activity items
+            RecentGrades = grades
+                .OrderByDescending(g => g.ExamDate)
+                .Take(5)
+                .Select(g => new RecentActivityList.ActivityItem
+                {
+                    Title = g.CourseName,
+                    Description = $"Nota: {g.Value} - {GetTypeLabel(g.Type)}",
+                    Timestamp = g.ExamDate.ToDateTime(TimeOnly.MinValue),
+                    Type = "grade",
+                    Badge = g.Value.ToString("0"),
+                    BadgeType = g.Value >= 5 ? "success" : "danger"
+                })
+                .ToList();
+
+            // Load notifications
+            if (_userId.HasValue)
+            {
+                Notifications = await NotificationService.GetRecentAsync(_userId.Value, 5);
+            }
+
+            // Load today's schedule
+            TodaySchedule = await ScheduleService.GetTodayScheduleForStudentAsync(_studentId.Value);
+
+            // Calculate attendance stats from student detail
+            if (studentDetail != null)
+            {
+                PresentClasses = (int)Math.Round(studentDetail.AttendanceRate * studentDetail.GradesCount / 100);
+                TotalClasses = studentDetail.GradesCount; // Approximation
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading dashboard: {ex.Message}");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
     }
 
-    private string GetScheduleTypeClass(string type) => type switch
+    private BadgeStyle GetScheduleBadgeStyle(string type) => type switch
     {
-        "Curs" => "bg-primary-100 text-primary-700",
-        "Laborator" => "bg-success-100 text-success-700",
-        "Seminar" => "bg-warning-100 text-warning-700",
-        _ => "bg-gray-100 text-gray-700"
+        "Curs" => BadgeStyle.Primary,
+        "Laborator" => BadgeStyle.Success,
+        "Seminar" => BadgeStyle.Warning,
+        _ => BadgeStyle.Light
     };
 
-    // DTOs for dashboard
-    private class NotificationDto
+    private string GetTypeLabel(Data.Entities.GradeType type) => type switch
     {
-        public string Title { get; set; } = "";
-        public DateTime CreatedAt { get; set; }
-        public bool IsRead { get; set; }
+        Data.Entities.GradeType.Exam => "Examen",
+        Data.Entities.GradeType.Lab => "Laborator",
+        Data.Entities.GradeType.Seminar => "Seminar",
+        Data.Entities.GradeType.Project => "Proiect",
+        Data.Entities.GradeType.Final => "Final",
+        _ => type.ToString()
+    };
+
+    private async Task HandleNotificationClick(NotificationDto notification)
+    {
+        // Mark notification as read
+        if (!notification.IsRead)
+        {
+            await NotificationService.MarkAsReadAsync(notification.Id);
+            notification.IsRead = true;
+        }
+
+        // Navigate to link if provided
+        if (!string.IsNullOrEmpty(notification.Link))
+        {
+            NavigationManager.NavigateTo(notification.Link);
+        }
     }
 
-    private class ScheduleEntryDto
+    private async Task HandleDeleteNotification(Guid notificationId, MouseEventArgs args)
     {
-        public TimeSpan StartTime { get; set; }
-        public string CourseName { get; set; } = "";
-        public string Room { get; set; } = "";
-        public string Type { get; set; } = "";
+        // Stop event propagation to prevent clicking the notification
+        // (Blazor doesn't support stopPropagation directly, but the button click will be handled first)
+
+        var result = await NotificationService.DeleteAsync(notificationId);
+
+        if (result.Succeeded)
+        {
+            // Remove from local list to update UI
+            Notifications.RemoveAll(n => n.Id == notificationId);
+            StateHasChanged();
+        }
+    }
+
+    private void OnNotificationHover(MouseEventArgs args, bool isEntering)
+    {
+        // Could add hover effects via JavaScript if needed
     }
 }
+
+<style>
+    .notification-content {
+        transition: background-color 0.2s ease;
+    }
+
+    .notification-content:hover {
+        background-color: var(--rz-base-100) !important;
+    }
+
+    .notification-content:active {
+        background-color: var(--rz-base-200) !important;
+    }
+</style>

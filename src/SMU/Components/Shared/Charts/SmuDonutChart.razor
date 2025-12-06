@@ -49,7 +49,7 @@
 
         options = new ApexChartOptions<ChartDataSegment>
         {
-            Theme = new Theme
+            Theme = new ApexCharts.Theme
             {
                 Mode = Mode.Light,
                 Palette = PaletteType.Palette1
@@ -88,11 +88,11 @@
             Legend = new Legend
             {
                 Show = ShowLegend,
-                Position = LegendPosition.Bottom,
+                Position = ApexCharts.LegendPosition.Bottom,
                 HorizontalAlign = Align.Center,
                 FontSize = "14px"
             },
-            Tooltip = new Tooltip
+            Tooltip = new ApexCharts.Tooltip
             {
                 Enabled = true
             }

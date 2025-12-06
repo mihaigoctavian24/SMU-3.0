@@ -4,200 +4,211 @@
 @using Microsoft.AspNetCore.Authorization
 @inject ICourseService CourseService
 @inject NavigationManager Navigation
+@inject Radzen.NotificationService NotificationService
 @attribute [Authorize(Policy = "CanManageStudents")]
 
 <PageTitle>Curs Nou - SMU</PageTitle>
 
-<div class="max-w-4xl mx-auto space-y-6">
+<RadzenStack Gap="1.5rem" Style="max-width: 900px; margin: 0 auto;">
     <!-- Header -->
-    <div class="flex items-center space-x-4">
-        <button @onclick='() => Navigation.NavigateTo("/cursuri")'
-                class="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-            <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-            </svg>
-        </button>
-        <div>
-            <h1 class="text-2xl font-bold text-gray-900">Adaugă Curs Nou</h1>
-            <p class="mt-1 text-sm text-gray-600">Completează formularul pentru a crea un curs nou</p>
-        </div>
-    </div>
+    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem">
+        <RadzenButton Icon="arrow_back"
+                      ButtonStyle="ButtonStyle.Light"
+                      Variant="Variant.Text"
+                      Click="@(() => Navigation.NavigateTo("/cursuri"))" />
+        <RadzenStack Gap="0.25rem">
+            <RadzenText TextStyle="TextStyle.H4" Style="margin: 0; font-weight: bold;">Adaugă Curs Nou</RadzenText>
+            <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; color: var(--rz-text-secondary-color);">Completează formularul pentru a crea un curs nou</RadzenText>
+        </RadzenStack>
+    </RadzenStack>
 
     <!-- Error Message -->
     @if (!string.IsNullOrWhiteSpace(errorMessage))
     {
-        <div class="bg-danger-50 border border-danger-200 rounded-lg p-4">
-            <div class="flex">
-                <svg class="h-5 w-5 text-danger-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <div class="ml-3">
-                    <p class="text-sm text-danger-700">@errorMessage</p>
-                </div>
-            </div>
-        </div>
+        <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat" ShowIcon="true" Size="AlertSize.Small">
+            @errorMessage
+        </RadzenAlert>
     }
 
     <!-- Form -->
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+    <RadzenCard Style="padding: 1.5rem;">
         <EditForm Model="@model" OnValidSubmit="HandleSubmit">
             <DataAnnotationsValidator />
 
-            <div class="space-y-6">
+            <RadzenStack Gap="1.5rem">
                 <!-- Course Name -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">
-                        Nume Curs <span class="text-danger-500">*</span>
-                    </label>
-                    <InputText @bind-Value="model.Name"
-                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                               placeholder="ex: Programare Orientată pe Obiecte" />
-                    <ValidationMessage For="@(() => model.Name)" class="text-sm text-danger-600 mt-1" />
-                </div>
+                <RadzenFormField Text="Nume Curs" Variant="Variant.Outlined" Style="width: 100%;">
+                    <ChildContent>
+                        <RadzenTextBox @bind-Value="model.Name" Placeholder="ex: Programare Orientată pe Obiecte" />
+                    </ChildContent>
+                    <Helper>
+                        <ValidationMessage For="@(() => model.Name)" />
+                    </Helper>
+                </RadzenFormField>
 
                 <!-- Course Code -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">
-                        Cod Curs <span class="text-danger-500">*</span>
-                    </label>
-                    <InputText @bind-Value="model.Code"
-                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent font-mono"
-                               placeholder="ex: POO-101" />
-                    <ValidationMessage For="@(() => model.Code)" class="text-sm text-danger-600 mt-1" />
-                    <p class="mt-1 text-sm text-gray-500">Codul trebuie să fie unic în sistem</p>
-                </div>
+                <RadzenFormField Text="Cod Curs" Variant="Variant.Outlined" Style="width: 100%;">
+                    <ChildContent>
+                        <RadzenTextBox @bind-Value="model.Code" Placeholder="ex: POO-101" Style="font-family: monospace;" />
+                    </ChildContent>
+                    <Helper>
+                        <RadzenText TextStyle="TextStyle.Caption" Style="margin: 0; color: var(--rz-text-secondary-color);">
+                            Codul trebuie să fie unic în sistem
+                        </RadzenText>
+                        <ValidationMessage For="@(() => model.Code)" />
+                    </Helper>
+                </RadzenFormField>
 
                 <!-- Program -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">
-                        Program de Studii <span class="text-danger-500">*</span>
-                    </label>
-                    <InputSelect @bind-Value="model.ProgramId"
-                                 class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
-                        <option value="">Selectează programul</option>
-                        @foreach (var program in programs)
-                        {
-                            <option value="@program.Id">@program.Name (@program.Code)</option>
-                        }
-                    </InputSelect>
-                    <ValidationMessage For="@(() => model.ProgramId)" class="text-sm text-danger-600 mt-1" />
-                </div>
+                <RadzenFormField Text="Program de Studii" Variant="Variant.Outlined" Style="width: 100%;">
+                    <ChildContent>
+                        <RadzenDropDown @bind-Value="model.ProgramId"
+                                        Data="@programs"
+                                        TextProperty="DisplayName"
+                                        ValueProperty="Id"
+                                        Placeholder="Selectează programul"
+                                        Style="width: 100%;" />
+                    </ChildContent>
+                    <Helper>
+                        <ValidationMessage For="@(() => model.ProgramId)" />
+                    </Helper>
+                </RadzenFormField>
 
                 <!-- Professor -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">
-                        Profesor (opțional)
-                    </label>
-                    <select @bind="selectedProfessorId"
-                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
-                        <option value="">Neasignat</option>
-                        @foreach (var professor in professors)
-                        {
-                            <option value="@professor.Id">
-                                @professor.FullName @(!string.IsNullOrEmpty(professor.Title) ? $"({professor.Title})" : "")
-                            </option>
-                        }
-                    </select>
-                    <p class="mt-1 text-sm text-gray-500">Poți asigna profesorul mai târziu</p>
-                </div>
+                <RadzenFormField Text="Profesor (opțional)" Variant="Variant.Outlined" Style="width: 100%;">
+                    <ChildContent>
+                        <RadzenDropDown @bind-Value="selectedProfessorId"
+                                        Data="@professors"
+                                        TextProperty="DisplayName"
+                                        ValueProperty="IdString"
+                                        AllowClear="true"
+                                        Placeholder="Neasignat"
+                                        Style="width: 100%;" />
+                    </ChildContent>
+                    <Helper>
+                        <RadzenText TextStyle="TextStyle.Caption" Style="margin: 0; color: var(--rz-text-secondary-color);">
+                            Poți asigna profesorul mai târziu
+                        </RadzenText>
+                    </Helper>
+                </RadzenFormField>
 
                 <!-- Credits, Year, Semester Row -->
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <RadzenRow Gap="1rem" RowGap="1rem">
                     <!-- Credits -->
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            Credite ECTS <span class="text-danger-500">*</span>
-                        </label>
-                        <InputNumber @bind-Value="model.Credits"
-                                     class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                                     min="1" max="10" />
-                        <ValidationMessage For="@(() => model.Credits)" class="text-sm text-danger-600 mt-1" />
-                    </div>
+                    <RadzenColumn Size="12" SizeMD="4">
+                        <RadzenFormField Text="Credite ECTS" Variant="Variant.Outlined" Style="width: 100%;">
+                            <ChildContent>
+                                <RadzenNumeric @bind-Value="model.Credits" Min="1" Max="10" Style="width: 100%;" />
+                            </ChildContent>
+                            <Helper>
+                                <ValidationMessage For="@(() => model.Credits)" />
+                            </Helper>
+                        </RadzenFormField>
+                    </RadzenColumn>
 
                     <!-- Year -->
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            An de Studiu <span class="text-danger-500">*</span>
-                        </label>
-                        <InputSelect @bind-Value="model.Year"
-                                     class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
-                            <option value="1">Anul 1</option>
-                            <option value="2">Anul 2</option>
-                            <option value="3">Anul 3</option>
-                            <option value="4">Anul 4</option>
-                        </InputSelect>
-                        <ValidationMessage For="@(() => model.Year)" class="text-sm text-danger-600 mt-1" />
-                    </div>
+                    <RadzenColumn Size="12" SizeMD="4">
+                        <RadzenFormField Text="An de Studiu" Variant="Variant.Outlined" Style="width: 100%;">
+                            <ChildContent>
+                                <RadzenDropDown @bind-Value="model.Year"
+                                                Data="@yearOptions"
+                                                TextProperty="Text"
+                                                ValueProperty="Value"
+                                                Style="width: 100%;" />
+                            </ChildContent>
+                            <Helper>
+                                <ValidationMessage For="@(() => model.Year)" />
+                            </Helper>
+                        </RadzenFormField>
+                    </RadzenColumn>
 
                     <!-- Semester -->
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            Semestru <span class="text-danger-500">*</span>
-                        </label>
-                        <InputSelect @bind-Value="model.Semester"
-                                     class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
-                            <option value="1">Semestrul 1</option>
-                            <option value="2">Semestrul 2</option>
-                        </InputSelect>
-                        <ValidationMessage For="@(() => model.Semester)" class="text-sm text-danger-600 mt-1" />
-                    </div>
-                </div>
+                    <RadzenColumn Size="12" SizeMD="4">
+                        <RadzenFormField Text="Semestru" Variant="Variant.Outlined" Style="width: 100%;">
+                            <ChildContent>
+                                <RadzenDropDown @bind-Value="model.Semester"
+                                                Data="@semesterOptions"
+                                                TextProperty="Text"
+                                                ValueProperty="Value"
+                                                Style="width: 100%;" />
+                            </ChildContent>
+                            <Helper>
+                                <ValidationMessage For="@(() => model.Semester)" />
+                            </Helper>
+                        </RadzenFormField>
+                    </RadzenColumn>
+                </RadzenRow>
 
                 <!-- Description -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">
-                        Descriere (opțional)
-                    </label>
-                    <InputTextArea @bind-Value="model.Description"
-                                   rows="4"
-                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                                   placeholder="Descriere scurtă a cursului, obiective, conținut..." />
-                </div>
+                <RadzenFormField Text="Descriere (opțional)" Variant="Variant.Outlined" Style="width: 100%;">
+                    <ChildContent>
+                        <RadzenTextArea @bind-Value="model.Description"
+                                        Rows="4"
+                                        Placeholder="Descriere scurtă a cursului, obiective, conținut..." />
+                    </ChildContent>
+                </RadzenFormField>
 
                 <!-- Form Actions -->
-                <div class="flex items-center justify-end space-x-3 pt-4 border-t border-gray-200">
-                    <button type="button"
-                            @onclick='() => Navigation.NavigateTo("/cursuri")'
-                            class="px-4 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors">
-                        Anulează
-                    </button>
-                    <button type="submit"
-                            disabled="@isSaving"
-                            class="inline-flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 disabled:bg-gray-400 text-white text-sm font-medium rounded-lg transition-colors">
-                        @if (isSaving)
-                        {
-                            <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                            <span>Se salvează...</span>
-                        }
-                        else
-                        {
-                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                            </svg>
-                            <span>Salvează Curs</span>
-                        }
-                    </button>
+                <div style="padding-top: 1rem; border-top: 1px solid var(--rz-border-color);">
+                    <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.75rem">
+                        <RadzenButton Text="Anulează"
+                                      ButtonStyle="ButtonStyle.Light"
+                                      Click="@(() => Navigation.NavigateTo("/cursuri"))" />
+                        <RadzenButton Text="@(isSaving ? "Se salvează..." : "Salvează Curs")"
+                                      Icon="@(isSaving ? "" : "check")"
+                                      ButtonStyle="ButtonStyle.Primary"
+                                      ButtonType="ButtonType.Submit"
+                                      IsBusy="@isSaving"
+                                      Disabled="@isSaving" />
+                    </RadzenStack>
                 </div>
-            </div>
+            </RadzenStack>
         </EditForm>
-    </div>
-</div>
+    </RadzenCard>
+</RadzenStack>
 
 @code {
     private CreateCourseDto model = new() { Credits = 5, Year = 1, Semester = 1 };
     private List<ProgramOption> programs = new();
-    private List<ProfessorOption> professors = new();
+    private List<ProfessorOptionDisplay> professors = new();
     private string? selectedProfessorId;
     private bool isSaving = false;
     private string? errorMessage;
 
+    private List<YearOption> yearOptions = new()
+    {
+        new YearOption { Text = "Anul 1", Value = 1 },
+        new YearOption { Text = "Anul 2", Value = 2 },
+        new YearOption { Text = "Anul 3", Value = 3 },
+        new YearOption { Text = "Anul 4", Value = 4 }
+    };
+
+    private List<SemesterOption> semesterOptions = new()
+    {
+        new SemesterOption { Text = "Semestrul 1", Value = 1 },
+        new SemesterOption { Text = "Semestrul 2", Value = 2 }
+    };
+
     protected override async Task OnInitializedAsync()
     {
-        programs = await CourseService.GetProgramOptionsAsync();
-        professors = await CourseService.GetProfessorOptionsAsync();
+        var programsList = await CourseService.GetProgramOptionsAsync();
+        programs = programsList.Select(p => new ProgramOption
+        {
+            Id = p.Id,
+            Name = p.Name,
+            Code = p.Code,
+            DisplayName = $"{p.Name} ({p.Code})"
+        }).ToList();
+
+        var professorsList = await CourseService.GetProfessorOptionsAsync();
+        professors = professorsList.Select(p => new ProfessorOptionDisplay
+        {
+            Id = p.Id,
+            IdString = p.Id.ToString(),
+            FullName = p.FullName,
+            Title = p.Title,
+            DisplayName = string.IsNullOrEmpty(p.Title) ? p.FullName : $"{p.FullName} ({p.Title})"
+        }).ToList();
     }
 
     private async Task HandleSubmit()
@@ -232,5 +243,34 @@
         {
             isSaving = false;
         }
+    }
+
+    private class ProgramOption
+    {
+        public Guid Id { get; set; }
+        public string Name { get; set; } = "";
+        public string Code { get; set; } = "";
+        public string DisplayName { get; set; } = "";
+    }
+
+    private class ProfessorOptionDisplay
+    {
+        public Guid Id { get; set; }
+        public string IdString { get; set; } = "";
+        public string FullName { get; set; } = "";
+        public string? Title { get; set; }
+        public string DisplayName { get; set; } = "";
+    }
+
+    private class YearOption
+    {
+        public string Text { get; set; } = "";
+        public int Value { get; set; }
+    }
+
+    private class SemesterOption
+    {
+        public string Text { get; set; } = "";
+        public int Value { get; set; }
     }
 }

@@ -1,0 +1,152 @@
+@using SMU.Services
+@using SMU.Services.DTOs
+@using SMU.Data.Entities
+@inject IGradeService GradeService
+
+<RadzenStack Gap="1rem">
+    @if (IsLoading)
+    {
+        <RadzenProgressBarCircular ShowValue="false" Mode="ProgressBarMode.Indeterminate" Size="ProgressBarCircularSize.Medium" />
+    }
+    else if (Grade != null)
+    {
+        <RadzenCard>
+            <RadzenStack Gap="0.75rem">
+                <RadzenText TextStyle="TextStyle.H6" Style="margin: 0;">Informații Student</RadzenText>
+                <RadzenStack Orientation="Radzen.Orientation.Horizontal" Gap="1rem" Wrap="FlexWrap.Wrap">
+                    <RadzenStack Gap="0.25rem">
+                        <RadzenText TextStyle="TextStyle.Overline" class="rz-color-secondary" Style="margin: 0;">Nume</RadzenText>
+                        <RadzenText TextStyle="TextStyle.Body1" Style="margin: 0; font-weight: 500;">@Grade.StudentName</RadzenText>
+                    </RadzenStack>
+                    <RadzenStack Gap="0.25rem">
+                        <RadzenText TextStyle="TextStyle.Overline" class="rz-color-secondary" Style="margin: 0;">Număr Matricol</RadzenText>
+                        <RadzenText TextStyle="TextStyle.Body1" Style="margin: 0; font-weight: 500;">@Grade.StudentNumber</RadzenText>
+                    </RadzenStack>
+                </RadzenStack>
+            </RadzenStack>
+        </RadzenCard>
+
+        <RadzenCard>
+            <RadzenStack Gap="0.75rem">
+                <RadzenText TextStyle="TextStyle.H6" Style="margin: 0;">Detalii Curs</RadzenText>
+                <RadzenStack Orientation="Radzen.Orientation.Horizontal" Gap="1rem" Wrap="FlexWrap.Wrap">
+                    <RadzenStack Gap="0.25rem">
+                        <RadzenText TextStyle="TextStyle.Overline" class="rz-color-secondary" Style="margin: 0;">Disciplină</RadzenText>
+                        <RadzenText TextStyle="TextStyle.Body1" Style="margin: 0; font-weight: 500;">@Grade.CourseName</RadzenText>
+                    </RadzenStack>
+                    <RadzenStack Gap="0.25rem">
+                        <RadzenText TextStyle="TextStyle.Overline" class="rz-color-secondary" Style="margin: 0;">Cod</RadzenText>
+                        <RadzenText TextStyle="TextStyle.Body1" Style="margin: 0; font-weight: 500;">@Grade.CourseCode</RadzenText>
+                    </RadzenStack>
+                    <RadzenStack Gap="0.25rem">
+                        <RadzenText TextStyle="TextStyle.Overline" class="rz-color-secondary" Style="margin: 0;">Credite</RadzenText>
+                        <RadzenText TextStyle="TextStyle.Body1" Style="margin: 0; font-weight: 500;">@Grade.Credits</RadzenText>
+                    </RadzenStack>
+                </RadzenStack>
+            </RadzenStack>
+        </RadzenCard>
+
+        <RadzenCard>
+            <RadzenStack Gap="0.75rem">
+                <RadzenText TextStyle="TextStyle.H6" Style="margin: 0;">Informații Notă</RadzenText>
+                <RadzenStack Orientation="Radzen.Orientation.Horizontal" Gap="1rem" Wrap="FlexWrap.Wrap">
+                    <RadzenStack Gap="0.25rem">
+                        <RadzenText TextStyle="TextStyle.Overline" class="rz-color-secondary" Style="margin: 0;">Valoare</RadzenText>
+                        <RadzenBadge BadgeStyle="@GetGradeBadgeStyle(Grade.Value)" Text="@Grade.Value.ToString("0.00")" IsPill="true" Style="font-size: 1.25rem; padding: 0.5rem 1rem;" />
+                    </RadzenStack>
+                    <RadzenStack Gap="0.25rem">
+                        <RadzenText TextStyle="TextStyle.Overline" class="rz-color-secondary" Style="margin: 0;">Tip</RadzenText>
+                        <RadzenText TextStyle="TextStyle.Body1" Style="margin: 0; font-weight: 500;">@GetGradeTypeLabel(Grade.Type)</RadzenText>
+                    </RadzenStack>
+                    <RadzenStack Gap="0.25rem">
+                        <RadzenText TextStyle="TextStyle.Overline" class="rz-color-secondary" Style="margin: 0;">Status</RadzenText>
+                        <RadzenBadge BadgeStyle="@GetStatusBadgeStyle(Grade.Status)" Text="@GetStatusLabel(Grade.Status)" IsPill="true" />
+                    </RadzenStack>
+                    <RadzenStack Gap="0.25rem">
+                        <RadzenText TextStyle="TextStyle.Overline" class="rz-color-secondary" Style="margin: 0;">Data Examen</RadzenText>
+                        <RadzenText TextStyle="TextStyle.Body1" Style="margin: 0; font-weight: 500;">@Grade.ExamDate.ToString("dd.MM.yyyy")</RadzenText>
+                    </RadzenStack>
+                </RadzenStack>
+            </RadzenStack>
+        </RadzenCard>
+
+        <RadzenCard>
+            <RadzenStack Gap="0.75rem">
+                <RadzenText TextStyle="TextStyle.H6" Style="margin: 0;">Istoric</RadzenText>
+                <RadzenStack Orientation="Radzen.Orientation.Horizontal" Gap="1rem" Wrap="FlexWrap.Wrap">
+                    <RadzenStack Gap="0.25rem">
+                        <RadzenText TextStyle="TextStyle.Overline" class="rz-color-secondary" Style="margin: 0;">Introdusă De</RadzenText>
+                        <RadzenText TextStyle="TextStyle.Body1" Style="margin: 0; font-weight: 500;">@(Grade.EnteredByName ?? "Necunoscut")</RadzenText>
+                    </RadzenStack>
+                    <RadzenStack Gap="0.25rem">
+                        <RadzenText TextStyle="TextStyle.Overline" class="rz-color-secondary" Style="margin: 0;">Data Creare</RadzenText>
+                        <RadzenText TextStyle="TextStyle.Body1" Style="margin: 0; font-weight: 500;">@Grade.CreatedAt.ToString("dd.MM.yyyy HH:mm")</RadzenText>
+                    </RadzenStack>
+                    <RadzenStack Gap="0.25rem">
+                        <RadzenText TextStyle="TextStyle.Overline" class="rz-color-secondary" Style="margin: 0;">Ultima Modificare</RadzenText>
+                        <RadzenText TextStyle="TextStyle.Body1" Style="margin: 0; font-weight: 500;">@Grade.UpdatedAt.ToString("dd.MM.yyyy HH:mm")</RadzenText>
+                    </RadzenStack>
+                </RadzenStack>
+            </RadzenStack>
+        </RadzenCard>
+
+        @if (!string.IsNullOrEmpty(Grade.Notes))
+        {
+            <RadzenCard>
+                <RadzenStack Gap="0.5rem">
+                    <RadzenText TextStyle="TextStyle.H6" Style="margin: 0;">Observații</RadzenText>
+                    <RadzenText TextStyle="TextStyle.Body1" Style="margin: 0;">@Grade.Notes</RadzenText>
+                </RadzenStack>
+            </RadzenCard>
+        }
+    }
+</RadzenStack>
+
+@code {
+    [Parameter]
+    public Guid GradeId { get; set; }
+
+    private GradeDetailDto? Grade;
+    private bool IsLoading = true;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        IsLoading = true;
+        Grade = await GradeService.GetByIdAsync(GradeId);
+        IsLoading = false;
+    }
+
+    private BadgeStyle GetGradeBadgeStyle(decimal value) => value switch
+    {
+        >= 9 => BadgeStyle.Success,
+        >= 7 => BadgeStyle.Info,
+        >= 5 => BadgeStyle.Warning,
+        _ => BadgeStyle.Danger
+    };
+
+    private BadgeStyle GetStatusBadgeStyle(GradeStatus status) => status switch
+    {
+        GradeStatus.Pending => BadgeStyle.Warning,
+        GradeStatus.Approved => BadgeStyle.Success,
+        GradeStatus.Rejected => BadgeStyle.Danger,
+        _ => BadgeStyle.Light
+    };
+
+    private string GetStatusLabel(GradeStatus status) => status switch
+    {
+        GradeStatus.Pending => "În așteptare",
+        GradeStatus.Approved => "Aprobat",
+        GradeStatus.Rejected => "Respins",
+        _ => status.ToString()
+    };
+
+    private string GetGradeTypeLabel(GradeType type) => type switch
+    {
+        GradeType.Exam => "Examen",
+        GradeType.Lab => "Laborator",
+        GradeType.Seminar => "Seminar",
+        GradeType.Project => "Proiect",
+        GradeType.Final => "Final",
+        _ => type.ToString()
+    };
+}

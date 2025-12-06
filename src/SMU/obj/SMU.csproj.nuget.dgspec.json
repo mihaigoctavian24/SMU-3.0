@@ -83,6 +83,10 @@
             "QuestPDF": {
               "target": "Package",
               "version": "[2024.10.2, )"
+            },
+            "Radzen.Blazor": {
+              "target": "Package",
+              "version": "[7.1.2, )"
             }
           },
           "imports": [

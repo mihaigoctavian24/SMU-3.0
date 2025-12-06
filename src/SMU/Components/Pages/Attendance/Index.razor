@@ -1,72 +1,66 @@
 @page "/prezente"
 @using SMU.Services
+@using SMU.Data
 @using SMU.Data.Entities
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.EntityFrameworkCore
 @using System.Security.Claims
+@using ApexCharts
 @inject IAttendanceService AttendanceService
 @inject AuthService AuthService
 @inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Navigation
+@inject ApplicationDbContext DbContext
 @attribute [Authorize]
 
 <PageTitle>Prezențe - SMU</PageTitle>
 
-<div class="space-y-6">
+<RadzenStack Gap="1.5rem">
     <!-- Header -->
-    <div class="flex items-center justify-between">
-        <div>
-            <h1 class="text-2xl font-bold text-gray-900">Prezențe</h1>
-            <p class="mt-1 text-sm text-gray-600">Monitorizare prezență la cursuri</p>
-        </div>
-        @if (currentUserRole == UserRole.Professor || currentUserRole == UserRole.Secretary ||
-             currentUserRole == UserRole.Dean || currentUserRole == UserRole.Admin)
+    <RadzenStack Orientation="Radzen.Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center">
+        <RadzenStack Gap="0.25rem">
+            <RadzenText TextStyle="TextStyle.H4" Style="margin: 0; font-weight: 700;">Prezențe</RadzenText>
+            <RadzenText TextStyle="TextStyle.Body2" class="rz-color-secondary" Style="margin: 0;">Monitorizare prezență la cursuri</RadzenText>
+        </RadzenStack>
+        @if (currentUserRole == UserRole.Professor || currentUserRole == UserRole.Secretary)
         {
-            <a href="/prezente/marcheaza" class="btn btn-primary">
-                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
-                </svg>
-                Marchează Prezența
-            </a>
+            <RadzenButton Text="Marchează Prezența" Icon="add" ButtonStyle="ButtonStyle.Primary"
+                          Click="@(() => Navigation.NavigateTo("/prezente/marcheaza"))" />
         }
-    </div>
+    </RadzenStack>
 
     @if (isLoading)
     {
-        <div class="flex items-center justify-center py-12">
-            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-        </div>
+        <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Style="padding: 3rem 0;">
+            <RadzenProgressBarCircular ShowValue="false" Mode="ProgressBarMode.Indeterminate" Size="ProgressBarCircularSize.Large" />
+        </RadzenStack>
     }
     else if (currentUserRole == UserRole.Student)
     {
         <!-- Student View: Calendar -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <RadzenRow Gap="1.5rem" RowGap="1.5rem">
             <!-- Calendar -->
-            <div class="lg:col-span-2">
-                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                    <div class="flex items-center justify-between mb-6">
-                        <h2 class="text-lg font-semibold text-gray-900">
+            <RadzenColumn Size="12" SizeLG="8">
+                <RadzenCard>
+                    <RadzenStack Orientation="Radzen.Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center" Style="margin-bottom: 1.5rem;">
+                        <RadzenText TextStyle="TextStyle.H6" Style="margin: 0; font-weight: 600;">
                             @GetMonthName(currentMonth) @currentYear
-                        </h2>
-                        <div class="flex gap-2">
-                            <button @onclick="PreviousMonth" class="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-                                <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
-                                </svg>
-                            </button>
-                            <button @onclick="NextMonth" class="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-                                <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-                                </svg>
-                            </button>
-                        </div>
-                    </div>
+                        </RadzenText>
+                        <RadzenStack Orientation="Radzen.Orientation.Horizontal" Gap="0.5rem">
+                            <RadzenButton Icon="chevron_left" ButtonStyle="ButtonStyle.Light" Variant="Variant.Outlined" Size="ButtonSize.Small"
+                                          Click="@PreviousMonth" />
+                            <RadzenButton Icon="chevron_right" ButtonStyle="ButtonStyle.Light" Variant="Variant.Outlined" Size="ButtonSize.Small"
+                                          Click="@NextMonth" />
+                        </RadzenStack>
+                    </RadzenStack>
 
                     <!-- Calendar Grid -->
-                    <div class="grid grid-cols-7 gap-1">
+                    <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px;">
                         <!-- Weekday headers -->
                         @foreach (var day in new[] { "Lun", "Mar", "Mie", "Joi", "Vin", "Sâm", "Dum" })
                         {
-                            <div class="text-center py-2 text-xs font-medium text-gray-500">@day</div>
+                            <div style="text-align: center; padding: 8px 0; font-size: 12px; font-weight: 500; color: var(--rz-text-disabled-color);">@day</div>
                         }
 
                         <!-- Calendar days -->
@@ -78,165 +72,344 @@
 
                             @for (int i = 0; i < offset; i++)
                             {
-                                <div class="aspect-square"></div>
+                                <div></div>
                             }
 
                             @foreach (var day in calendarData.Days)
                             {
-                                <div class="aspect-square">
-                                    <button @onclick="() => SelectDay(day)"
-                                            class="w-full h-full p-1 rounded-lg transition-all @GetDayClass(day) @(selectedDay?.Date == day.Date ? "ring-2 ring-primary-500" : "")">
-                                        <div class="text-xs font-medium">@day.Date.Day</div>
-                                        @if (day.HasClasses)
-                                        {
-                                            <div class="flex justify-center gap-0.5 mt-0.5">
-                                                @foreach (var attendance in day.Attendances.Take(3))
-                                                {
-                                                    <div class="w-1 h-1 rounded-full @GetStatusDotClass(attendance.Status)"></div>
-                                                }
-                                            </div>
-                                        }
-                                    </button>
+                                <div style="aspect-ratio: 1;">
+                                    <RadzenButton Variant="Variant.Text" Size="ButtonSize.Small"
+                                                  Style="@GetDayStyle(day)"
+                                                  Click="@(() => SelectDay(day))">
+                                        <RadzenStack Gap="0.125rem" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center">
+                                            <span style="font-size: 12px; font-weight: 500;">@day.Date.Day</span>
+                                            @if (day.HasClasses)
+                                            {
+                                                <RadzenStack Orientation="Radzen.Orientation.Horizontal" Gap="2px" JustifyContent="JustifyContent.Center">
+                                                    @foreach (var attendance in day.Attendances.Take(3))
+                                                    {
+                                                        <div style="width: 4px; height: 4px; border-radius: 50%; @GetStatusDotStyle(attendance.Status)"></div>
+                                                    }
+                                                </RadzenStack>
+                                            }
+                                        </RadzenStack>
+                                    </RadzenButton>
                                 </div>
                             }
                         }
                     </div>
-                </div>
-            </div>
+                </RadzenCard>
+            </RadzenColumn>
 
             <!-- Stats & Day Details -->
-            <div class="space-y-6">
-                <!-- Stats Card -->
-                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                    <h3 class="text-sm font-medium text-gray-900 mb-4">Statistici Generale</h3>
-                    @if (stats != null)
-                    {
-                        <div class="space-y-3">
-                            <div class="flex items-center justify-between">
-                                <span class="text-sm text-gray-600">Total ore</span>
-                                <span class="text-sm font-semibold text-gray-900">@stats.TotalClasses</span>
-                            </div>
-                            <div class="flex items-center justify-between">
-                                <span class="text-sm text-gray-600">Prezent</span>
-                                <span class="text-sm font-semibold text-success-600">@stats.Present</span>
-                            </div>
-                            <div class="flex items-center justify-between">
-                                <span class="text-sm text-gray-600">Absent</span>
-                                <span class="text-sm font-semibold text-danger-600">@stats.Absent</span>
-                            </div>
-                            <div class="flex items-center justify-between">
-                                <span class="text-sm text-gray-600">Motivat</span>
-                                <span class="text-sm font-semibold text-info-600">@stats.Excused</span>
-                            </div>
-                            <div class="pt-3 mt-3 border-t border-gray-100">
-                                <div class="flex items-center justify-between">
-                                    <span class="text-sm font-medium text-gray-900">Rată prezență</span>
-                                    <span class="text-lg font-bold text-primary-600">@stats.AttendanceRate.ToString("0")%</span>
-                                </div>
-                            </div>
-                        </div>
-                    }
-                </div>
-
-                <!-- Selected Day Details -->
-                @if (selectedDay != null && selectedDay.HasClasses)
-                {
-                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                        <h3 class="text-sm font-medium text-gray-900 mb-4">
-                            @selectedDay.Date.ToString("dd MMMM yyyy", new System.Globalization.CultureInfo("ro-RO"))
-                        </h3>
-                        <div class="space-y-3">
-                            @foreach (var attendance in selectedDay.Attendances)
-                            {
-                                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                                    <div class="flex-1">
-                                        <div class="text-sm font-medium text-gray-900">@attendance.Course</div>
-                                    </div>
-                                    <span class="@GetStatusBadgeClass(attendance.Status)">
-                                        @GetStatusText(attendance.Status)
-                                    </span>
-                                </div>
-                            }
-                        </div>
-                    </div>
-                }
-            </div>
-        </div>
-    }
-    else
-    {
-        <!-- Professor/Staff View: List -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100">
-            <div class="p-6 border-b border-gray-100">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Curs</label>
-                        <select @bind="selectedCourseId" @bind:after="LoadAttendances"
-                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
-                            <option value="">Toate cursurile</option>
-                            @foreach (var course in professorCourses)
-                            {
-                                <option value="@course.Id">@course.Name (@course.Code)</option>
-                            }
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Dată</label>
-                        <input type="date" @bind="filterDate" @bind:after="LoadAttendances"
-                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent" />
-                    </div>
-                </div>
-            </div>
-
-            <div class="overflow-x-auto">
-                <table class="w-full">
-                    <thead class="bg-gray-50 border-b border-gray-200">
-                        <tr>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nr. Matricol</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Curs</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dată</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Notă</th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
-                        @if (!attendanceList.Any())
+            <RadzenColumn Size="12" SizeLG="4">
+                <RadzenStack Gap="1.5rem">
+                    <!-- Stats Card -->
+                    <RadzenCard>
+                        <RadzenText TextStyle="TextStyle.Subtitle1" Style="margin: 0 0 1rem 0; font-weight: 600;">Statistici Generale</RadzenText>
+                        @if (stats != null)
                         {
-                            <tr>
-                                <td colspan="6" class="px-6 py-12 text-center text-sm text-gray-500">
-                                    Nu există înregistrări de prezență pentru filtrele selectate.
-                                </td>
-                            </tr>
+                            <RadzenStack Gap="0.75rem">
+                                <RadzenStack Orientation="Radzen.Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center">
+                                    <RadzenText TextStyle="TextStyle.Body2" class="rz-color-secondary" Style="margin: 0;">Total ore</RadzenText>
+                                    <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; font-weight: 600;">@stats.TotalClasses</RadzenText>
+                                </RadzenStack>
+                                <RadzenStack Orientation="Radzen.Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center">
+                                    <RadzenText TextStyle="TextStyle.Body2" class="rz-color-secondary" Style="margin: 0;">Prezent</RadzenText>
+                                    <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; font-weight: 600; color: var(--rz-success);">@stats.Present</RadzenText>
+                                </RadzenStack>
+                                <RadzenStack Orientation="Radzen.Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center">
+                                    <RadzenText TextStyle="TextStyle.Body2" class="rz-color-secondary" Style="margin: 0;">Absent</RadzenText>
+                                    <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; font-weight: 600; color: var(--rz-danger);">@stats.Absent</RadzenText>
+                                </RadzenStack>
+                                <RadzenStack Orientation="Radzen.Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center">
+                                    <RadzenText TextStyle="TextStyle.Body2" class="rz-color-secondary" Style="margin: 0;">Motivat</RadzenText>
+                                    <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; font-weight: 600; color: var(--rz-info);">@stats.Excused</RadzenText>
+                                </RadzenStack>
+                                <div style="border-top: 1px solid var(--rz-base-300); padding-top: 0.75rem; margin-top: 0.5rem;">
+                                    <RadzenStack Orientation="Radzen.Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center">
+                                        <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; font-weight: 500;">Rată prezență</RadzenText>
+                                        <RadzenText TextStyle="TextStyle.H6" Style="margin: 0; font-weight: 700; color: var(--rz-primary);">@stats.AttendanceRate.ToString("0")%</RadzenText>
+                                    </RadzenStack>
+                                </div>
+                            </RadzenStack>
+                        }
+                    </RadzenCard>
+
+                    <!-- Selected Day Details -->
+                    @if (selectedDay != null && selectedDay.HasClasses)
+                    {
+                        <RadzenCard>
+                            <RadzenText TextStyle="TextStyle.Subtitle1" Style="margin: 0 0 1rem 0; font-weight: 600;">
+                                @selectedDay.Date.ToString("dd MMMM yyyy", new System.Globalization.CultureInfo("ro-RO"))
+                            </RadzenText>
+                            <RadzenStack Gap="0.5rem">
+                                @foreach (var attendance in selectedDay.Attendances)
+                                {
+                                    <RadzenStack Orientation="Radzen.Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center"
+                                                 Style="padding: 0.75rem; background: var(--rz-base-100); border-radius: 8px;">
+                                        <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; font-weight: 500;">@attendance.Course</RadzenText>
+                                        <RadzenBadge BadgeStyle="@GetStatusBadgeStyle(attendance.Status)" Text="@GetStatusText(attendance.Status)" IsPill="true" />
+                                    </RadzenStack>
+                                }
+                            </RadzenStack>
+                        </RadzenCard>
+                    }
+                </RadzenStack>
+            </RadzenColumn>
+        </RadzenRow>
+    }
+    else if (currentUserRole == UserRole.Dean)
+    {
+        <!-- Dean View: Faculty Overview with Charts -->
+        <RadzenCard Style="padding: 1.5rem; border-bottom: 1px solid var(--rz-base-300);">
+            <RadzenRow Gap="1rem" RowGap="1rem">
+                <RadzenColumn Size="12" SizeMD="4">
+                    <RadzenFormField Text="Curs" Variant="Variant.Outlined" Style="width: 100%;">
+                        <RadzenDropDown @bind-Value="deanSelectedCourseId" Data="@deanCourseOptions"
+                                        TextProperty="Text" ValueProperty="Value"
+                                        Change="@(args => LoadDeanData())" Style="width: 100%;" />
+                    </RadzenFormField>
+                </RadzenColumn>
+                <RadzenColumn Size="12" SizeMD="4">
+                    <RadzenFormField Text="An de studiu" Variant="Variant.Outlined" Style="width: 100%;">
+                        <RadzenDropDown @bind-Value="deanSelectedYear" Data="@deanYearOptions"
+                                        TextProperty="Text" ValueProperty="Value"
+                                        Change="@(args => LoadDeanData())" Style="width: 100%;" />
+                    </RadzenFormField>
+                </RadzenColumn>
+            </RadzenRow>
+        </RadzenCard>
+
+        @if (deanOverview != null)
+        {
+            <!-- Stats Cards Row -->
+            <RadzenRow Gap="1.5rem" RowGap="1.5rem">
+                <RadzenColumn Size="6" SizeMD="3">
+                    <RadzenCard Style="text-align: center;">
+                        <RadzenText TextStyle="TextStyle.Body2" class="rz-color-secondary" Style="margin: 0;">Total Înregistrări</RadzenText>
+                        <RadzenText TextStyle="TextStyle.H4" Style="margin: 0.5rem 0 0 0; font-weight: 700;">@deanOverview.TotalRecords</RadzenText>
+                    </RadzenCard>
+                </RadzenColumn>
+                <RadzenColumn Size="6" SizeMD="3">
+                    <RadzenCard Style="text-align: center;">
+                        <RadzenText TextStyle="TextStyle.Body2" class="rz-color-secondary" Style="margin: 0;">Prezenți</RadzenText>
+                        <RadzenText TextStyle="TextStyle.H4" Style="margin: 0.5rem 0 0 0; font-weight: 700; color: var(--rz-success);">@deanOverview.Present</RadzenText>
+                    </RadzenCard>
+                </RadzenColumn>
+                <RadzenColumn Size="6" SizeMD="3">
+                    <RadzenCard Style="text-align: center;">
+                        <RadzenText TextStyle="TextStyle.Body2" class="rz-color-secondary" Style="margin: 0;">Absenți</RadzenText>
+                        <RadzenText TextStyle="TextStyle.H4" Style="margin: 0.5rem 0 0 0; font-weight: 700; color: var(--rz-danger);">@deanOverview.Absent</RadzenText>
+                    </RadzenCard>
+                </RadzenColumn>
+                <RadzenColumn Size="6" SizeMD="3">
+                    <RadzenCard Style="text-align: center;">
+                        <RadzenText TextStyle="TextStyle.Body2" class="rz-color-secondary" Style="margin: 0;">Rată Prezență</RadzenText>
+                        <RadzenText TextStyle="TextStyle.H4" Style="margin: 0.5rem 0 0 0; font-weight: 700; color: var(--rz-primary);">@deanOverview.OverallAttendanceRate.ToString("0.0")%</RadzenText>
+                    </RadzenCard>
+                </RadzenColumn>
+            </RadzenRow>
+
+            <!-- Charts Row -->
+            <RadzenRow Gap="1.5rem" RowGap="1.5rem">
+                <!-- Attendance by Course Chart -->
+                <RadzenColumn Size="12" SizeLG="6">
+                    <RadzenCard>
+                        <RadzenText TextStyle="TextStyle.H6" Style="margin: 0 0 1rem 0; font-weight: 600;">Prezență pe Cursuri</RadzenText>
+                        @if (courseChartData.Any())
+                        {
+                            <ApexChart TItem="ChartDataItem"
+                                       Options="courseChartOptions"
+                                       Height="300">
+                                <ApexPointSeries TItem="ChartDataItem"
+                                                 Items="courseChartData"
+                                                 Name="Rată prezență (%)"
+                                                 SeriesType="SeriesType.Bar"
+                                                 XValue="e => e.Label"
+                                                 YValue="e => e.Value" />
+                            </ApexChart>
                         }
                         else
                         {
-                            @foreach (var attendance in attendanceList)
-                            {
-                                <tr class="hover:bg-gray-50 transition-colors">
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">@attendance.CourseName</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">-</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">@attendance.CourseName</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                                        @attendance.Date.ToString("dd.MM.yyyy")
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <span class="@GetStatusBadgeClass(attendance.Status)">
-                                            @GetStatusText(attendance.Status)
-                                        </span>
-                                    </td>
-                                    <td class="px-6 py-4 text-sm text-gray-600">
-                                        @(attendance.Notes ?? "-")
-                                    </td>
-                                </tr>
-                            }
+                            <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Style="height: 200px;">
+                                <RadzenText TextStyle="TextStyle.Body2" class="rz-color-secondary">Nu sunt date disponibile</RadzenText>
+                            </RadzenStack>
                         }
-                    </tbody>
-                </table>
-            </div>
-        </div>
+                    </RadzenCard>
+                </RadzenColumn>
+
+                <!-- Attendance by Year Chart -->
+                <RadzenColumn Size="12" SizeLG="6">
+                    <RadzenCard>
+                        <RadzenText TextStyle="TextStyle.H6" Style="margin: 0 0 1rem 0; font-weight: 600;">Prezență pe Ani de Studiu</RadzenText>
+                        @if (yearChartData.Any())
+                        {
+                            <ApexChart TItem="ChartDataItem"
+                                       Options="yearChartOptions"
+                                       Height="300">
+                                <ApexPointSeries TItem="ChartDataItem"
+                                                 Items="yearChartData"
+                                                 Name="Rată prezență (%)"
+                                                 SeriesType="SeriesType.Bar"
+                                                 XValue="e => e.Label"
+                                                 YValue="e => e.Value" />
+                            </ApexChart>
+                        }
+                        else
+                        {
+                            <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Style="height: 200px;">
+                                <RadzenText TextStyle="TextStyle.Body2" class="rz-color-secondary">Nu sunt date disponibile</RadzenText>
+                            </RadzenStack>
+                        }
+                    </RadzenCard>
+                </RadzenColumn>
+            </RadzenRow>
+
+            <!-- Top Absent Students & Recent Records -->
+            <RadzenRow Gap="1.5rem" RowGap="1.5rem">
+                <!-- Top Absent Students -->
+                <RadzenColumn Size="12" SizeLG="6">
+                    <RadzenCard Style="padding: 0; overflow: hidden;">
+                        <div style="padding: 1.5rem; border-bottom: 1px solid var(--rz-base-300);">
+                            <RadzenText TextStyle="TextStyle.H6" Style="margin: 0; font-weight: 600;">Top 10 Studenți cu Cele Mai Multe Absențe</RadzenText>
+                        </div>
+                        @if (deanOverview.TopAbsentStudents.Any())
+                        {
+                            <RadzenDataGrid Data="@deanOverview.TopAbsentStudents" TItem="StudentAbsenceDto"
+                                            AllowSorting="false" AllowPaging="false" Style="border: none;">
+                                <Columns>
+                                    <RadzenDataGridColumn TItem="StudentAbsenceDto" Property="StudentName" Title="Student" />
+                                    <RadzenDataGridColumn TItem="StudentAbsenceDto" Property="StudentNumber" Title="Nr. Matricol" Width="120px" />
+                                    <RadzenDataGridColumn TItem="StudentAbsenceDto" Property="AbsenceCount" Title="Absențe" Width="100px">
+                                        <Template Context="student">
+                                            <RadzenBadge BadgeStyle="BadgeStyle.Danger" Text="@student.AbsenceCount.ToString()" IsPill="true" />
+                                        </Template>
+                                    </RadzenDataGridColumn>
+                                </Columns>
+                            </RadzenDataGrid>
+                        }
+                        else
+                        {
+                            <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Class="rz-p-6">
+                                <RadzenText TextStyle="TextStyle.Body2" class="rz-color-secondary">Nu există absențe înregistrate</RadzenText>
+                            </RadzenStack>
+                        }
+                    </RadzenCard>
+                </RadzenColumn>
+
+                <!-- Recent Records -->
+                <RadzenColumn Size="12" SizeLG="6">
+                    <RadzenCard Style="padding: 0; overflow: hidden;">
+                        <div style="padding: 1.5rem; border-bottom: 1px solid var(--rz-base-300);">
+                            <RadzenText TextStyle="TextStyle.H6" Style="margin: 0; font-weight: 600;">Înregistrări Recente</RadzenText>
+                        </div>
+                        @if (deanOverview.RecentRecords.Any())
+                        {
+                            <RadzenDataGrid Data="@deanOverview.RecentRecords" TItem="AttendanceListDto"
+                                            AllowSorting="false" AllowPaging="false" Style="border: none;">
+                                <Columns>
+                                    <RadzenDataGridColumn TItem="AttendanceListDto" Property="CourseName" Title="Curs / Student" />
+                                    <RadzenDataGridColumn TItem="AttendanceListDto" Property="Date" Title="Dată" Width="100px">
+                                        <Template Context="att">
+                                            @att.Date.ToString("dd.MM")
+                                        </Template>
+                                    </RadzenDataGridColumn>
+                                    <RadzenDataGridColumn TItem="AttendanceListDto" Property="Status" Title="Status" Width="100px">
+                                        <Template Context="att">
+                                            <RadzenBadge BadgeStyle="@GetStatusBadgeStyle(att.Status)" Text="@GetStatusText(att.Status)" IsPill="true" />
+                                        </Template>
+                                    </RadzenDataGridColumn>
+                                </Columns>
+                            </RadzenDataGrid>
+                        }
+                        else
+                        {
+                            <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Class="rz-p-6">
+                                <RadzenText TextStyle="TextStyle.Body2" class="rz-color-secondary">Nu există înregistrări recente</RadzenText>
+                            </RadzenStack>
+                        }
+                    </RadzenCard>
+                </RadzenColumn>
+            </RadzenRow>
+        }
+        else
+        {
+            <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Class="rz-p-6" Gap="1rem">
+                <RadzenIcon Icon="event_busy" Style="font-size: 48px; color: var(--rz-text-disabled-color);" />
+                <RadzenText TextStyle="TextStyle.Body2" class="rz-color-secondary" Style="margin: 0;">
+                    Nu există date de prezență pentru filtrele selectate.
+                </RadzenText>
+            </RadzenStack>
+        }
     }
-</div>
+    else
+    {
+        <!-- Professor/Staff View: Table -->
+        <RadzenCard Style="padding: 0; overflow: hidden;">
+            <!-- Filters -->
+            <div style="padding: 1.5rem; border-bottom: 1px solid var(--rz-base-300);">
+                <RadzenRow Gap="1rem" RowGap="1rem">
+                    <RadzenColumn Size="12" SizeMD="4">
+                        <RadzenFormField Text="Curs" Variant="Variant.Outlined" Style="width: 100%;">
+                            <RadzenDropDown @bind-Value="selectedCourseId" Data="@professorCourseOptions"
+                                            TextProperty="Text" ValueProperty="Value"
+                                            Change="@(args => LoadAttendances())" Style="width: 100%;" />
+                        </RadzenFormField>
+                    </RadzenColumn>
+                    <RadzenColumn Size="12" SizeMD="4">
+                        <RadzenStack Gap="0.25rem">
+                            <RadzenLabel Text="Dată" />
+                            <RadzenDatePicker TValue="DateTime?" @bind-Value="filterDateTime" DateFormat="dd.MM.yyyy"
+                                              ShowTime="false" AllowClear="true"
+                                              Change="@(args => LoadAttendances())" Style="width: 100%;" />
+                        </RadzenStack>
+                    </RadzenColumn>
+                </RadzenRow>
+            </div>
+
+            <!-- Table -->
+            @if (!attendanceList.Any())
+            {
+                <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Class="rz-p-6" Gap="1rem">
+                    <RadzenIcon Icon="event_busy" Style="font-size: 48px; color: var(--rz-text-disabled-color);" />
+                    <RadzenText TextStyle="TextStyle.Body2" class="rz-color-secondary" Style="margin: 0;">
+                        Nu există înregistrări de prezență pentru filtrele selectate.
+                    </RadzenText>
+                </RadzenStack>
+            }
+            else
+            {
+                <RadzenDataGrid Data="@attendanceList" TItem="AttendanceListDto"
+                                AllowSorting="true" AllowPaging="false"
+                                Style="border: none;">
+                    <Columns>
+                        <RadzenDataGridColumn TItem="AttendanceListDto" Property="CourseName" Title="Curs" Sortable="true" />
+                        <RadzenDataGridColumn TItem="AttendanceListDto" Property="Date" Title="Dată" Width="120px" Sortable="true">
+                            <Template Context="attendance">
+                                <RadzenText TextStyle="TextStyle.Body2" class="rz-color-secondary" Style="margin: 0;">
+                                    @attendance.Date.ToString("dd.MM.yyyy")
+                                </RadzenText>
+                            </Template>
+                        </RadzenDataGridColumn>
+                        <RadzenDataGridColumn TItem="AttendanceListDto" Property="Status" Title="Status" Width="120px" Sortable="true">
+                            <Template Context="attendance">
+                                <RadzenBadge BadgeStyle="@GetStatusBadgeStyle(attendance.Status)" Text="@GetStatusText(attendance.Status)" IsPill="true" />
+                            </Template>
+                        </RadzenDataGridColumn>
+                        <RadzenDataGridColumn TItem="AttendanceListDto" Property="Notes" Title="Notă" Sortable="false">
+                            <Template Context="attendance">
+                                <RadzenText TextStyle="TextStyle.Body2" class="rz-color-secondary" Style="margin: 0;">
+                                    @(attendance.Notes ?? "-")
+                                </RadzenText>
+                            </Template>
+                        </RadzenDataGridColumn>
+                    </Columns>
+                </RadzenDataGrid>
+            }
+        </RadzenCard>
+    }
+</RadzenStack>
 
 @code {
     private bool isLoading = true;
@@ -254,9 +427,61 @@
 
     // Professor view
     private List<CourseDto> professorCourses = new();
-    private string selectedCourseId = "";
-    private DateOnly? filterDate;
+    private List<CourseDropdownOption> professorCourseOptions = new();
+    private string? selectedCourseId;
+
+    // Helper class for typed dropdown
+    private class CourseDropdownOption
+    {
+        public string Text { get; set; } = string.Empty;
+        public string? Value { get; set; }
+    }
+    private DateTime? filterDateTime;
     private List<AttendanceListDto> attendanceList = new();
+
+    // Dean view
+    private Guid? deanFacultyId;
+    private string? deanSelectedCourseId;
+    private int? deanSelectedYear;
+    private FacultyAttendanceOverviewDto? deanOverview;
+    private List<CourseDropdownOption> deanCourseOptions = new();
+    private List<YearDropdownOption> deanYearOptions = new();
+    private List<ChartDataItem> courseChartData = new();
+    private List<ChartDataItem> yearChartData = new();
+
+    private class YearDropdownOption
+    {
+        public string Text { get; set; } = string.Empty;
+        public int? Value { get; set; }
+    }
+
+    private class ChartDataItem
+    {
+        public string Label { get; set; } = string.Empty;
+        public decimal Value { get; set; }
+    }
+
+    // Chart options
+    private ApexChartOptions<ChartDataItem> courseChartOptions = new()
+    {
+        Chart = new Chart { Toolbar = new Toolbar { Show = false } },
+        PlotOptions = new PlotOptions
+        {
+            Bar = new PlotOptionsBar { Horizontal = false, ColumnWidth = "60%" }
+        },
+        Colors = new List<string> { "#3b82f6" },
+        Xaxis = new XAxis { Labels = new XAxisLabels { Rotate = -45 } }
+    };
+
+    private ApexChartOptions<ChartDataItem> yearChartOptions = new()
+    {
+        Chart = new Chart { Toolbar = new Toolbar { Show = false } },
+        PlotOptions = new PlotOptions
+        {
+            Bar = new PlotOptionsBar { Horizontal = false, ColumnWidth = "50%" }
+        },
+        Colors = new List<string> { "#10b981" }
+    };
 
     protected override async Task OnInitializedAsync()
     {
@@ -265,27 +490,69 @@
 
         if (user.Identity?.IsAuthenticated == true)
         {
-            var appUser = await AuthService.GetCurrentUserAsync(user);
-            if (appUser != null)
+            // Determine role from claims first
+            var roleClaim = user.FindFirst("Role")?.Value;
+            if (Enum.TryParse<UserRole>(roleClaim, out var role))
             {
-                currentUserRole = appUser.Role;
-                currentUserId = appUser.Id;
+                currentUserRole = role;
+            }
 
-                if (currentUserRole == UserRole.Student)
+            if (currentUserRole == UserRole.Student)
+            {
+                // Load with Student navigation
+                var appUser = await AuthService.GetCurrentUserWithStudentAsync(user);
+                if (appUser != null)
                 {
+                    currentUserId = appUser.Id;
                     currentStudentId = appUser.Student?.Id;
                     if (currentStudentId.HasValue)
                     {
                         await LoadStudentData();
                     }
                 }
-                else if (currentUserRole == UserRole.Professor)
+            }
+            else if (currentUserRole == UserRole.Professor)
+            {
+                // Load with Professor navigation
+                var appUser = await AuthService.GetCurrentUserWithProfessorAsync(user);
+                if (appUser != null)
                 {
+                    currentUserId = appUser.Id;
                     currentProfessorId = appUser.Professor?.Id;
                     if (currentProfessorId.HasValue)
                     {
                         await LoadProfessorData();
                     }
+                }
+            }
+            else if (currentUserRole == UserRole.Dean)
+            {
+                // Dean: Find faculty where user is dean
+                var appUser = await AuthService.GetCurrentUserAsync(user);
+                if (appUser != null)
+                {
+                    currentUserId = appUser.Id;
+                    currentUserRole = appUser.Role;
+
+                    // Get faculty where this user is dean
+                    var faculty = await DbContext.Faculties
+                        .FirstOrDefaultAsync(f => f.DeanId == appUser.Id);
+
+                    if (faculty != null)
+                    {
+                        deanFacultyId = faculty.Id;
+                        await LoadDeanData();
+                    }
+                }
+            }
+            else
+            {
+                // For other roles (Secretary, Admin), just get basic user info
+                var appUser = await AuthService.GetCurrentUserAsync(user);
+                if (appUser != null)
+                {
+                    currentUserId = appUser.Id;
+                    currentUserRole = appUser.Role;
                 }
             }
         }
@@ -308,14 +575,75 @@
         if (!currentProfessorId.HasValue) return;
 
         professorCourses = await AttendanceService.GetProfessorCoursesAsync(currentProfessorId.Value);
+        professorCourseOptions = new List<CourseDropdownOption> { new() { Text = "Toate cursurile", Value = null } };
+        professorCourseOptions.AddRange(professorCourses.Select(c => new CourseDropdownOption { Text = $"{c.Name} ({c.Code})", Value = c.Id.ToString() }));
         await LoadAttendances();
     }
 
     private async Task LoadAttendances()
     {
-        // This would need more complex logic for professor view
-        // For now, keeping it simple
-        attendanceList = new List<AttendanceListDto>();
+        if (!currentProfessorId.HasValue)
+        {
+            attendanceList = new List<AttendanceListDto>();
+            return;
+        }
+
+        Guid? courseIdFilter = null;
+        if (!string.IsNullOrEmpty(selectedCourseId) && Guid.TryParse(selectedCourseId, out var parsedCourseId))
+        {
+            courseIdFilter = parsedCourseId;
+        }
+
+        DateOnly? dateFilter = null;
+        if (filterDateTime.HasValue)
+        {
+            dateFilter = DateOnly.FromDateTime(filterDateTime.Value);
+        }
+
+        attendanceList = await AttendanceService.GetByProfessorCoursesAsync(
+            currentProfessorId.Value, courseIdFilter, dateFilter);
+    }
+
+    private async Task LoadDeanData()
+    {
+        if (!deanFacultyId.HasValue) return;
+
+        // Load course filter options
+        var courses = await AttendanceService.GetFacultyCoursesAsync(deanFacultyId.Value);
+        deanCourseOptions = new List<CourseDropdownOption> { new() { Text = "Toate cursurile", Value = null } };
+        deanCourseOptions.AddRange(courses.Select(c => new CourseDropdownOption { Text = $"{c.Name} ({c.Code})", Value = c.Id.ToString() }));
+
+        // Load year filter options
+        deanYearOptions = new List<YearDropdownOption>
+        {
+            new() { Text = "Toți anii", Value = null },
+            new() { Text = "Anul 1", Value = 1 },
+            new() { Text = "Anul 2", Value = 2 },
+            new() { Text = "Anul 3", Value = 3 },
+            new() { Text = "Anul 4", Value = 4 }
+        };
+
+        // Parse filter values
+        Guid? courseFilter = null;
+        if (!string.IsNullOrEmpty(deanSelectedCourseId) && Guid.TryParse(deanSelectedCourseId, out var parsedCourseId))
+        {
+            courseFilter = parsedCourseId;
+        }
+
+        // Load overview data
+        deanOverview = await AttendanceService.GetFacultyOverviewAsync(deanFacultyId.Value, courseFilter, deanSelectedYear);
+
+        // Prepare chart data
+        if (deanOverview != null)
+        {
+            courseChartData = deanOverview.StatsByCourse
+                .Select(c => new ChartDataItem { Label = c.CourseName, Value = c.AttendanceRate })
+                .ToList();
+
+            yearChartData = deanOverview.StatsByYear
+                .Select(y => new ChartDataItem { Label = $"Anul {y.Year}", Value = y.AttendanceRate })
+                .ToList();
+        }
     }
 
     private async Task PreviousMonth()
@@ -360,55 +688,50 @@
         return new DateTime(2000, month, 1).ToString("MMMM", new System.Globalization.CultureInfo("ro-RO"));
     }
 
-    private string GetDayClass(CalendarDayDto day)
+    private string GetDayStyle(CalendarDayDto day)
     {
+        var baseStyle = "width: 100%; height: 100%; border-radius: 8px;";
+        var isSelected = selectedDay?.Date == day.Date;
+        var selectedBorder = isSelected ? " border: 2px solid var(--rz-primary);" : "";
+
         if (!day.HasClasses)
-            return "bg-gray-50 text-gray-400";
+            return $"{baseStyle} background: var(--rz-base-100); color: var(--rz-text-disabled-color);{selectedBorder}";
 
         var allPresent = day.Attendances.All(a => a.Status == AttendanceStatus.Present);
         var anyAbsent = day.Attendances.Any(a => a.Status == AttendanceStatus.Absent);
         var allExcused = day.Attendances.All(a => a.Status == AttendanceStatus.Excused);
 
         if (allPresent)
-            return "bg-success-100 text-success-700 hover:bg-success-200";
+            return $"{baseStyle} background: rgba(34, 197, 94, 0.15); color: var(--rz-success);{selectedBorder}";
         if (allExcused)
-            return "bg-info-100 text-info-700 hover:bg-info-200";
+            return $"{baseStyle} background: rgba(59, 130, 246, 0.15); color: var(--rz-info);{selectedBorder}";
         if (anyAbsent)
-            return "bg-danger-100 text-danger-700 hover:bg-danger-200";
+            return $"{baseStyle} background: rgba(239, 68, 68, 0.15); color: var(--rz-danger);{selectedBorder}";
 
-        return "bg-warning-100 text-warning-700 hover:bg-warning-200";
+        return $"{baseStyle} background: rgba(245, 158, 11, 0.15); color: var(--rz-warning);{selectedBorder}";
     }
 
-    private string GetStatusDotClass(AttendanceStatus status)
+    private string GetStatusDotStyle(AttendanceStatus status) => status switch
     {
-        return status switch
-        {
-            AttendanceStatus.Present => "bg-success-500",
-            AttendanceStatus.Absent => "bg-danger-500",
-            AttendanceStatus.Excused => "bg-info-500",
-            _ => "bg-gray-400"
-        };
-    }
+        AttendanceStatus.Present => "background: var(--rz-success);",
+        AttendanceStatus.Absent => "background: var(--rz-danger);",
+        AttendanceStatus.Excused => "background: var(--rz-info);",
+        _ => "background: var(--rz-base-400);"
+    };
 
-    private string GetStatusBadgeClass(AttendanceStatus status)
+    private BadgeStyle GetStatusBadgeStyle(AttendanceStatus status) => status switch
     {
-        return status switch
-        {
-            AttendanceStatus.Present => "px-2 py-1 text-xs font-medium rounded-full bg-success-100 text-success-700",
-            AttendanceStatus.Absent => "px-2 py-1 text-xs font-medium rounded-full bg-danger-100 text-danger-700",
-            AttendanceStatus.Excused => "px-2 py-1 text-xs font-medium rounded-full bg-info-100 text-info-700",
-            _ => "px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-700"
-        };
-    }
+        AttendanceStatus.Present => BadgeStyle.Success,
+        AttendanceStatus.Absent => BadgeStyle.Danger,
+        AttendanceStatus.Excused => BadgeStyle.Info,
+        _ => BadgeStyle.Light
+    };
 
-    private string GetStatusText(AttendanceStatus status)
+    private string GetStatusText(AttendanceStatus status) => status switch
     {
-        return status switch
-        {
-            AttendanceStatus.Present => "Prezent",
-            AttendanceStatus.Absent => "Absent",
-            AttendanceStatus.Excused => "Motivat",
-            _ => "Necunoscut"
-        };
-    }
+        AttendanceStatus.Present => "Prezent",
+        AttendanceStatus.Absent => "Absent",
+        AttendanceStatus.Excused => "Motivat",
+        _ => "Necunoscut"
+    };
 }

@@ -1,0 +1,59 @@
+@page "/test-datepicker"
+
+<PageTitle>Test DatePicker</PageTitle>
+
+<RadzenCard>
+    <RadzenText TextStyle="TextStyle.H4">Test RadzenDatePicker</RadzenText>
+    <RadzenText TextStyle="TextStyle.Body1" Class="rz-mb-4">Această pagină testează funcționalitatea DatePicker-ului.</RadzenText>
+
+    <RadzenStack Gap="1.5rem">
+        @* Test 1: DatePicker WITHOUT FormField wrapper - simplest approach *@
+        <div>
+            <RadzenLabel Text="DatePicker Simplu (fără FormField)" Component="dp1" Class="rz-mb-2" Style="display: block;" />
+            <RadzenDatePicker @bind-Value="@selectedDate" DateFormat="dd/MM/yyyy" Name="dp1" Style="width: 100%;" />
+        </div>
+
+        @* Test 2: DatePicker with FormField using ChildContent *@
+        <RadzenFormField Text="DatePicker cu FormField" Variant="Variant.Outlined" Style="width: 100%;">
+            <ChildContent>
+                <RadzenDatePicker @bind-Value="@selectedDate2" DateFormat="dd/MM/yyyy" />
+            </ChildContent>
+        </RadzenFormField>
+
+        @* Test 3: DatePicker inline (always visible calendar) *@
+        <div>
+            <RadzenLabel Text="DatePicker inline (calendar mereu vizibil)" Class="rz-mb-2" Style="display: block;" />
+            <RadzenDatePicker @bind-Value="@selectedDate3" DateFormat="dd/MM/yyyy" Inline="true" />
+        </div>
+
+        @* Test 4: DatePicker with ShowTime *@
+        <RadzenFormField Text="DatePicker cu ShowTime" Variant="Variant.Outlined" Style="width: 100%;">
+            <ChildContent>
+                <RadzenDatePicker @bind-Value="@selectedDate4" DateFormat="dd/MM/yyyy HH:mm" ShowTime="true" />
+            </ChildContent>
+        </RadzenFormField>
+
+        <RadzenCard class="rz-mt-4 rz-background-color-base-200">
+            <RadzenText TextStyle="TextStyle.Subtitle1" Class="rz-mb-2">Valori selectate:</RadzenText>
+            <RadzenText TextStyle="TextStyle.Body2">
+                Data 1 (simplu): <strong>@(selectedDate?.ToString("dd/MM/yyyy") ?? "Neselectată")</strong>
+            </RadzenText>
+            <RadzenText TextStyle="TextStyle.Body2">
+                Data 2 (FormField): <strong>@(selectedDate2?.ToString("dd/MM/yyyy") ?? "Neselectată")</strong>
+            </RadzenText>
+            <RadzenText TextStyle="TextStyle.Body2">
+                Data 3 (inline): <strong>@(selectedDate3?.ToString("dd/MM/yyyy") ?? "Neselectată")</strong>
+            </RadzenText>
+            <RadzenText TextStyle="TextStyle.Body2">
+                Data 4 (cu ora): <strong>@(selectedDate4?.ToString("dd/MM/yyyy HH:mm") ?? "Neselectată")</strong>
+            </RadzenText>
+        </RadzenCard>
+    </RadzenStack>
+</RadzenCard>
+
+@code {
+    private DateTime? selectedDate = DateTime.Today;
+    private DateTime? selectedDate2;
+    private DateTime? selectedDate3 = DateTime.Today;
+    private DateTime? selectedDate4;
+}

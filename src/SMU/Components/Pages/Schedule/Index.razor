@@ -7,145 +7,185 @@
 @inject IScheduleService ScheduleService
 @inject AuthService AuthService
 @inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Navigation
 @attribute [Authorize]
 
 <PageTitle>Orar - SMU</PageTitle>
 
-<div class="space-y-6">
+<RadzenStack Gap="1.5rem">
     <!-- Header -->
-    <div class="flex items-center justify-between">
-        <div>
-            <h1 class="text-2xl font-bold text-gray-900">Orar</h1>
-            <p class="mt-1 text-sm text-gray-600">
-                @if (currentUserRole == UserRole.Student)
-                {
-                    <text>Orarul tău săptămânal</text>
-                }
-                else if (currentUserRole == UserRole.Professor)
-                {
-                    <text>Orarul cursurilor tale</text>
-                }
-                else
-                {
-                    <text>Orarul săptămânal al grupelor</text>
-                }
-            </p>
-        </div>
+    <RadzenStack Orientation="Radzen.Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center">
+        <RadzenStack Gap="0.25rem">
+            <RadzenText TextStyle="TextStyle.H4" Style="margin: 0; font-weight: 700;">Orar</RadzenText>
+            <RadzenText TextStyle="TextStyle.Body2" class="rz-color-secondary" Style="margin: 0;">
+                @GetSubtitle()
+            </RadzenText>
+        </RadzenStack>
+        @* Dean has READ-ONLY access - no manage button *@
         @if (currentUserRole == UserRole.Secretary || currentUserRole == UserRole.Admin)
         {
-            <a href="/orar/gestionare" class="btn btn-primary">
-                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
-                </svg>
-                Gestionează Orar
-            </a>
+            <RadzenButton Text="Gestionează Orar" Icon="edit_calendar" ButtonStyle="ButtonStyle.Primary"
+                          Click="@(() => Navigation.NavigateTo("/orar/gestionare"))" />
         }
-    </div>
+    </RadzenStack>
+
+    @* Filters for Dean role *@
+    @if (currentUserRole == UserRole.Dean)
+    {
+        <RadzenCard>
+            <RadzenStack Orientation="Radzen.Orientation.Horizontal" Gap="1rem" AlignItems="AlignItems.End" Wrap="FlexWrap.Wrap">
+                <RadzenStack Gap="0.25rem">
+                    <RadzenLabel Text="An Studii" />
+                    <RadzenDropDown TValue="int?" @bind-Value="selectedYear" Data="@availableYears"
+                                    Placeholder="Toți anii" AllowClear="true"
+                                    Style="width: 150px;" Change="@OnFilterChange">
+                        <Template Context="year">
+                            Anul @year
+                        </Template>
+                    </RadzenDropDown>
+                </RadzenStack>
+
+                <RadzenStack Gap="0.25rem">
+                    <RadzenLabel Text="Semestru" />
+                    <RadzenDropDown TValue="int?" @bind-Value="selectedSemester" Data="@semesters"
+                                    Placeholder="Toate semestrele" AllowClear="true"
+                                    Style="width: 180px;" Change="@OnFilterChange">
+                        <Template Context="sem">
+                            Semestrul @sem
+                        </Template>
+                    </RadzenDropDown>
+                </RadzenStack>
+
+                <RadzenButton Text="Resetează Filtre" Icon="refresh" ButtonStyle="ButtonStyle.Light"
+                              Click="@ResetFilters" Variant="Variant.Outlined" />
+            </RadzenStack>
+        </RadzenCard>
+    }
 
     @if (isLoading)
     {
-        <div class="flex items-center justify-center py-12">
-            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-        </div>
+        <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Style="padding: 3rem 0;">
+            <RadzenProgressBarCircular ShowValue="false" Mode="ProgressBarMode.Indeterminate" Size="ProgressBarCircularSize.Large" />
+            <RadzenText TextStyle="TextStyle.Body2" class="rz-color-secondary" Style="margin-top: 1rem;">
+                Se încarcă orarul...
+            </RadzenText>
+        </RadzenStack>
     }
     else
     {
         <!-- Weekly Schedule Grid -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <div class="overflow-x-auto">
-                <div class="inline-block min-w-full align-middle">
-                    <div class="grid" style="grid-template-columns: 80px repeat(5, minmax(150px, 1fr));">
-                        <!-- Header Row -->
-                        <div class="bg-gray-50 border-b border-r border-gray-200 p-3 font-medium text-xs text-gray-500"></div>
+        <RadzenCard Style="padding: 0; overflow: hidden;">
+            <div style="overflow-x: auto;">
+                <div style="display: grid; grid-template-columns: 80px repeat(5, minmax(150px, 1fr)); min-width: 850px;">
+                    <!-- Header Row -->
+                    <div style="background: var(--rz-base-100); border-bottom: 1px solid var(--rz-base-300); border-right: 1px solid var(--rz-base-300); padding: 0.75rem;">
+                    </div>
+                    @foreach (var day in weeklySchedule)
+                    {
+                        <div style="background: var(--rz-base-100); border-bottom: 1px solid var(--rz-base-300); border-right: 1px solid var(--rz-base-300); padding: 0.75rem;">
+                            <RadzenText TextStyle="TextStyle.Subtitle2" Style="margin: 0; font-weight: 600;">@day.DayName</RadzenText>
+                        </div>
+                    }
+
+                    <!-- Time Slots (08:00 - 20:00) -->
+                    @for (int hour = 8; hour <= 20; hour++)
+                    {
+                        var currentHour = hour;
+                        <!-- Time Label -->
+                        <div style="border-bottom: 1px solid var(--rz-base-300); border-right: 1px solid var(--rz-base-300); padding: 0.5rem; text-align: center;">
+                            <RadzenText TextStyle="TextStyle.Caption" class="rz-color-secondary" Style="margin: 0;">
+                                @($"{currentHour:00}:00")
+                            </RadzenText>
+                        </div>
+
+                        <!-- Day Cells -->
                         @foreach (var day in weeklySchedule)
                         {
-                            <div class="bg-gray-50 border-b border-r last:border-r-0 border-gray-200 p-3">
-                                <div class="font-semibold text-sm text-gray-900">@day.DayName</div>
-                            </div>
-                        }
+                            var entriesInSlot = day.Entries
+                                .Where(e => e.StartTime.Hour <= currentHour && e.EndTime.Hour > currentHour)
+                                .ToList();
 
-                        <!-- Time Slots (08:00 - 20:00) -->
-                        @for (int hour = 8; hour <= 20; hour++)
-                        {
-                            <!-- Time Label -->
-                            <div class="border-b border-r border-gray-200 p-2 text-xs text-gray-500 text-center">
-                                @($"{hour:00}:00")
-                            </div>
+                            <div style="border-bottom: 1px solid var(--rz-base-300); border-right: 1px solid var(--rz-base-300); padding: 4px; min-height: 60px; position: relative;">
+                                @foreach (var entry in entriesInSlot)
+                                {
+                                    var startHour = entry.StartTime.Hour;
+                                    var endHour = entry.EndTime.Hour;
+                                    var duration = endHour - startHour;
+                                    var isFirstSlot = startHour == currentHour;
 
-                            <!-- Day Cells -->
-                            @foreach (var day in weeklySchedule)
-                            {
-                                <div class="border-b border-r last:border-r-0 border-gray-200 p-1 min-h-[60px] relative">
-                                    @{
-                                        var entriesInSlot = day.Entries
-                                            .Where(e => e.StartTime.Hour <= hour && e.EndTime.Hour > hour)
-                                            .ToList();
-                                    }
-                                    @foreach (var entry in entriesInSlot)
+                                    @if (isFirstSlot)
                                     {
-                                        var startHour = entry.StartTime.Hour;
-                                        var endHour = entry.EndTime.Hour;
-                                        var duration = endHour - startHour;
-                                        var isFirstSlot = startHour == hour;
-
-                                        @if (isFirstSlot)
-                                        {
-                                            <div class="@GetScheduleCardClass(entry.Type) rounded-lg p-2 text-xs mb-1"
-                                                 style="@($"min-height: {duration * 60 - 4}px;")">
-                                                <div class="font-semibold text-gray-900 mb-1">@entry.CourseName</div>
-                                                <div class="text-gray-600 text-[10px] space-y-0.5">
-                                                    <div>@entry.StartTime.ToString(@"hh\:mm") - @entry.EndTime.ToString(@"hh\:mm")</div>
-                                                    @if (!string.IsNullOrEmpty(entry.Room))
-                                                    {
-                                                        <div>Sala: @entry.Room</div>
-                                                    }
-                                                    <div class="font-medium">@entry.TypeLabel</div>
-                                                    @if (currentUserRole != UserRole.Student)
-                                                    {
-                                                        <div class="mt-1 pt-1 border-t border-gray-300">
-                                                            Grupa: @entry.GroupName
-                                                        </div>
-                                                    }
-                                                    @if (currentUserRole != UserRole.Professor && !string.IsNullOrEmpty(entry.ProfessorName))
-                                                    {
-                                                        <div>Prof: @entry.ProfessorName</div>
-                                                    }
-                                                </div>
-                                            </div>
-                                        }
+                                        <div style="@GetScheduleCardStyle(entry.Type, duration)">
+                                            <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0 0 4px 0; font-weight: 600; font-size: 11px;">
+                                                @entry.CourseName
+                                            </RadzenText>
+                                            <RadzenStack Gap="2px">
+                                                <RadzenText TextStyle="TextStyle.Caption" Style="margin: 0; font-size: 10px;">
+                                                    @entry.StartTime.ToString(@"hh\:mm") - @entry.EndTime.ToString(@"hh\:mm")
+                                                </RadzenText>
+                                                @if (!string.IsNullOrEmpty(entry.Room))
+                                                {
+                                                    <RadzenText TextStyle="TextStyle.Caption" Style="margin: 0; font-size: 10px;">
+                                                        Sala: @entry.Room
+                                                    </RadzenText>
+                                                }
+                                                <RadzenBadge BadgeStyle="@GetTypeBadgeStyle(entry.Type)" Text="@entry.TypeLabel"
+                                                             Style="font-size: 9px; padding: 2px 6px;" />
+                                                @if (currentUserRole != UserRole.Student)
+                                                {
+                                                    <RadzenText TextStyle="TextStyle.Caption" Style="margin: 0; font-size: 10px; padding-top: 4px; border-top: 1px solid rgba(0,0,0,0.1);">
+                                                        Grupa: @entry.GroupName
+                                                    </RadzenText>
+                                                }
+                                                @if (currentUserRole != UserRole.Professor && !string.IsNullOrEmpty(entry.ProfessorName))
+                                                {
+                                                    <RadzenText TextStyle="TextStyle.Caption" Style="margin: 0; font-size: 10px;">
+                                                        Prof: @entry.ProfessorName
+                                                    </RadzenText>
+                                                }
+                                            </RadzenStack>
+                                        </div>
                                     }
-                                </div>
-                            }
+                                }
+                            </div>
                         }
-                    </div>
+                    }
                 </div>
             </div>
-        </div>
+        </RadzenCard>
 
         @if (!weeklySchedule.Any(d => d.Entries.Any()))
         {
-            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-6 text-center">
-                <svg class="w-12 h-12 text-yellow-400 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                </svg>
-                <p class="text-sm text-yellow-800">
-                    @if (currentUserRole == UserRole.Student)
-                    {
-                        <text>Nu există orar configurat pentru grupa ta.</text>
-                    }
-                    else if (currentUserRole == UserRole.Professor)
-                    {
-                        <text>Nu ai cursuri programate în acest moment.</text>
-                    }
-                    else
-                    {
-                        <text>Nu există intrări în orar. Poți adăuga intrări din pagina de gestionare.</text>
-                    }
-                </p>
-            </div>
+            <RadzenAlert AlertStyle="AlertStyle.Warning" Variant="Variant.Flat" ShowIcon="true" Size="AlertSize.Medium">
+                <RadzenStack AlignItems="AlignItems.Center" Gap="0.5rem">
+                    <RadzenIcon Icon="event_busy" Style="font-size: 32px;" />
+                    <RadzenText TextStyle="TextStyle.Body1" Style="margin: 0;">
+                        @GetEmptyMessage()
+                    </RadzenText>
+                </RadzenStack>
+            </RadzenAlert>
         }
+
+        <!-- Legend -->
+        <RadzenCard>
+            <RadzenText TextStyle="TextStyle.Subtitle2" Style="margin: 0 0 0.75rem 0; font-weight: 600;">Legendă</RadzenText>
+            <RadzenStack Orientation="Radzen.Orientation.Horizontal" Gap="1.5rem" Wrap="FlexWrap.Wrap">
+                <RadzenStack Orientation="Radzen.Orientation.Horizontal" Gap="0.5rem" AlignItems="AlignItems.Center">
+                    <div style="width: 16px; height: 16px; border-radius: 4px; background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.3);"></div>
+                    <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0;">Curs</RadzenText>
+                </RadzenStack>
+                <RadzenStack Orientation="Radzen.Orientation.Horizontal" Gap="0.5rem" AlignItems="AlignItems.Center">
+                    <div style="width: 16px; height: 16px; border-radius: 4px; background: rgba(34, 197, 94, 0.15); border: 1px solid rgba(34, 197, 94, 0.3);"></div>
+                    <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0;">Seminar</RadzenText>
+                </RadzenStack>
+                <RadzenStack Orientation="Radzen.Orientation.Horizontal" Gap="0.5rem" AlignItems="AlignItems.Center">
+                    <div style="width: 16px; height: 16px; border-radius: 4px; background: rgba(168, 85, 247, 0.15); border: 1px solid rgba(168, 85, 247, 0.3);"></div>
+                    <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0;">Laborator</RadzenText>
+                </RadzenStack>
+            </RadzenStack>
+        </RadzenCard>
     }
-</div>
+</RadzenStack>
 
 @code {
     private bool isLoading = true;
@@ -153,8 +193,15 @@
     private Guid? currentUserId;
     private Guid? currentStudentId;
     private Guid? currentProfessorId;
+    private Guid? currentFacultyId;
 
     private List<WeeklyScheduleDto> weeklySchedule = new();
+
+    // Dean filters
+    private int? selectedYear;
+    private int? selectedSemester;
+    private List<int> availableYears = new();
+    private List<int> semesters = new() { 1, 2 };
 
     protected override async Task OnInitializedAsync()
     {
@@ -185,20 +232,94 @@
                         weeklySchedule = await ScheduleService.GetWeeklyScheduleByProfessorAsync(currentProfessorId.Value);
                     }
                 }
+                else if (currentUserRole == UserRole.Dean)
+                {
+                    // Dean sees schedule for their faculty
+                    currentFacultyId = appUser.Professor?.FacultyId;
+                    if (currentFacultyId.HasValue)
+                    {
+                        // Load available years for filters
+                        availableYears = await ScheduleService.GetAvailableYearsAsync(currentFacultyId.Value);
+
+                        // Load schedule for faculty (no filters initially)
+                        weeklySchedule = await ScheduleService.GetWeeklyScheduleByFacultyAsync(currentFacultyId.Value);
+                    }
+                }
             }
         }
 
         isLoading = false;
     }
 
-    private string GetScheduleCardClass(string type)
+    private async Task OnFilterChange()
     {
-        return type switch
+        if (currentUserRole == UserRole.Dean && currentFacultyId.HasValue)
         {
-            "Curs" => "bg-blue-50 border border-blue-200",
-            "Seminar" => "bg-green-50 border border-green-200",
-            "Laborator" => "bg-purple-50 border border-purple-200",
-            _ => "bg-gray-50 border border-gray-200"
-        };
+            isLoading = true;
+            StateHasChanged();
+
+            weeklySchedule = await ScheduleService.GetWeeklyScheduleByFacultyAsync(
+                currentFacultyId.Value,
+                selectedYear,
+                selectedSemester
+            );
+
+            isLoading = false;
+            StateHasChanged();
+        }
     }
+
+    private async Task ResetFilters()
+    {
+        selectedYear = null;
+        selectedSemester = null;
+        await OnFilterChange();
+    }
+
+    private string GetSubtitle() => currentUserRole switch
+    {
+        UserRole.Student => "Orarul tău săptămânal",
+        UserRole.Professor => "Orarul cursurilor tale",
+        UserRole.Dean => "Orarul facultății (doar vizualizare)",
+        _ => "Orarul săptămânal al grupelor"
+    };
+
+    private string GetEmptyMessage() => currentUserRole switch
+    {
+        UserRole.Student => "Nu există orar configurat pentru grupa ta.",
+        UserRole.Professor => "Nu ai cursuri programate în acest moment.",
+        UserRole.Dean => selectedYear.HasValue || selectedSemester.HasValue
+            ? "Nu există intrări în orar pentru filtrele selectate."
+            : "Nu există orar publicat pentru facultatea ta.",
+        _ => "Nu există intrări în orar. Poți adăuga intrări din pagina de gestionare."
+    };
+
+    private string GetScheduleCardStyle(string type, int duration)
+    {
+        var bgColor = type switch
+        {
+            "Curs" => "rgba(59, 130, 246, 0.15)",
+            "Seminar" => "rgba(34, 197, 94, 0.15)",
+            "Laborator" => "rgba(168, 85, 247, 0.15)",
+            _ => "rgba(156, 163, 175, 0.15)"
+        };
+
+        var borderColor = type switch
+        {
+            "Curs" => "rgba(59, 130, 246, 0.3)",
+            "Seminar" => "rgba(34, 197, 94, 0.3)",
+            "Laborator" => "rgba(168, 85, 247, 0.3)",
+            _ => "rgba(156, 163, 175, 0.3)"
+        };
+
+        return $"background: {bgColor}; border: 1px solid {borderColor}; border-radius: 6px; padding: 6px; min-height: {duration * 60 - 8}px;";
+    }
+
+    private BadgeStyle GetTypeBadgeStyle(string type) => type switch
+    {
+        "Curs" => BadgeStyle.Primary,
+        "Seminar" => BadgeStyle.Success,
+        "Laborator" => BadgeStyle.Info,
+        _ => BadgeStyle.Light
+    };
 }

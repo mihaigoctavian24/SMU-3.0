@@ -18,6 +18,7 @@ public interface IStudentService
     Task<ServiceResult> DeleteAsync(Guid id);
     Task<ServiceResult> TransferGroupAsync(Guid studentId, Guid newGroupId);
     Task<List<StudentListDto>> ExportAsync(StudentFilter filter);
+    Task<List<StudentListDto>> GetRecentAsync(int count = 10);
 }
 
 /// <summary>
@@ -398,5 +399,26 @@ public class StudentService : IStudentService
         }
 
         return $"{prefix}{nextNumber:D6}";
+    }
+
+    public async Task<List<StudentListDto>> GetRecentAsync(int count = 10)
+    {
+        return await _context.Students
+            .Include(s => s.User)
+            .Include(s => s.Group)
+                .ThenInclude(g => g!.Program)
+            .OrderByDescending(s => s.CreatedAt)
+            .Take(count)
+            .Select(s => new StudentListDto
+            {
+                Id = s.Id,
+                FullName = $"{s.User.FirstName} {s.User.LastName}",
+                Email = s.User.Email ?? "",
+                StudentNumber = s.StudentNumber,
+                GroupName = s.Group != null ? s.Group.Name : "Neasignat",
+                ProgramName = s.Group != null ? s.Group.Program.Name : "N/A",
+                Status = s.Status
+            })
+            .ToListAsync();
     }
 }

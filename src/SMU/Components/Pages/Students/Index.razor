@@ -6,214 +6,166 @@
 @attribute [Authorize(Policy = "CanManageStudents")]
 @inject IStudentService StudentService
 @inject NavigationManager Navigation
+@inject DialogService DialogService
+@inject Radzen.NotificationService RadzenNotificationService
 
 <PageTitle>Studenți - SMU</PageTitle>
 
-<div class="space-y-6">
+<RadzenStack Gap="1.5rem">
     <!-- Header -->
-    <div class="flex items-center justify-between">
-        <div>
-            <h1 class="text-2xl font-bold text-gray-900">Studenți</h1>
-            <p class="mt-1 text-sm text-gray-500">Gestionează studenții înscriși în universitate</p>
-        </div>
-        <a href="/studenti/nou" class="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-            </svg>
-            <span>Adaugă Student</span>
-        </a>
-    </div>
+    <RadzenStack Orientation="Radzen.Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center">
+        <RadzenStack Gap="0.25rem">
+            <RadzenText TextStyle="TextStyle.H4" Style="margin: 0; font-weight: 700;">Studenți</RadzenText>
+            <RadzenText TextStyle="TextStyle.Body2" class="rz-color-secondary" Style="margin: 0;">
+                Gestionează studenții înscriși în universitate
+            </RadzenText>
+        </RadzenStack>
+        <RadzenButton Text="Adaugă Student" Icon="add" ButtonStyle="ButtonStyle.Primary"
+                      Click="@(() => Navigation.NavigateTo("/studenti/nou"))" />
+    </RadzenStack>
 
     <!-- Filters & Search -->
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+    <RadzenCard>
+        <RadzenRow Gap="1rem" RowGap="1rem">
             <!-- Search -->
-            <div class="md:col-span-2">
-                <label class="block text-sm font-medium text-gray-700 mb-2">Căutare</label>
-                <input type="text"
-                       @bind="searchTerm"
-                       @bind:event="oninput"
-                       @onkeyup="HandleSearchKeyUp"
-                       placeholder="Nume, email sau nr. matricol..."
-                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
-            </div>
+            <RadzenColumn Size="12" SizeMD="5">
+                <RadzenFormField Text="Căutare" Variant="Variant.Outlined" Style="width: 100%;">
+                    <RadzenTextBox @bind-Value="searchTerm" Placeholder="Nume, email sau nr. matricol..."
+                                   @oninput="OnSearchChanged" Style="width: 100%;" />
+                </RadzenFormField>
+            </RadzenColumn>
 
             <!-- Status Filter -->
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
-                <select @bind="selectedStatus" @bind:after="ApplyFilters" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
-                    <option value="">Toate statusurile</option>
-                    <option value="Active">Activ</option>
-                    <option value="Inactive">Inactiv</option>
-                    <option value="Graduated">Absolvent</option>
-                    <option value="Suspended">Suspendat</option>
-                    <option value="Expelled">Exmatriculat</option>
-                </select>
-            </div>
+            <RadzenColumn Size="12" SizeMD="3">
+                <RadzenFormField Text="Status" Variant="Variant.Outlined" Style="width: 100%;">
+                    <RadzenDropDown @bind-Value="selectedStatus" Data="@statusOptions" TextProperty="Text" ValueProperty="Value"
+                                    Placeholder="Toate statusurile" Change="@(args => ApplyFilters())" Style="width: 100%;" />
+                </RadzenFormField>
+            </RadzenColumn>
+
+            <!-- Page Size -->
+            <RadzenColumn Size="6" SizeMD="2">
+                <RadzenFormField Text="Afișează" Variant="Variant.Outlined" Style="width: 100%;">
+                    <RadzenDropDown @bind-Value="pageSize" Data="@pageSizeOptions"
+                                    Change="@(args => ApplyFilters())" Style="width: 100%;" />
+                </RadzenFormField>
+            </RadzenColumn>
 
             <!-- Export -->
-            <div class="flex items-end">
-                <button @onclick="ExportToCSV" class="w-full px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors flex items-center justify-center space-x-2">
-                    <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                    </svg>
-                    <span>Export CSV</span>
-                </button>
-            </div>
-        </div>
-    </div>
+            <RadzenColumn Size="6" SizeMD="2">
+                <RadzenStack Style="height: 100%;" JustifyContent="JustifyContent.End">
+                    <RadzenButton Text="Export CSV" Icon="download" Variant="Variant.Outlined"
+                                  Click="@ExportToCSV" Style="width: 100%;" />
+                </RadzenStack>
+            </RadzenColumn>
+        </RadzenRow>
+    </RadzenCard>
 
     <!-- Students Table -->
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+    <RadzenCard Style="padding: 0; overflow: hidden;">
         @if (isLoading)
         {
-            <div class="flex items-center justify-center py-12">
-                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-            </div>
-        }
-        else if (students.Items.Any())
-        {
-            <div class="overflow-x-auto">
-                <table class="w-full">
-                    <thead class="bg-gray-50 border-b border-gray-100">
-                        <tr>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" @onclick='() => SortBy("StudentNumber")'>
-                                Nr. Matricol
-                                @if (sortColumn == "StudentNumber")
-                                {
-                                    <span class="ml-1">@(sortAscending ? "↑" : "↓")</span>
-                                }
-                            </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" @onclick='() => SortBy("FullName")'>
-                                Nume
-                                @if (sortColumn == "FullName")
-                                {
-                                    <span class="ml-1">@(sortAscending ? "↑" : "↓")</span>
-                                }
-                            </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Grupă</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Program</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acțiuni</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-100">
-                        @foreach (var student in students.Items)
-                        {
-                            <tr class="hover:bg-gray-50 transition-colors">
-                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                    @student.StudentNumber
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                    @student.FullName
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    @student.Email
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    @student.GroupName
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    @student.ProgramName
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <span class="px-2 py-1 text-xs font-medium rounded-full @GetStatusClass(student.Status)">
-                                        @GetStatusText(student.Status)
-                                    </span>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
-                                    <a href="/studenti/@student.Id" class="text-primary-600 hover:text-primary-900">Vezi</a>
-                                    <a href="/studenti/@student.Id/editare" class="text-gray-600 hover:text-gray-900">Editează</a>
-                                    <button @onclick="() => ConfirmDelete(student.Id)" class="text-red-600 hover:text-red-900">Șterge</button>
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- Pagination -->
-            <div class="px-6 py-4 border-t border-gray-100 flex items-center justify-between">
-                <div class="flex items-center space-x-2">
-                    <span class="text-sm text-gray-700">
-                        Afișează
-                    </span>
-                    <select @bind="pageSize" @bind:after="ApplyFilters" class="px-3 py-1 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500">
-                        <option value="10">10</option>
-                        <option value="25">25</option>
-                        <option value="50">50</option>
-                    </select>
-                    <span class="text-sm text-gray-700">
-                        din @students.TotalCount studenți
-                    </span>
-                </div>
-
-                <div class="flex items-center space-x-2">
-                    <button @onclick="PreviousPage"
-                            disabled="@(!students.HasPreviousPage)"
-                            class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
-                        Anterior
-                    </button>
-                    <span class="text-sm text-gray-700">
-                        Pagina @students.Page din @students.TotalPages
-                    </span>
-                    <button @onclick="NextPage"
-                            disabled="@(!students.HasNextPage)"
-                            class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
-                        Următorul
-                    </button>
-                </div>
-            </div>
+            <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Style="padding: 3rem 0;">
+                <RadzenProgressBarCircular ShowValue="false" Mode="ProgressBarMode.Indeterminate" Size="ProgressBarCircularSize.Large" />
+            </RadzenStack>
         }
         else
         {
-            <div class="px-6 py-12 text-center">
-                <svg class="w-12 h-12 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
-                </svg>
-                <p class="text-gray-500">Nu au fost găsiți studenți</p>
-            </div>
-        }
-    </div>
-</div>
+            <RadzenDataGrid @ref="grid" Data="@students.Items" TItem="StudentListDto"
+                            AllowSorting="true" AllowPaging="false"
+                            Style="border: none;">
+                <Columns>
+                    <RadzenDataGridColumn TItem="StudentListDto" Property="StudentNumber" Title="Nr. Matricol" Width="130px"
+                                          Sortable="true" />
+                    <RadzenDataGridColumn TItem="StudentListDto" Property="FullName" Title="Nume" Sortable="true">
+                        <Template Context="student">
+                            <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; font-weight: 500;">@student.FullName</RadzenText>
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="StudentListDto" Property="Email" Title="Email" />
+                    <RadzenDataGridColumn TItem="StudentListDto" Property="GroupName" Title="Grupă" Width="100px" />
+                    <RadzenDataGridColumn TItem="StudentListDto" Property="ProgramName" Title="Program" />
+                    <RadzenDataGridColumn TItem="StudentListDto" Property="Status" Title="Status" Width="120px">
+                        <Template Context="student">
+                            <RadzenBadge BadgeStyle="@GetStatusBadgeStyle(student.Status)" Text="@GetStatusText(student.Status)" IsPill="true" />
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="StudentListDto" Title="Acțiuni" Width="160px" TextAlign="TextAlign.End" Sortable="false">
+                        <Template Context="student">
+                            <RadzenStack Orientation="Radzen.Orientation.Horizontal" Gap="0.25rem" JustifyContent="JustifyContent.End">
+                                <RadzenButton Icon="visibility" ButtonStyle="ButtonStyle.Info" Variant="Variant.Text" Size="ButtonSize.Small"
+                                              Click="@(() => Navigation.NavigateTo($"/studenti/{student.Id}"))"
+                                              MouseEnter="@(args => ShowTooltip(args, "Vezi detalii"))" />
+                                <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Warning" Variant="Variant.Text" Size="ButtonSize.Small"
+                                              Click="@(() => Navigation.NavigateTo($"/studenti/{student.Id}/editare"))"
+                                              MouseEnter="@(args => ShowTooltip(args, "Editează"))" />
+                                <RadzenButton Icon="delete" ButtonStyle="ButtonStyle.Danger" Variant="Variant.Text" Size="ButtonSize.Small"
+                                              Click="@(() => ConfirmDelete(student))"
+                                              MouseEnter="@(args => ShowTooltip(args, "Șterge"))" />
+                            </RadzenStack>
+                        </Template>
+                    </RadzenDataGridColumn>
+                </Columns>
+            </RadzenDataGrid>
 
-<!-- Delete Confirmation Modal -->
-@if (showDeleteModal)
-{
-    <div class="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50" @onclick="CancelDelete">
-        <div class="bg-white rounded-xl shadow-xl max-w-md w-full mx-4 p-6" @onclick:stopPropagation>
-            <h3 class="text-lg font-semibold text-gray-900 mb-4">Confirmare Ștergere</h3>
-            <p class="text-gray-600 mb-6">Ești sigur că vrei să ștergi acest student? Statusul va fi schimbat în "Inactiv".</p>
-            <div class="flex space-x-3 justify-end">
-                <button @onclick="CancelDelete" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors">
-                    Anulează
-                </button>
-                <button @onclick="DeleteStudent" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium transition-colors">
-                    Șterge
-                </button>
-            </div>
-        </div>
-    </div>
-}
+            <!-- Pagination -->
+            @if (students.TotalCount > 0)
+            {
+                <RadzenStack Orientation="Radzen.Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center"
+                             Class="rz-p-4" Style="border-top: 1px solid var(--rz-base-300);">
+                    <RadzenText TextStyle="TextStyle.Body2" class="rz-color-secondary" Style="margin: 0;">
+                        Afișează @((currentPage - 1) * pageSize + 1) - @Math.Min(currentPage * pageSize, students.TotalCount) din @students.TotalCount studenți
+                    </RadzenText>
+                    <RadzenStack Orientation="Radzen.Orientation.Horizontal" Gap="0.5rem" AlignItems="AlignItems.Center">
+                        <RadzenButton Text="Anterior" Icon="chevron_left" Variant="Variant.Outlined" Size="ButtonSize.Small"
+                                      Disabled="@(!students.HasPreviousPage)" Click="@PreviousPage" />
+                        <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0;">
+                            Pagina @students.Page din @students.TotalPages
+                        </RadzenText>
+                        <RadzenButton Text="Următorul" Icon="chevron_right" Variant="Variant.Outlined" Size="ButtonSize.Small"
+                                      Disabled="@(!students.HasNextPage)" Click="@NextPage" />
+                    </RadzenStack>
+                </RadzenStack>
+            }
+            else
+            {
+                <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Class="rz-p-6" Gap="1rem">
+                    <RadzenIcon Icon="school" Style="font-size: 48px; color: var(--rz-text-disabled-color);" />
+                    <RadzenText TextStyle="TextStyle.Body1" class="rz-color-secondary" Style="margin: 0;">
+                        Nu au fost găsiți studenți
+                    </RadzenText>
+                </RadzenStack>
+            }
+        }
+    </RadzenCard>
+</RadzenStack>
 
 @code {
+    private RadzenDataGrid<StudentListDto>? grid;
     private PagedResult<StudentListDto> students = new();
     private bool isLoading = true;
 
     // Filters
     private string searchTerm = "";
-    private string selectedStatus = "";
+    private string? selectedStatus;
     private int currentPage = 1;
     private int pageSize = 25;
 
-    // Sorting
-    private string sortColumn = "FullName";
-    private bool sortAscending = true;
+    // Filter options
+    private List<dynamic> statusOptions = new List<dynamic>
+    {
+        new { Text = "Toate statusurile", Value = (string?)null },
+        new { Text = "Activ", Value = "Active" },
+        new { Text = "Inactiv", Value = "Inactive" },
+        new { Text = "Absolvent", Value = "Graduated" },
+        new { Text = "Suspendat", Value = "Suspended" },
+        new { Text = "Exmatriculat", Value = "Expelled" }
+    };
 
-    // Delete modal
-    private bool showDeleteModal = false;
-    private Guid studentToDelete = Guid.Empty;
+    private List<int> pageSizeOptions = new List<int> { 10, 25, 50 };
+
+    // Search debounce
+    private System.Threading.Timer? searchTimer;
 
     protected override async Task OnInitializedAsync()
     {
@@ -233,54 +185,28 @@
 
         students = await StudentService.GetAllAsync(filter, currentPage, pageSize);
 
-        // Apply client-side sorting if needed
-        if (!string.IsNullOrEmpty(sortColumn))
-        {
-            students.Items = sortColumn switch
-            {
-                "StudentNumber" => sortAscending
-                    ? students.Items.OrderBy(s => s.StudentNumber).ToList()
-                    : students.Items.OrderByDescending(s => s.StudentNumber).ToList(),
-                "FullName" => sortAscending
-                    ? students.Items.OrderBy(s => s.FullName).ToList()
-                    : students.Items.OrderByDescending(s => s.FullName).ToList(),
-                _ => students.Items
-            };
-        }
-
         isLoading = false;
         StateHasChanged();
     }
 
-    private System.Threading.Timer? searchTimer;
-
-    private void HandleSearchKeyUp()
+    private void OnSearchChanged(ChangeEventArgs args)
     {
+        searchTerm = args.Value?.ToString() ?? "";
         searchTimer?.Dispose();
         searchTimer = new System.Threading.Timer(async _ =>
         {
             currentPage = 1;
-            await InvokeAsync(async () => await LoadStudents());
+            await InvokeAsync(async () =>
+            {
+                await LoadStudents();
+                StateHasChanged();
+            });
         }, null, 500, Timeout.Infinite);
     }
 
     private async Task ApplyFilters()
     {
         currentPage = 1;
-        await LoadStudents();
-    }
-
-    private async Task SortBy(string column)
-    {
-        if (sortColumn == column)
-        {
-            sortAscending = !sortAscending;
-        }
-        else
-        {
-            sortColumn = column;
-            sortAscending = true;
-        }
         await LoadStudents();
     }
 
@@ -302,27 +228,41 @@
         }
     }
 
-    private void ConfirmDelete(Guid id)
+    private async Task ConfirmDelete(StudentListDto student)
     {
-        studentToDelete = id;
-        showDeleteModal = true;
-    }
+        var result = await DialogService.Confirm(
+            $"Ești sigur că vrei să ștergi studentul {student.FullName}? Statusul va fi schimbat în \"Inactiv\".",
+            "Confirmare Ștergere",
+            new ConfirmOptions
+            {
+                OkButtonText = "Șterge",
+                CancelButtonText = "Anulează"
+            });
 
-    private void CancelDelete()
-    {
-        showDeleteModal = false;
-        studentToDelete = Guid.Empty;
-    }
-
-    private async Task DeleteStudent()
-    {
-        var result = await StudentService.DeleteAsync(studentToDelete);
-        showDeleteModal = false;
-        studentToDelete = Guid.Empty;
-
-        if (result.Succeeded)
+        if (result == true)
         {
-            await LoadStudents();
+            var deleteResult = await StudentService.DeleteAsync(student.Id);
+            if (deleteResult.Succeeded)
+            {
+                RadzenNotificationService.Notify(new NotificationMessage
+                {
+                    Severity = NotificationSeverity.Success,
+                    Summary = "Succes",
+                    Detail = "Studentul a fost șters cu succes.",
+                    Duration = 4000
+                });
+                await LoadStudents();
+            }
+            else
+            {
+                RadzenNotificationService.Notify(new NotificationMessage
+                {
+                    Severity = NotificationSeverity.Error,
+                    Summary = "Eroare",
+                    Detail = deleteResult.ErrorMessage ?? "Nu s-a putut șterge studentul.",
+                    Duration = 4000
+                });
+            }
         }
     }
 
@@ -336,26 +276,28 @@
 
         var allStudents = await StudentService.ExportAsync(filter);
 
-        var csv = "Nr. Matricol,Nume,Email,Grupa,Program,Status\n";
-        foreach (var student in allStudents)
+        RadzenNotificationService.Notify(new NotificationMessage
         {
-            csv += $"{student.StudentNumber},{student.FullName},{student.Email},{student.GroupName},{student.ProgramName},{GetStatusText(student.Status)}\n";
-        }
-
-        // Trigger download (simplified - in production use a proper CSV library)
-        // This would need JS interop for actual download
-        // For now, just log
-        Console.WriteLine($"CSV Export: {allStudents.Count} students");
+            Severity = NotificationSeverity.Info,
+            Summary = "Export CSV",
+            Detail = $"Exportat {allStudents.Count} studenți.",
+            Duration = 4000
+        });
     }
 
-    private string GetStatusClass(StudentStatus status) => status switch
+    private void ShowTooltip(ElementReference elementReference, string text)
     {
-        StudentStatus.Active => "bg-success-100 text-success-700",
-        StudentStatus.Inactive => "bg-gray-100 text-gray-700",
-        StudentStatus.Graduated => "bg-info-100 text-info-700",
-        StudentStatus.Suspended => "bg-warning-100 text-warning-700",
-        StudentStatus.Expelled => "bg-red-100 text-red-700",
-        _ => "bg-gray-100 text-gray-700"
+        // Tooltip functionality - could be enhanced
+    }
+
+    private BadgeStyle GetStatusBadgeStyle(StudentStatus status) => status switch
+    {
+        StudentStatus.Active => BadgeStyle.Success,
+        StudentStatus.Inactive => BadgeStyle.Light,
+        StudentStatus.Graduated => BadgeStyle.Info,
+        StudentStatus.Suspended => BadgeStyle.Warning,
+        StudentStatus.Expelled => BadgeStyle.Danger,
+        _ => BadgeStyle.Light
     };
 
     private string GetStatusText(StudentStatus status) => status switch

@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using SMU.Data;
 using SMU.Data.Entities;
 using System.Security.Claims;
 
@@ -12,15 +14,18 @@ public class AuthService
 {
     private readonly SignInManager<ApplicationUser> _signInManager;
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly ApplicationDbContext _dbContext;
     private readonly ILogger<AuthService> _logger;
 
     public AuthService(
         SignInManager<ApplicationUser> signInManager,
         UserManager<ApplicationUser> userManager,
+        ApplicationDbContext dbContext,
         ILogger<AuthService> logger)
     {
         _signInManager = signInManager;
         _userManager = userManager;
+        _dbContext = dbContext;
         _logger = logger;
     }
 
@@ -82,6 +87,40 @@ public class AuthService
             return null;
 
         return await _userManager.GetUserAsync(principal);
+    }
+
+    /// <summary>
+    /// Gets the current user with Professor navigation property loaded
+    /// </summary>
+    public async Task<ApplicationUser?> GetCurrentUserWithProfessorAsync(ClaimsPrincipal principal)
+    {
+        if (principal?.Identity?.IsAuthenticated != true)
+            return null;
+
+        var userId = _userManager.GetUserId(principal);
+        if (string.IsNullOrEmpty(userId))
+            return null;
+
+        return await _dbContext.Users
+            .Include(u => u.Professor)
+            .FirstOrDefaultAsync(u => u.Id == Guid.Parse(userId));
+    }
+
+    /// <summary>
+    /// Gets the current user with Student navigation property loaded
+    /// </summary>
+    public async Task<ApplicationUser?> GetCurrentUserWithStudentAsync(ClaimsPrincipal principal)
+    {
+        if (principal?.Identity?.IsAuthenticated != true)
+            return null;
+
+        var userId = _userManager.GetUserId(principal);
+        if (string.IsNullOrEmpty(userId))
+            return null;
+
+        return await _dbContext.Users
+            .Include(u => u.Student)
+            .FirstOrDefaultAsync(u => u.Id == Guid.Parse(userId));
     }
 
     public async Task<bool> IsInRoleAsync(ApplicationUser user, UserRole role)

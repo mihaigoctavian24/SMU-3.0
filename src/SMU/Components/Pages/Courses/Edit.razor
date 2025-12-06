@@ -4,190 +4,164 @@
 @using Microsoft.AspNetCore.Authorization
 @inject ICourseService CourseService
 @inject NavigationManager Navigation
+@inject Radzen.NotificationService NotificationService
 @attribute [Authorize(Policy = "CanManageStudents")]
 
 <PageTitle>Editare Curs - SMU</PageTitle>
 
 @if (isLoading)
 {
-    <div class="text-center py-12">
-        <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-        <p class="mt-4 text-gray-600">Se încarcă detaliile cursului...</p>
-    </div>
+    <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Style="padding: 3rem 0;">
+        <RadzenProgressBarCircular ShowValue="false" Mode="ProgressBarMode.Indeterminate" Size="ProgressBarCircularSize.Large" />
+        <RadzenText TextStyle="TextStyle.Body2" Style="margin-top: 1rem; color: var(--rz-text-secondary-color);">
+            Se încarcă detaliile cursului...
+        </RadzenText>
+    </RadzenStack>
 }
 else if (course == null)
 {
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
-        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-        <h3 class="mt-4 text-lg font-medium text-gray-900">Curs negăsit</h3>
-        <p class="mt-2 text-sm text-gray-500">Cursul căutat nu există sau a fost șters.</p>
-        <button @onclick='() => Navigation.NavigateTo("/cursuri")'
-                class="mt-4 inline-flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg">
-            Înapoi la Cursuri
-        </button>
-    </div>
+    <RadzenCard Style="padding: 3rem; text-align: center;">
+        <RadzenStack AlignItems="AlignItems.Center" Gap="1rem">
+            <RadzenIcon Icon="error_outline" Style="font-size: 3rem; color: var(--rz-text-disabled-color);" />
+            <RadzenText TextStyle="TextStyle.H6" Style="margin: 0;">Curs negăsit</RadzenText>
+            <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; color: var(--rz-text-secondary-color);">
+                Cursul căutat nu există sau a fost șters.
+            </RadzenText>
+            <RadzenButton Text="Înapoi la Cursuri"
+                          ButtonStyle="ButtonStyle.Primary"
+                          Click="@(() => Navigation.NavigateTo("/cursuri"))" />
+        </RadzenStack>
+    </RadzenCard>
 }
 else
 {
-    <div class="max-w-4xl mx-auto space-y-6">
+    <RadzenStack Gap="1.5rem" Style="max-width: 900px; margin: 0 auto;">
         <!-- Header -->
-        <div class="flex items-center space-x-4">
-            <button @onclick='() => Navigation.NavigateTo($"/cursuri/{Id}")'
-                    class="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-                <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-                </svg>
-            </button>
-            <div>
-                <h1 class="text-2xl font-bold text-gray-900">Editare Curs</h1>
-                <p class="mt-1 text-sm text-gray-600">@course.Name • @course.Code</p>
-            </div>
-        </div>
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem">
+            <RadzenButton Icon="arrow_back"
+                          ButtonStyle="ButtonStyle.Light"
+                          Variant="Variant.Text"
+                          Click="@(() => Navigation.NavigateTo($"/cursuri/{Id}"))" />
+            <RadzenStack Gap="0.25rem">
+                <RadzenText TextStyle="TextStyle.H4" Style="margin: 0; font-weight: bold;">Editare Curs</RadzenText>
+                <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; color: var(--rz-text-secondary-color);">
+                    @course.Name • @course.Code
+                </RadzenText>
+            </RadzenStack>
+        </RadzenStack>
 
         <!-- Error Message -->
         @if (!string.IsNullOrWhiteSpace(errorMessage))
         {
-            <div class="bg-danger-50 border border-danger-200 rounded-lg p-4">
-                <div class="flex">
-                    <svg class="h-5 w-5 text-danger-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <div class="ml-3">
-                        <p class="text-sm text-danger-700">@errorMessage</p>
-                    </div>
-                </div>
-            </div>
+            <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat" ShowIcon="true" Size="AlertSize.Small">
+                @errorMessage
+            </RadzenAlert>
         }
 
         <!-- Success Message -->
         @if (!string.IsNullOrWhiteSpace(successMessage))
         {
-            <div class="bg-success-50 border border-success-200 rounded-lg p-4">
-                <div class="flex">
-                    <svg class="h-5 w-5 text-success-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <div class="ml-3">
-                        <p class="text-sm text-success-700">@successMessage</p>
-                    </div>
-                </div>
-            </div>
+            <RadzenAlert AlertStyle="AlertStyle.Success" Variant="Variant.Flat" ShowIcon="true" Size="AlertSize.Small">
+                @successMessage
+            </RadzenAlert>
         }
 
         <!-- Form -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <RadzenCard Style="padding: 1.5rem;">
             <EditForm Model="@model" OnValidSubmit="HandleSubmit">
                 <DataAnnotationsValidator />
 
-                <div class="space-y-6">
+                <RadzenStack Gap="1.5rem">
                     <!-- Program Info (Read-only) -->
-                    <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                        <p class="text-sm font-medium text-gray-700">Program de Studii</p>
-                        <p class="mt-1 text-sm text-gray-900">@course.ProgramName</p>
-                        <p class="mt-1 text-xs text-gray-500">Programul nu poate fi modificat după creare</p>
-                    </div>
+                    <RadzenCard Variant="Variant.Flat" Style="background: var(--rz-base-200); padding: 1rem;">
+                        <RadzenStack Gap="0.25rem">
+                            <RadzenText TextStyle="TextStyle.Caption" Style="margin: 0; font-weight: 500; text-transform: uppercase; color: var(--rz-text-secondary-color);">
+                                Program de Studii
+                            </RadzenText>
+                            <RadzenText TextStyle="TextStyle.Body1" Style="margin: 0; font-weight: 500;">@course.ProgramName</RadzenText>
+                            <RadzenText TextStyle="TextStyle.Caption" Style="margin: 0; color: var(--rz-text-secondary-color);">
+                                Programul nu poate fi modificat după creare
+                            </RadzenText>
+                        </RadzenStack>
+                    </RadzenCard>
 
                     <!-- Course Name -->
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            Nume Curs <span class="text-danger-500">*</span>
-                        </label>
-                        <InputText @bind-Value="model.Name"
-                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent" />
-                        <ValidationMessage For="@(() => model.Name)" class="text-sm text-danger-600 mt-1" />
-                    </div>
+                    <RadzenFormField Text="Nume Curs" Variant="Variant.Outlined" Style="width: 100%;">
+                        <ChildContent>
+                            <RadzenTextBox @bind-Value="model.Name" />
+                        </ChildContent>
+                        <Helper>
+                            <ValidationMessage For="@(() => model.Name)" />
+                        </Helper>
+                    </RadzenFormField>
 
                     <!-- Course Code -->
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            Cod Curs <span class="text-danger-500">*</span>
-                        </label>
-                        <InputText @bind-Value="model.Code"
-                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent font-mono" />
-                        <ValidationMessage For="@(() => model.Code)" class="text-sm text-danger-600 mt-1" />
-                    </div>
+                    <RadzenFormField Text="Cod Curs" Variant="Variant.Outlined" Style="width: 100%;">
+                        <ChildContent>
+                            <RadzenTextBox @bind-Value="model.Code" Style="font-family: monospace;" />
+                        </ChildContent>
+                        <Helper>
+                            <ValidationMessage For="@(() => model.Code)" />
+                        </Helper>
+                    </RadzenFormField>
 
                     <!-- Professor -->
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            Profesor
-                        </label>
-                        <select @bind="selectedProfessorId"
-                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
-                            <option value="">Neasignat</option>
-                            @foreach (var professor in professors)
-                            {
-                                <option value="@professor.Id">
-                                    @professor.FullName @(!string.IsNullOrEmpty(professor.Title) ? $"({professor.Title})" : "")
-                                </option>
-                            }
-                        </select>
-                    </div>
+                    <RadzenFormField Text="Profesor" Variant="Variant.Outlined" Style="width: 100%;">
+                        <ChildContent>
+                            <RadzenDropDown @bind-Value="selectedProfessorId"
+                                            Data="@professors"
+                                            TextProperty="DisplayName"
+                                            ValueProperty="IdString"
+                                            AllowClear="true"
+                                            Placeholder="Neasignat"
+                                            Style="width: 100%;" />
+                        </ChildContent>
+                    </RadzenFormField>
 
                     <!-- Credits -->
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            Credite ECTS <span class="text-danger-500">*</span>
-                        </label>
-                        <InputNumber @bind-Value="model.Credits"
-                                     class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                                     min="1" max="10" />
-                        <ValidationMessage For="@(() => model.Credits)" class="text-sm text-danger-600 mt-1" />
-                    </div>
+                    <RadzenFormField Text="Credite ECTS" Variant="Variant.Outlined" Style="width: 100%;">
+                        <ChildContent>
+                            <RadzenNumeric @bind-Value="model.Credits" Min="1" Max="10" Style="width: 100%;" />
+                        </ChildContent>
+                        <Helper>
+                            <ValidationMessage For="@(() => model.Credits)" />
+                        </Helper>
+                    </RadzenFormField>
 
                     <!-- Description -->
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            Descriere
-                        </label>
-                        <InputTextArea @bind-Value="model.Description"
-                                       rows="4"
-                                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent" />
-                    </div>
+                    <RadzenFormField Text="Descriere" Variant="Variant.Outlined" Style="width: 100%;">
+                        <ChildContent>
+                            <RadzenTextArea @bind-Value="model.Description" Rows="4" />
+                        </ChildContent>
+                    </RadzenFormField>
 
                     <!-- Status -->
-                    <div>
-                        <label class="flex items-center">
-                            <InputCheckbox @bind-Value="model.IsActive"
-                                           class="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500" />
-                            <span class="ml-2 text-sm font-medium text-gray-700">Curs activ</span>
-                        </label>
-                        <p class="mt-1 text-sm text-gray-500">Cursurile inactive nu apar în listele de selecție</p>
-                    </div>
+                    <RadzenStack Gap="0.25rem">
+                        <RadzenCheckBox @bind-Value="model.IsActive" Name="isActive" />
+                        <RadzenLabel Text="Curs activ" Component="isActive" Style="margin-left: 0.5rem;" />
+                        <RadzenText TextStyle="TextStyle.Caption" Style="margin: 0; color: var(--rz-text-secondary-color);">
+                            Cursurile inactive nu apar în listele de selecție
+                        </RadzenText>
+                    </RadzenStack>
 
                     <!-- Form Actions -->
-                    <div class="flex items-center justify-end space-x-3 pt-4 border-t border-gray-200">
-                        <button type="button"
-                                @onclick='() => Navigation.NavigateTo($"/cursuri/{Id}")'
-                                class="px-4 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors">
-                            Anulează
-                        </button>
-                        <button type="submit"
-                                disabled="@isSaving"
-                                class="inline-flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 disabled:bg-gray-400 text-white text-sm font-medium rounded-lg transition-colors">
-                            @if (isSaving)
-                            {
-                                <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                </svg>
-                                <span>Se salvează...</span>
-                            }
-                            else
-                            {
-                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                                </svg>
-                                <span>Salvează Modificări</span>
-                            }
-                        </button>
+                    <div style="padding-top: 1rem; border-top: 1px solid var(--rz-border-color);">
+                        <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.75rem">
+                            <RadzenButton Text="Anulează"
+                                          ButtonStyle="ButtonStyle.Light"
+                                          Click="@(() => Navigation.NavigateTo($"/cursuri/{Id}"))" />
+                            <RadzenButton Text="@(isSaving ? "Se salvează..." : "Salvează Modificări")"
+                                          Icon="@(isSaving ? "" : "check")"
+                                          ButtonStyle="ButtonStyle.Primary"
+                                          ButtonType="ButtonType.Submit"
+                                          IsBusy="@isSaving"
+                                          Disabled="@isSaving" />
+                        </RadzenStack>
                     </div>
-                </div>
+                </RadzenStack>
             </EditForm>
-        </div>
-    </div>
+        </RadzenCard>
+    </RadzenStack>
 }
 
 @code {
@@ -196,7 +170,7 @@ else
 
     private CourseDetailDto? course;
     private UpdateCourseDto model = new();
-    private List<ProfessorOption> professors = new();
+    private List<ProfessorOptionDisplay> professors = new();
     private string? selectedProfessorId;
     private bool isLoading = true;
     private bool isSaving = false;
@@ -206,7 +180,7 @@ else
     protected override async Task OnInitializedAsync()
     {
         await LoadCourse();
-        professors = await CourseService.GetProfessorOptionsAsync();
+        await LoadProfessors();
     }
 
     private async Task LoadCourse()
@@ -235,6 +209,19 @@ else
         {
             isLoading = false;
         }
+    }
+
+    private async Task LoadProfessors()
+    {
+        var professorsList = await CourseService.GetProfessorOptionsAsync();
+        professors = professorsList.Select(p => new ProfessorOptionDisplay
+        {
+            Id = p.Id,
+            IdString = p.Id.ToString(),
+            FullName = p.FullName,
+            Title = p.Title,
+            DisplayName = string.IsNullOrEmpty(p.Title) ? p.FullName : $"{p.FullName} ({p.Title})"
+        }).ToList();
     }
 
     private async Task HandleSubmit()
@@ -275,5 +262,14 @@ else
         {
             isSaving = false;
         }
+    }
+
+    private class ProfessorOptionDisplay
+    {
+        public Guid Id { get; set; }
+        public string IdString { get; set; } = "";
+        public string FullName { get; set; } = "";
+        public string? Title { get; set; }
+        public string DisplayName { get; set; } = "";
     }
 }

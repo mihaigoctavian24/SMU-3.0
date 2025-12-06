@@ -11,268 +11,255 @@
 
 @if (isLoading)
 {
-    <div class="text-center py-12">
-        <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-        <p class="mt-4 text-gray-600">Se încarcă detaliile cursului...</p>
-    </div>
+    <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Style="padding: 3rem 0;">
+        <RadzenProgressBarCircular ShowValue="false" Mode="ProgressBarMode.Indeterminate" Size="ProgressBarCircularSize.Large" />
+        <RadzenText TextStyle="TextStyle.Body2" class="rz-color-secondary" Style="margin-top: 1rem;">
+            Se încarcă detaliile cursului...
+        </RadzenText>
+    </RadzenStack>
 }
 else if (course == null)
 {
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
-        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-        <h3 class="mt-4 text-lg font-medium text-gray-900">Curs negăsit</h3>
-        <p class="mt-2 text-sm text-gray-500">Cursul căutat nu există sau a fost șters.</p>
-        <button @onclick='() => Navigation.NavigateTo("/cursuri")'
-                class="mt-4 inline-flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg">
-            Înapoi la Cursuri
-        </button>
-    </div>
+    <RadzenCard Style="text-align: center; padding: 3rem;">
+        <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Gap="1rem">
+            <RadzenIcon Icon="error_outline" Style="font-size: 48px; color: var(--rz-text-disabled-color);" />
+            <RadzenText TextStyle="TextStyle.H6" Style="margin: 0;">Curs negăsit</RadzenText>
+            <RadzenText TextStyle="TextStyle.Body2" class="rz-color-secondary" Style="margin: 0;">
+                Cursul căutat nu există sau a fost șters.
+            </RadzenText>
+            <RadzenButton Text="Înapoi la Cursuri" Icon="arrow_back" ButtonStyle="ButtonStyle.Primary"
+                          Click="@(() => Navigation.NavigateTo("/cursuri"))" Style="margin-top: 1rem;" />
+        </RadzenStack>
+    </RadzenCard>
 }
 else
 {
-    <div class="space-y-6">
+    <RadzenStack Gap="1.5rem">
         <!-- Header -->
-        <div class="flex items-center justify-between">
-            <div class="flex items-center space-x-4">
-                <button @onclick='() => Navigation.NavigateTo("/cursuri")'
-                        class="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-                    <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-                    </svg>
-                </button>
-                <div>
-                    <h1 class="text-2xl font-bold text-gray-900">@course.Name</h1>
-                    <p class="mt-1 text-sm text-gray-600">@course.Code • @course.ProgramName</p>
-                </div>
-            </div>
-            <div class="flex items-center space-x-3">
-                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium @(course.IsActive ? "bg-success-100 text-success-700" : "bg-gray-100 text-gray-700")">
-                    @(course.IsActive ? "Activ" : "Inactiv")
-                </span>
-            </div>
-        </div>
+        <RadzenStack Orientation="Radzen.Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Start">
+            <RadzenStack Orientation="Radzen.Orientation.Horizontal" Gap="1rem" AlignItems="AlignItems.Start">
+                <RadzenButton Icon="arrow_back" ButtonStyle="ButtonStyle.Light" Variant="Variant.Text" Size="ButtonSize.Large"
+                              Click="@(() => Navigation.NavigateTo("/cursuri"))" />
+                <RadzenStack Gap="0.25rem">
+                    <RadzenText TextStyle="TextStyle.H4" Style="margin: 0; font-weight: 700;">@course.Name</RadzenText>
+                    <RadzenText TextStyle="TextStyle.Body2" class="rz-color-secondary" Style="margin: 0;">
+                        @course.Code • @course.ProgramName
+                    </RadzenText>
+                </RadzenStack>
+            </RadzenStack>
+            <RadzenBadge BadgeStyle="@(course.IsActive ? BadgeStyle.Success : BadgeStyle.Light)"
+                        Text="@(course.IsActive ? "Activ" : "Inactiv")" IsPill="true" />
+        </RadzenStack>
 
         <!-- Stats Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                <div class="flex items-center">
-                    <div class="flex-shrink-0">
-                        <div class="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center">
-                            <svg class="w-6 h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                            </svg>
+        <RadzenRow Gap="1.5rem" RowGap="1.5rem">
+            <RadzenColumn Size="12" SizeMD="6" SizeLG="3">
+                <RadzenCard Style="height: 100%;">
+                    <RadzenStack Orientation="Radzen.Orientation.Horizontal" Gap="1rem" AlignItems="AlignItems.Center">
+                        <div style="width: 48px; height: 48px; background: var(--rz-primary-lighter); border-radius: 0.5rem; display: flex; align-items: center; justify-content: center;">
+                            <RadzenIcon Icon="groups" Style="color: var(--rz-primary);" />
                         </div>
-                    </div>
-                    <div class="ml-4">
-                        <p class="text-sm font-medium text-gray-500">Studenți Înscriși</p>
-                        <p class="text-2xl font-bold text-gray-900">@course.Stats.EnrolledStudents</p>
-                    </div>
-                </div>
-            </div>
+                        <RadzenStack Gap="0.125rem">
+                            <RadzenText TextStyle="TextStyle.Caption" class="rz-color-secondary" Style="margin: 0;">Studenți Înscriși</RadzenText>
+                            <RadzenText TextStyle="TextStyle.H5" Style="margin: 0; font-weight: 700;">@course.Stats.EnrolledStudents</RadzenText>
+                        </RadzenStack>
+                    </RadzenStack>
+                </RadzenCard>
+            </RadzenColumn>
 
-            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                <div class="flex items-center">
-                    <div class="flex-shrink-0">
-                        <div class="w-12 h-12 bg-success-100 rounded-lg flex items-center justify-center">
-                            <svg class="w-6 h-6 text-success-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
+            <RadzenColumn Size="12" SizeMD="6" SizeLG="3">
+                <RadzenCard Style="height: 100%;">
+                    <RadzenStack Orientation="Radzen.Orientation.Horizontal" Gap="1rem" AlignItems="AlignItems.Center">
+                        <div style="width: 48px; height: 48px; background: var(--rz-success-lighter); border-radius: 0.5rem; display: flex; align-items: center; justify-content: center;">
+                            <RadzenIcon Icon="check_circle" Style="color: var(--rz-success);" />
                         </div>
-                    </div>
-                    <div class="ml-4">
-                        <p class="text-sm font-medium text-gray-500">Medie Generală</p>
-                        <p class="text-2xl font-bold text-gray-900">@course.Stats.AverageGrade.ToString("0.00")</p>
-                    </div>
-                </div>
-            </div>
+                        <RadzenStack Gap="0.125rem">
+                            <RadzenText TextStyle="TextStyle.Caption" class="rz-color-secondary" Style="margin: 0;">Medie Generală</RadzenText>
+                            <RadzenText TextStyle="TextStyle.H5" Style="margin: 0; font-weight: 700;">@course.Stats.AverageGrade.ToString("0.00")</RadzenText>
+                        </RadzenStack>
+                    </RadzenStack>
+                </RadzenCard>
+            </RadzenColumn>
 
-            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                <div class="flex items-center">
-                    <div class="flex-shrink-0">
-                        <div class="w-12 h-12 bg-info-100 rounded-lg flex items-center justify-center">
-                            <svg class="w-6 h-6 text-info-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                            </svg>
+            <RadzenColumn Size="12" SizeMD="6" SizeLG="3">
+                <RadzenCard Style="height: 100%;">
+                    <RadzenStack Orientation="Radzen.Orientation.Horizontal" Gap="1rem" AlignItems="AlignItems.Center">
+                        <div style="width: 48px; height: 48px; background: var(--rz-info-lighter); border-radius: 0.5rem; display: flex; align-items: center; justify-content: center;">
+                            <RadzenIcon Icon="bar_chart" Style="color: var(--rz-info);" />
                         </div>
-                    </div>
-                    <div class="ml-4">
-                        <p class="text-sm font-medium text-gray-500">Rată Promovare</p>
-                        <p class="text-2xl font-bold text-gray-900">@course.Stats.PassRate.ToString("0")%</p>
-                    </div>
-                </div>
-            </div>
+                        <RadzenStack Gap="0.125rem">
+                            <RadzenText TextStyle="TextStyle.Caption" class="rz-color-secondary" Style="margin: 0;">Rată Promovare</RadzenText>
+                            <RadzenText TextStyle="TextStyle.H5" Style="margin: 0; font-weight: 700;">@course.Stats.PassRate.ToString("0")%</RadzenText>
+                        </RadzenStack>
+                    </RadzenStack>
+                </RadzenCard>
+            </RadzenColumn>
 
-            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                <div class="flex items-center">
-                    <div class="flex-shrink-0">
-                        <div class="w-12 h-12 bg-warning-100 rounded-lg flex items-center justify-center">
-                            <svg class="w-6 h-6 text-warning-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                            </svg>
+            <RadzenColumn Size="12" SizeMD="6" SizeLG="3">
+                <RadzenCard Style="height: 100%;">
+                    <RadzenStack Orientation="Radzen.Orientation.Horizontal" Gap="1rem" AlignItems="AlignItems.Center">
+                        <div style="width: 48px; height: 48px; background: var(--rz-warning-lighter); border-radius: 0.5rem; display: flex; align-items: center; justify-content: center;">
+                            <RadzenIcon Icon="event" Style="color: var(--rz-warning);" />
                         </div>
-                    </div>
-                    <div class="ml-4">
-                        <p class="text-sm font-medium text-gray-500">Total Cursuri</p>
-                        <p class="text-2xl font-bold text-gray-900">@course.Stats.TotalClasses</p>
-                    </div>
-                </div>
-            </div>
-        </div>
+                        <RadzenStack Gap="0.125rem">
+                            <RadzenText TextStyle="TextStyle.Caption" class="rz-color-secondary" Style="margin: 0;">Total Cursuri</RadzenText>
+                            <RadzenText TextStyle="TextStyle.H5" Style="margin: 0; font-weight: 700;">@course.Stats.TotalClasses</RadzenText>
+                        </RadzenStack>
+                    </RadzenStack>
+                </RadzenCard>
+            </RadzenColumn>
+        </RadzenRow>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <RadzenRow Gap="1.5rem" RowGap="1.5rem">
             <!-- Course Information -->
-            <div class="lg:col-span-2 space-y-6">
-                <!-- Main Info -->
-                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                    <h2 class="text-lg font-semibold text-gray-900 mb-4">Informații Curs</h2>
-                    <div class="space-y-4">
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <p class="text-sm font-medium text-gray-500">Cod Curs</p>
-                                <p class="mt-1 text-sm text-gray-900 font-mono">@course.Code</p>
-                            </div>
-                            <div>
-                                <p class="text-sm font-medium text-gray-500">Credite ECTS</p>
-                                <p class="mt-1">
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-sm font-medium bg-primary-100 text-primary-700">
-                                        @course.Credits ECTS
-                                    </span>
-                                </p>
-                            </div>
-                        </div>
+            <RadzenColumn Size="12" SizeLG="8">
+                <RadzenStack Gap="1.5rem">
+                    <!-- Main Info -->
+                    <RadzenCard>
+                        <RadzenStack Gap="1rem">
+                            <RadzenText TextStyle="TextStyle.H6" Style="margin: 0;">Informații Curs</RadzenText>
 
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <p class="text-sm font-medium text-gray-500">An de Studiu</p>
-                                <p class="mt-1 text-sm text-gray-900">Anul @course.Year</p>
-                            </div>
-                            <div>
-                                <p class="text-sm font-medium text-gray-500">Semestru</p>
-                                <p class="mt-1">
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-sm font-medium @GetSemesterBadgeClass(course.Semester)">
-                                        Semestrul @course.Semester
-                                    </span>
-                                </p>
-                            </div>
-                        </div>
+                            <RadzenRow Gap="1rem" RowGap="1rem">
+                                <RadzenColumn Size="6">
+                                    <RadzenStack Gap="0.25rem">
+                                        <RadzenText TextStyle="TextStyle.Caption" class="rz-color-secondary" Style="margin: 0;">Cod Curs</RadzenText>
+                                        <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; font-family: monospace;">@course.Code</RadzenText>
+                                    </RadzenStack>
+                                </RadzenColumn>
+                                <RadzenColumn Size="6">
+                                    <RadzenStack Gap="0.25rem">
+                                        <RadzenText TextStyle="TextStyle.Caption" class="rz-color-secondary" Style="margin: 0;">Credite ECTS</RadzenText>
+                                        <div>
+                                            <RadzenBadge BadgeStyle="BadgeStyle.Primary" Text="@($"{course.Credits} ECTS")" IsPill="true" />
+                                        </div>
+                                    </RadzenStack>
+                                </RadzenColumn>
+                            </RadzenRow>
 
-                        <div>
-                            <p class="text-sm font-medium text-gray-500">Program de Studii</p>
-                            <p class="mt-1 text-sm text-gray-900">@course.ProgramName</p>
-                        </div>
+                            <RadzenRow Gap="1rem" RowGap="1rem">
+                                <RadzenColumn Size="6">
+                                    <RadzenStack Gap="0.25rem">
+                                        <RadzenText TextStyle="TextStyle.Caption" class="rz-color-secondary" Style="margin: 0;">An de Studiu</RadzenText>
+                                        <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0;">Anul @course.Year</RadzenText>
+                                    </RadzenStack>
+                                </RadzenColumn>
+                                <RadzenColumn Size="6">
+                                    <RadzenStack Gap="0.25rem">
+                                        <RadzenText TextStyle="TextStyle.Caption" class="rz-color-secondary" Style="margin: 0;">Semestru</RadzenText>
+                                        <div>
+                                            <RadzenBadge BadgeStyle="@GetSemesterBadgeStyle(course.Semester)"
+                                                        Text="@($"Semestrul {course.Semester}")" IsPill="true" />
+                                        </div>
+                                    </RadzenStack>
+                                </RadzenColumn>
+                            </RadzenRow>
 
-                        <div>
-                            <p class="text-sm font-medium text-gray-500">Facultate</p>
-                            <p class="mt-1 text-sm text-gray-900">@course.FacultyName</p>
-                        </div>
+                            <RadzenStack Gap="0.25rem">
+                                <RadzenText TextStyle="TextStyle.Caption" class="rz-color-secondary" Style="margin: 0;">Program de Studii</RadzenText>
+                                <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0;">@course.ProgramName</RadzenText>
+                            </RadzenStack>
 
-                        <div>
-                            <p class="text-sm font-medium text-gray-500">Profesor</p>
-                            <p class="mt-1 text-sm text-gray-900">@course.ProfessorName</p>
-                        </div>
+                            <RadzenStack Gap="0.25rem">
+                                <RadzenText TextStyle="TextStyle.Caption" class="rz-color-secondary" Style="margin: 0;">Facultate</RadzenText>
+                                <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0;">@course.FacultyName</RadzenText>
+                            </RadzenStack>
 
-                        @if (!string.IsNullOrWhiteSpace(course.Description))
-                        {
-                            <div>
-                                <p class="text-sm font-medium text-gray-500">Descriere</p>
-                                <p class="mt-1 text-sm text-gray-700">@course.Description</p>
-                            </div>
-                        }
-                    </div>
-                </div>
+                            <RadzenStack Gap="0.25rem">
+                                <RadzenText TextStyle="TextStyle.Caption" class="rz-color-secondary" Style="margin: 0;">Profesor</RadzenText>
+                                <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0;">@course.ProfessorName</RadzenText>
+                            </RadzenStack>
 
-                <!-- Recent Grades -->
-                @if (course.RecentGrades.Any())
-                {
-                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                        <h2 class="text-lg font-semibold text-gray-900 mb-4">Ultimele Note</h2>
-                        <div class="overflow-x-auto">
-                            <table class="min-w-full divide-y divide-gray-200">
-                                <thead>
-                                    <tr>
-                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Student</th>
-                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Notă</th>
-                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tip</th>
-                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Data</th>
-                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="divide-y divide-gray-200">
-                                    @foreach (var grade in course.RecentGrades)
-                                    {
-                                        <tr>
-                                            <td class="px-4 py-3 text-sm text-gray-900">@grade.StudentName</td>
-                                            <td class="px-4 py-3">
-                                                <span class="inline-flex items-center px-2 py-0.5 rounded text-sm font-semibold @GetGradeBadgeClass(grade.Value)">
-                                                    @grade.Value.ToString("0.00")
-                                                </span>
-                                            </td>
-                                            <td class="px-4 py-3 text-sm text-gray-600">@grade.Type</td>
-                                            <td class="px-4 py-3 text-sm text-gray-600">@grade.ExamDate.ToString("dd.MM.yyyy")</td>
-                                            <td class="px-4 py-3">
-                                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium @GetStatusBadgeClass(grade.Status)">
-                                                    @grade.Status
-                                                </span>
-                                            </td>
-                                        </tr>
-                                    }
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                }
-            </div>
+                            @if (!string.IsNullOrWhiteSpace(course.Description))
+                            {
+                                <RadzenStack Gap="0.25rem">
+                                    <RadzenText TextStyle="TextStyle.Caption" class="rz-color-secondary" Style="margin: 0;">Descriere</RadzenText>
+                                    <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0;">@course.Description</RadzenText>
+                                </RadzenStack>
+                            }
+                        </RadzenStack>
+                    </RadzenCard>
+
+                    <!-- Recent Grades -->
+                    @if (course.RecentGrades.Any())
+                    {
+                        <RadzenCard>
+                            <RadzenStack Gap="1rem">
+                                <RadzenText TextStyle="TextStyle.H6" Style="margin: 0;">Ultimele Note</RadzenText>
+                                <RadzenDataGrid Data="@course.RecentGrades" TItem="RecentGradeDto"
+                                                AllowSorting="false" AllowPaging="false">
+                                    <Columns>
+                                        <RadzenDataGridColumn TItem="RecentGradeDto" Property="StudentName" Title="Student" />
+                                        <RadzenDataGridColumn TItem="RecentGradeDto" Property="Value" Title="Notă" Width="100px">
+                                            <Template Context="grade">
+                                                <RadzenBadge BadgeStyle="@GetGradeBadgeStyle(grade.Value)"
+                                                            Text="@grade.Value.ToString("0.00")" IsPill="true" />
+                                            </Template>
+                                        </RadzenDataGridColumn>
+                                        <RadzenDataGridColumn TItem="RecentGradeDto" Property="Type" Title="Tip" Width="120px" />
+                                        <RadzenDataGridColumn TItem="RecentGradeDto" Property="ExamDate" Title="Data" Width="120px">
+                                            <Template Context="grade">
+                                                @grade.ExamDate.ToString("dd.MM.yyyy")
+                                            </Template>
+                                        </RadzenDataGridColumn>
+                                        <RadzenDataGridColumn TItem="RecentGradeDto" Property="Status" Title="Status" Width="120px">
+                                            <Template Context="grade">
+                                                <RadzenBadge BadgeStyle="@GetStatusBadgeStyle(grade.Status)"
+                                                            Text="@grade.Status" IsPill="true" />
+                                            </Template>
+                                        </RadzenDataGridColumn>
+                                    </Columns>
+                                </RadzenDataGrid>
+                            </RadzenStack>
+                        </RadzenCard>
+                    }
+                </RadzenStack>
+            </RadzenColumn>
 
             <!-- Quick Actions -->
-            <div class="space-y-6">
-                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Acțiuni Rapide</h3>
-                    <div class="space-y-3">
-                        <a href="/note?courseId=@course.Id"
-                           class="flex items-center justify-between p-3 rounded-lg border border-gray-200 hover:border-primary-300 hover:bg-primary-50 transition-colors">
-                            <div class="flex items-center">
-                                <svg class="w-5 h-5 text-gray-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                </svg>
-                                <span class="text-sm font-medium text-gray-700">Vezi Note</span>
-                            </div>
-                            <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                            </svg>
-                        </a>
+            <RadzenColumn Size="12" SizeLG="4">
+                <RadzenCard>
+                    <RadzenStack Gap="1rem">
+                        <RadzenText TextStyle="TextStyle.H6" Style="margin: 0;">Acțiuni Rapide</RadzenText>
 
-                        <a href="/prezente?courseId=@course.Id"
-                           class="flex items-center justify-between p-3 rounded-lg border border-gray-200 hover:border-primary-300 hover:bg-primary-50 transition-colors">
-                            <div class="flex items-center">
-                                <svg class="w-5 h-5 text-gray-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-                                </svg>
-                                <span class="text-sm font-medium text-gray-700">Vezi Prezențe</span>
-                            </div>
-                            <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                            </svg>
-                        </a>
+                        <RadzenStack Gap="0.75rem">
+                            <RadzenCard Style="cursor: pointer; border: 1px solid var(--rz-border-color);"
+                                       @onclick="@(() => Navigation.NavigateTo($"/note?courseId={course.Id}"))">
+                                <RadzenStack Orientation="Radzen.Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center">
+                                    <RadzenStack Orientation="Radzen.Orientation.Horizontal" Gap="0.75rem" AlignItems="AlignItems.Center">
+                                        <RadzenIcon Icon="description" />
+                                        <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; font-weight: 500;">Vezi Note</RadzenText>
+                                    </RadzenStack>
+                                    <RadzenIcon Icon="chevron_right" />
+                                </RadzenStack>
+                            </RadzenCard>
 
-                        <a href="/orar?courseId=@course.Id"
-                           class="flex items-center justify-between p-3 rounded-lg border border-gray-200 hover:border-primary-300 hover:bg-primary-50 transition-colors">
-                            <div class="flex items-center">
-                                <svg class="w-5 h-5 text-gray-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                </svg>
-                                <span class="text-sm font-medium text-gray-700">Vezi Orar</span>
-                            </div>
-                            <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                            </svg>
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+                            <RadzenCard Style="cursor: pointer; border: 1px solid var(--rz-border-color);"
+                                       @onclick="@(() => Navigation.NavigateTo($"/prezente?courseId={course.Id}"))">
+                                <RadzenStack Orientation="Radzen.Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center">
+                                    <RadzenStack Orientation="Radzen.Orientation.Horizontal" Gap="0.75rem" AlignItems="AlignItems.Center">
+                                        <RadzenIcon Icon="assignment_turned_in" />
+                                        <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; font-weight: 500;">Vezi Prezențe</RadzenText>
+                                    </RadzenStack>
+                                    <RadzenIcon Icon="chevron_right" />
+                                </RadzenStack>
+                            </RadzenCard>
+
+                            <RadzenCard Style="cursor: pointer; border: 1px solid var(--rz-border-color);"
+                                       @onclick="@(() => Navigation.NavigateTo($"/orar?courseId={course.Id}"))">
+                                <RadzenStack Orientation="Radzen.Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center">
+                                    <RadzenStack Orientation="Radzen.Orientation.Horizontal" Gap="0.75rem" AlignItems="AlignItems.Center">
+                                        <RadzenIcon Icon="event" />
+                                        <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; font-weight: 500;">Vezi Orar</RadzenText>
+                                    </RadzenStack>
+                                    <RadzenIcon Icon="chevron_right" />
+                                </RadzenStack>
+                            </RadzenCard>
+                        </RadzenStack>
+                    </RadzenStack>
+                </RadzenCard>
+            </RadzenColumn>
+        </RadzenRow>
+    </RadzenStack>
 }
 
 @code {
@@ -300,29 +287,27 @@ else
         }
     }
 
-    private string GetSemesterBadgeClass(int semester)
+    private BadgeStyle GetSemesterBadgeStyle(int semester)
     {
-        return semester == 1
-            ? "bg-info-100 text-info-700"
-            : "bg-success-100 text-success-700";
+        return semester == 1 ? BadgeStyle.Info : BadgeStyle.Success;
     }
 
-    private string GetGradeBadgeClass(decimal value)
+    private BadgeStyle GetGradeBadgeStyle(decimal value)
     {
-        if (value >= 9) return "bg-success-100 text-success-700";
-        if (value >= 7) return "bg-info-100 text-info-700";
-        if (value >= 5) return "bg-warning-100 text-warning-700";
-        return "bg-danger-100 text-danger-700";
+        if (value >= 9) return BadgeStyle.Success;
+        if (value >= 7) return BadgeStyle.Info;
+        if (value >= 5) return BadgeStyle.Warning;
+        return BadgeStyle.Danger;
     }
 
-    private string GetStatusBadgeClass(string status)
+    private BadgeStyle GetStatusBadgeStyle(string status)
     {
         return status switch
         {
-            "Approved" => "bg-success-100 text-success-700",
-            "Pending" => "bg-warning-100 text-warning-700",
-            "Rejected" => "bg-danger-100 text-danger-700",
-            _ => "bg-gray-100 text-gray-700"
+            "Approved" => BadgeStyle.Success,
+            "Pending" => BadgeStyle.Warning,
+            "Rejected" => BadgeStyle.Danger,
+            _ => BadgeStyle.Light
         };
     }
 }

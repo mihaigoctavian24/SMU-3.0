@@ -64,8 +64,8 @@ SMU 3.0 foloseste o arhitectura **Blazor Server** cu un singur proiect, eliminan
 | Tehnologie | Versiune | Scop |
 |------------|----------|------|
 | Blazor Server | .NET 8 | Framework UI |
-| Tailwind CSS | 3.4 | Styling |
-| Lucide Icons | Latest | Iconografie |
+| Radzen Blazor | 5.5.4 | UI Components (Material Theme) |
+| Material Icons | Built-in | Iconografie (via Radzen) |
 | SignalR | Built-in | Real-time updates |
 
 ### Backend
@@ -95,9 +95,8 @@ SMU 3.0 foloseste o arhitectura **Blazor Server** cu un singur proiect, eliminan
 src/SMU.Web/
 ├── Components/
 │   ├── Layout/
-│   │   ├── MainLayout.razor        # Layout principal
-│   │   ├── NavMenu.razor           # Navigare laterala
-│   │   └── Header.razor            # Header cu search/notifications
+│   │   ├── MainLayout.razor        # Layout principal (Radzen - includes sidebar & header)
+│   │   └── ReconnectModal.razor    # Modal reconectare SignalR
 │   ├── Shared/
 │   │   ├── DataTable.razor         # Tabel generic reutilizabil
 │   │   ├── Modal.razor             # Modal generic
@@ -156,7 +155,7 @@ src/SMU.Web/
 │   └── Requirements/               # Custom requirements
 ├── wwwroot/
 │   ├── css/
-│   │   └── app.css                 # Tailwind compiled
+│   │   └── app.css                 # Minimal custom styles
 │   └── js/
 │       └── app.js                  # Minimal JS if needed
 ├── appsettings.json
@@ -479,11 +478,6 @@ jobs:
       with:
         node-version: '18'
 
-    - name: Build Tailwind CSS
-      run: |
-        npm install
-        npm run build:css
-
     - name: Publish
       run: dotnet publish -c Release -o ./publish
 
@@ -555,5 +549,5 @@ app.MapHealthChecks("/health");
 - [Blazor Server Documentation](https://docs.microsoft.com/aspnet/core/blazor/hosting-models#blazor-server)
 - [Entity Framework Core](https://docs.microsoft.com/ef/core/)
 - [ASP.NET Identity](https://docs.microsoft.com/aspnet/core/security/authentication/identity)
-- [Tailwind CSS](https://tailwindcss.com/docs)
+- [Radzen Blazor Components](https://blazor.radzen.com/docs/)
 - [Supabase PostgreSQL](https://supabase.com/docs/guides/database)

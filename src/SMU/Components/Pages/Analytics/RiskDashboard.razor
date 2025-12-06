@@ -5,285 +5,299 @@
 @using SMU.Data
 @using SMU.Services
 @using SMU.Data.Entities
-@using SMU.Components.Shared
 @using SMU.Components.Shared.Charts
 @attribute [Authorize(Roles = "Dean,Rector,Admin")]
 
 <PageTitle>Tablou Risc Academic - SMU</PageTitle>
 
-<div class="min-h-screen bg-gray-50">
-    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
-
-        @if (isLoading)
-        {
-            <div class="flex items-center justify-center h-96">
-                <div class="animate-spin rounded-full h-16 w-16 border-b-4 border-indigo-600"></div>
-            </div>
-        }
-        else if (hasError)
-        {
-            <div class="bg-red-50 border border-red-200 rounded-lg p-6">
-                <div class="flex items-center gap-3 mb-2">
-                    <svg class="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <h3 class="text-lg font-semibold text-red-900">Eroare la incarcarea datelor</h3>
+<RadzenStack Gap="1.5rem">
+    @if (isLoading)
+    {
+        <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Style="min-height: 400px;">
+            <RadzenProgressBarCircular ShowValue="false" Mode="ProgressBarMode.Indeterminate" Size="ProgressBarCircularSize.Large" />
+            <RadzenText TextStyle="TextStyle.Body1" Style="margin-top: 1rem; color: var(--rz-text-secondary-color);">Se incarca datele...</RadzenText>
+        </RadzenStack>
+    }
+    else if (hasError)
+    {
+        <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat" ShowIcon="true" Size="AlertSize.Large">
+            <RadzenStack Gap="0.5rem">
+                <RadzenText TextStyle="TextStyle.H6" Style="margin: 0;">Eroare la incarcarea datelor</RadzenText>
+                <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0;">@errorMessage</RadzenText>
+                <RadzenButton Text="Incearca din nou"
+                              Icon="refresh"
+                              ButtonStyle="ButtonStyle.Danger"
+                              Click="@LoadDataAsync"
+                              Style="margin-top: 0.5rem; width: fit-content;" />
+            </RadzenStack>
+        </RadzenAlert>
+    }
+    else
+    {
+        <!-- Header -->
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween" Wrap="FlexWrap.Wrap" Gap="1rem">
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem">
+                <div style="width: 3.5rem; height: 3.5rem; background: rgba(239, 68, 68, 0.1); border-radius: 0.5rem; display: flex; align-items: center; justify-content: center;">
+                    <RadzenIcon Icon="warning" Style="font-size: 2rem; color: #ef4444;" />
                 </div>
-                <p class="text-sm text-red-700">@errorMessage</p>
-                <button type="button" @onclick="LoadDataAsync"
-                        class="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">
-                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                    </svg>
-                    Incearca din nou
-                </button>
-            </div>
-        }
-        else
-        {
-            <!-- Header -->
-            <div class="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div class="flex items-center gap-3">
-                    <div class="rounded-md bg-red-100 p-3">
-                        <svg class="h-8 w-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                        </svg>
-                    </div>
-                    <div>
-                        <h1 class="text-3xl font-bold text-gray-900">Tablou Risc Academic</h1>
-                        <p class="mt-2 text-sm text-gray-600">Sistem de alertare timpurie pentru studenti la risc</p>
-                    </div>
-                </div>
+                <RadzenStack Gap="0.25rem">
+                    <RadzenText TextStyle="TextStyle.H3" Style="margin: 0; font-weight: bold;">Tablou Risc Academic</RadzenText>
+                    <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; color: var(--rz-text-secondary-color);">Sistem de alertare timpurie pentru studenti la risc</RadzenText>
+                </RadzenStack>
+            </RadzenStack>
 
-                <div class="flex items-center gap-4">
-                    @if (isReactor || isAdmin)
-                    {
-                        <!-- Faculty Filter for Rector/Admin -->
-                        <div class="relative">
-                            <label for="faculty" class="sr-only">Selecteaza Facultatea</label>
-                            <select @bind="selectedFacultyId"
-                                    @bind:after="OnFacultyChanged"
-                                    id="faculty"
-                                    class="block w-full rounded-md border-gray-300 py-2 pl-3 pr-10 text-base focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm bg-white shadow-sm">
-                                <option value="">Toate Facultatile</option>
-                                @foreach (var faculty in faculties)
-                                {
-                                    <option value="@faculty.Id">@faculty.Name</option>
-                                }
-                            </select>
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem">
+                @if (isReactor || isAdmin)
+                {
+                    <!-- Faculty Filter for Rector/Admin -->
+                    <RadzenFormField Text="Facultate" Variant="Variant.Outlined">
+                        <RadzenDropDown @bind-Value="selectedFacultyId"
+                                        Change="@OnFacultyChanged"
+                                        Data="@facultyOptions"
+                                        TextProperty="Text"
+                                        ValueProperty="Value"
+                                        AllowClear="true"
+                                        Placeholder="Toate Facultatile"
+                                        Style="width: 220px;" />
+                    </RadzenFormField>
+                }
+
+                <RadzenButton Text="Actualizeaza"
+                              Icon="refresh"
+                              ButtonStyle="ButtonStyle.Light"
+                              Click="@LoadDataAsync"
+                              IsBusy="@isLoading"
+                              Disabled="@isLoading" />
+            </RadzenStack>
+        </RadzenStack>
+
+        <!-- KPI Cards Row -->
+        <RadzenRow Gap="1.5rem" RowGap="1.5rem">
+            <!-- Total Monitored Students -->
+            <RadzenColumn Size="12" SizeMD="6" SizeLG="2" Style="min-width: 180px;">
+                <RadzenCard Style="padding: 1.5rem; background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%); border: 1px solid #a5b4fc; height: 100%;">
+                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
+                        <RadzenStack Gap="0.5rem">
+                            <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; color: #4f46e5; font-weight: 500;">Total Studenti</RadzenText>
+                            <RadzenText TextStyle="TextStyle.H3" Style="margin: 0; color: #312e81; font-weight: bold;">@riskDistribution.TotalStudents</RadzenText>
+                        </RadzenStack>
+                        <div style="width: 3rem; height: 3rem; background: #a5b4fc; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                            <RadzenIcon Icon="people" Style="font-size: 1.5rem; color: #4f46e5;" />
                         </div>
+                    </RadzenStack>
+                </RadzenCard>
+            </RadzenColumn>
+
+            <!-- Low Risk -->
+            <RadzenColumn Size="12" SizeMD="6" SizeLG="2" Style="min-width: 180px;">
+                <RadzenCard Style="padding: 1.5rem; background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%); border: 1px solid #86efac; height: 100%;">
+                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
+                        <RadzenStack Gap="0.5rem">
+                            <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; color: #16a34a; font-weight: 500;">Risc Scazut</RadzenText>
+                            <RadzenText TextStyle="TextStyle.H3" Style="margin: 0; color: #14532d; font-weight: bold;">@riskDistribution.LowRisk</RadzenText>
+                            <RadzenText TextStyle="TextStyle.Caption" Style="margin: 0; color: #16a34a;">@($"{riskDistribution.LowRiskPercentage:F1}%")</RadzenText>
+                        </RadzenStack>
+                        <div style="width: 3rem; height: 3rem; background: #86efac; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                            <RadzenIcon Icon="check_circle" Style="font-size: 1.5rem; color: #16a34a;" />
+                        </div>
+                    </RadzenStack>
+                </RadzenCard>
+            </RadzenColumn>
+
+            <!-- Medium Risk -->
+            <RadzenColumn Size="12" SizeMD="6" SizeLG="2" Style="min-width: 180px;">
+                <RadzenCard Style="padding: 1.5rem; background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border: 1px solid #fcd34d; height: 100%;">
+                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
+                        <RadzenStack Gap="0.5rem">
+                            <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; color: #d97706; font-weight: 500;">Risc Mediu</RadzenText>
+                            <RadzenText TextStyle="TextStyle.H3" Style="margin: 0; color: #92400e; font-weight: bold;">@riskDistribution.MediumRisk</RadzenText>
+                            <RadzenText TextStyle="TextStyle.Caption" Style="margin: 0; color: #d97706;">@($"{riskDistribution.MediumRiskPercentage:F1}%")</RadzenText>
+                        </RadzenStack>
+                        <div style="width: 3rem; height: 3rem; background: #fcd34d; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                            <RadzenIcon Icon="warning" Style="font-size: 1.5rem; color: #d97706;" />
+                        </div>
+                    </RadzenStack>
+                </RadzenCard>
+            </RadzenColumn>
+
+            <!-- High Risk -->
+            <RadzenColumn Size="12" SizeMD="6" SizeLG="2" Style="min-width: 180px;">
+                <RadzenCard Style="padding: 1.5rem; background: linear-gradient(135deg, #ffedd5 0%, #fed7aa 100%); border: 1px solid #fdba74; height: 100%;">
+                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
+                        <RadzenStack Gap="0.5rem">
+                            <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; color: #ea580c; font-weight: 500;">Risc Ridicat</RadzenText>
+                            <RadzenText TextStyle="TextStyle.H3" Style="margin: 0; color: #9a3412; font-weight: bold;">@riskDistribution.HighRisk</RadzenText>
+                            <RadzenText TextStyle="TextStyle.Caption" Style="margin: 0; color: #ea580c;">@($"{riskDistribution.HighRiskPercentage:F1}%")</RadzenText>
+                        </RadzenStack>
+                        <div style="width: 3rem; height: 3rem; background: #fdba74; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                            <RadzenIcon Icon="error" Style="font-size: 1.5rem; color: #ea580c;" />
+                        </div>
+                    </RadzenStack>
+                </RadzenCard>
+            </RadzenColumn>
+
+            <!-- Critical Risk -->
+            <RadzenColumn Size="12" SizeMD="6" SizeLG="2" Style="min-width: 180px;">
+                <RadzenCard Style="padding: 1.5rem; background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%); border: 1px solid #fca5a5; height: 100%;">
+                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
+                        <RadzenStack Gap="0.5rem">
+                            <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; color: #dc2626; font-weight: 500;">Risc Critic</RadzenText>
+                            <RadzenText TextStyle="TextStyle.H3" Style="margin: 0; color: #7f1d1d; font-weight: bold;">@riskDistribution.CriticalRisk</RadzenText>
+                            <RadzenText TextStyle="TextStyle.Caption" Style="margin: 0; color: #dc2626;">@($"{riskDistribution.CriticalRiskPercentage:F1}%")</RadzenText>
+                        </RadzenStack>
+                        <div style="width: 3rem; height: 3rem; background: #fca5a5; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                            <RadzenIcon Icon="dangerous" Style="font-size: 1.5rem; color: #dc2626;" />
+                        </div>
+                    </RadzenStack>
+                </RadzenCard>
+            </RadzenColumn>
+        </RadzenRow>
+
+        <!-- Risk Distribution Chart -->
+        <RadzenCard Style="padding: 1.5rem;">
+            <SmuDonutChart Title="Distributie Niveluri Risc"
+                          Data="@riskChartData"
+                          IsLoading="@isLoading"
+                          Height="400" />
+        </RadzenCard>
+
+        <!-- Early Warning List -->
+        <RadzenCard Style="padding: 0; overflow: hidden;">
+            <div style="padding: 1rem 1.5rem; border-bottom: 1px solid var(--rz-border-color);">
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
+                    <RadzenStack Gap="0.25rem">
+                        <RadzenText TextStyle="TextStyle.H5" Style="margin: 0; font-weight: 600;">Lista Alerta Timpurie - Top 20 Studenti la Risc</RadzenText>
+                        <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; color: var(--rz-text-secondary-color);">Studenti cu risc ridicat sau critic care necesita interventie</RadzenText>
+                    </RadzenStack>
+                    <RadzenBadge BadgeStyle="BadgeStyle.Danger" Text="@($"{highRiskStudents.Count} studenti")" />
+                </RadzenStack>
+            </div>
+
+            @if (highRiskStudents.Any())
+            {
+                <RadzenDataGrid Data="@highRiskStudents" TItem="StudentRiskScore" Style="border: none;">
+                    <Columns>
+                        <RadzenDataGridColumn TItem="StudentRiskScore" Title="Student" Width="200px">
+                            <Template Context="riskScore">
+                                <RadzenStack Gap="0.125rem">
+                                    <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; font-weight: 500;">@riskScore.Student.User.FullName</RadzenText>
+                                    <RadzenText TextStyle="TextStyle.Caption" Style="margin: 0; color: var(--rz-text-secondary-color);">@riskScore.Student.StudentNumber</RadzenText>
+                                </RadzenStack>
+                            </Template>
+                        </RadzenDataGridColumn>
+
+                        <RadzenDataGridColumn TItem="StudentRiskScore" Title="Grupa" Width="120px">
+                            <Template Context="riskScore">
+                                <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0;">@(riskScore.Student.Group?.Name ?? "Nealocata")</RadzenText>
+                            </Template>
+                        </RadzenDataGridColumn>
+
+                        <RadzenDataGridColumn TItem="StudentRiskScore" Property="RiskScore" Title="Scor Risc" Width="100px">
+                            <Template Context="riskScore">
+                                <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; font-weight: 600;">@riskScore.RiskScore / 100</RadzenText>
+                            </Template>
+                        </RadzenDataGridColumn>
+
+                        <RadzenDataGridColumn TItem="StudentRiskScore" Property="RiskLevel" Title="Nivel" Width="120px">
+                            <Template Context="riskScore">
+                                <RadzenBadge BadgeStyle="@GetRiskBadgeStyle(riskScore.RiskLevel)"
+                                             Text="@GetRiskLevelText(riskScore.RiskLevel)"
+                                             IsPill="true" />
+                            </Template>
+                        </RadzenDataGridColumn>
+
+                        <RadzenDataGridColumn TItem="StudentRiskScore" Title="Factori Principali" Width="250px">
+                            <Template Context="riskScore">
+                                <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; color: var(--rz-text-secondary-color);">@GetTopRiskFactors(riskScore)</RadzenText>
+                            </Template>
+                        </RadzenDataGridColumn>
+
+                        <RadzenDataGridColumn TItem="StudentRiskScore" Title="Actiuni" Width="200px" TextAlign="TextAlign.End">
+                            <Template Context="riskScore">
+                                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.End" Gap="0.25rem">
+                                    <RadzenButton Text="Detalii"
+                                                  ButtonStyle="ButtonStyle.Info"
+                                                  Variant="Variant.Text"
+                                                  Size="ButtonSize.Small"
+                                                  Click="@(() => ViewStudentDetails(riskScore.StudentId))" />
+                                    <RadzenButton Text="Notifica"
+                                                  ButtonStyle="ButtonStyle.Warning"
+                                                  Variant="Variant.Text"
+                                                  Size="ButtonSize.Small"
+                                                  Click="@(() => NotifyStakeholders(riskScore.StudentId))" />
+                                    <RadzenButton Text="Interventie"
+                                                  ButtonStyle="ButtonStyle.Success"
+                                                  Variant="Variant.Text"
+                                                  Size="ButtonSize.Small"
+                                                  Click="@(() => RecordIntervention(riskScore.StudentId))" />
+                                </RadzenStack>
+                            </Template>
+                        </RadzenDataGridColumn>
+                    </Columns>
+                </RadzenDataGrid>
+            }
+            else
+            {
+                <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Style="padding: 3rem;">
+                    <RadzenIcon Icon="check_circle" Style="font-size: 3rem; color: var(--rz-success);" />
+                    <RadzenText TextStyle="TextStyle.Body2" Style="margin-top: 1rem; color: var(--rz-text-secondary-color);">Nu exista studenti in risc ridicat sau critic</RadzenText>
+                </RadzenStack>
+            }
+        </RadzenCard>
+
+        <!-- Active Alerts Section -->
+        <RadzenCard Style="padding: 0; overflow: hidden;">
+            <div style="padding: 1rem 1.5rem; border-bottom: 1px solid var(--rz-border-color);">
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
+                    <RadzenStack Gap="0.25rem">
+                        <RadzenText TextStyle="TextStyle.H5" Style="margin: 0; font-weight: 600;">Alerte Active</RadzenText>
+                        <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; color: var(--rz-text-secondary-color);">Alerte neconfirmate care necesita atentie</RadzenText>
+                    </RadzenStack>
+                    <RadzenBadge BadgeStyle="BadgeStyle.Warning" Text="@($"{activeAlerts.Count} alerte")" />
+                </RadzenStack>
+            </div>
+
+            @if (activeAlerts.Any())
+            {
+                <RadzenStack Gap="0" Style="padding: 1rem;">
+                    @foreach (var alert in activeAlerts)
+                    {
+                        <RadzenCard Style="padding: 1rem; margin-bottom: 0.75rem;">
+                            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Start" Gap="1rem">
+                                <div style="flex-shrink: 0; margin-top: 0.25rem;">
+                                    <RadzenIcon Icon="warning" Style="@($"font-size: 1.5rem; color: {GetAlertIconColor(alert.RiskLevel)};")" />
+                                </div>
+                                <RadzenStack Gap="0.5rem" Style="flex: 1; min-width: 0;">
+                                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.75rem" Wrap="FlexWrap.Wrap">
+                                        <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; font-weight: 600;">@alert.Student.User.FullName</RadzenText>
+                                        <RadzenBadge BadgeStyle="@GetRiskBadgeStyle(alert.RiskLevel)"
+                                                     Text="@GetRiskLevelText(alert.RiskLevel)"
+                                                     IsPill="true" />
+                                        <RadzenText TextStyle="TextStyle.Caption" Style="margin: 0; color: var(--rz-text-secondary-color);">@alert.AlertType</RadzenText>
+                                    </RadzenStack>
+                                    <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0;">@alert.Message</RadzenText>
+                                    <RadzenText TextStyle="TextStyle.Caption" Style="margin: 0; color: var(--rz-text-secondary-color);">Creat: @alert.CreatedAt.ToString("dd MMM yyyy HH:mm")</RadzenText>
+                                </RadzenStack>
+                                <RadzenButton Text="Confirma"
+                                              Icon="check"
+                                              ButtonStyle="ButtonStyle.Success"
+                                              Size="ButtonSize.Small"
+                                              Click="@(() => AcknowledgeAlert(alert.Id))" />
+                            </RadzenStack>
+                        </RadzenCard>
                     }
-
-                    <!-- Refresh Button -->
-                    <button type="button"
-                            @onclick="LoadDataAsync"
-                            disabled="@isLoading"
-                            class="inline-flex items-center gap-2 rounded-md bg-white px-4 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 disabled:opacity-50">
-                        <svg class="h-5 w-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                        </svg>
-                        Actualizeaza
-                    </button>
-                </div>
-            </div>
-
-            <!-- KPI Cards Row -->
-            <div class="mb-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-5">
-                <!-- Total Monitored Students -->
-                <StatsCard Label="Total Studenti"
-                          Value="@riskDistribution.TotalStudents.ToString()"
-                          IconType="users"
-                          IconBgClass="bg-indigo-100"
-                          IconClass="text-indigo-600" />
-
-                <!-- Low Risk -->
-                <StatsCard Label="Risc Scazut"
-                          Value="@riskDistribution.LowRisk.ToString()"
-                          Subtitle="@($"{riskDistribution.LowRiskPercentage:F1}%")"
-                          IconType="attendance"
-                          IconBgClass="bg-green-100"
-                          IconClass="text-green-600" />
-
-                <!-- Medium Risk -->
-                <StatsCard Label="Risc Mediu"
-                          Value="@riskDistribution.MediumRisk.ToString()"
-                          Subtitle="@($"{riskDistribution.MediumRiskPercentage:F1}%")"
-                          IconType="warning"
-                          IconBgClass="bg-yellow-100"
-                          IconClass="text-yellow-600" />
-
-                <!-- High Risk -->
-                <StatsCard Label="Risc Ridicat"
-                          Value="@riskDistribution.HighRisk.ToString()"
-                          Subtitle="@($"{riskDistribution.HighRiskPercentage:F1}%")"
-                          IconType="warning"
-                          IconBgClass="bg-orange-100"
-                          IconClass="text-orange-600" />
-
-                <!-- Critical Risk -->
-                <StatsCard Label="Risc Critic"
-                          Value="@riskDistribution.CriticalRisk.ToString()"
-                          Subtitle="@($"{riskDistribution.CriticalRiskPercentage:F1}%")"
-                          IconType="warning"
-                          IconBgClass="bg-red-100"
-                          IconClass="text-red-600" />
-            </div>
-
-            <!-- Risk Distribution Chart -->
-            <div class="mb-8">
-                <SmuDonutChart Title="Distributie Niveluri Risc"
-                              Data="@riskChartData"
-                              IsLoading="@isLoading"
-                              Height="400" />
-            </div>
-
-            <!-- Early Warning List -->
-            <div class="bg-white shadow-sm rounded-lg border border-gray-200 p-6 mb-8">
-                <div class="mb-6 flex items-center justify-between">
-                    <div>
-                        <h2 class="text-lg font-semibold text-gray-900">Lista Alerta Timpurie - Top 20 Studenti la Risc</h2>
-                        <p class="mt-1 text-sm text-gray-600">Studenti cu risc ridicat sau critic care necesita interventie</p>
-                    </div>
-                    <div class="flex items-center gap-2 px-4 py-2 bg-red-50 rounded-lg">
-                        <svg class="h-5 w-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                        </svg>
-                        <span class="text-sm font-semibold text-red-900">@highRiskStudents.Count studenti</span>
-                    </div>
-                </div>
-
-                @if (highRiskStudents.Any())
-                {
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200">
-                            <thead class="bg-gray-50">
-                                <tr>
-                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student</th>
-                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Grupa</th>
-                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Scor Risc</th>
-                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nivel</th>
-                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Factori Principali</th>
-                                    <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actiuni</th>
-                                </tr>
-                            </thead>
-                            <tbody class="bg-white divide-y divide-gray-200">
-                                @foreach (var student in highRiskStudents)
-                                {
-                                    <tr class="hover:bg-gray-50">
-                                        <td class="px-6 py-4 whitespace-nowrap">
-                                            <div class="text-sm font-medium text-gray-900">@student.Student.User.FullName</div>
-                                            <div class="text-sm text-gray-500">@student.Student.StudentNumber</div>
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                                            @(student.Student.Group?.Name ?? "Nealocata")
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap">
-                                            <div class="text-sm font-semibold text-gray-900">@student.OverallScore / 100</div>
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap">
-                                            @GetRiskBadge(student.Level)
-                                        </td>
-                                        <td class="px-6 py-4">
-                                            <div class="text-sm text-gray-600 max-w-xs">
-                                                @GetTopRiskFactors(student)
-                                            </div>
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                            <div class="flex items-center justify-end gap-2">
-                                                <button type="button"
-                                                        @onclick="() => ViewStudentDetails(student.StudentId)"
-                                                        class="text-indigo-600 hover:text-indigo-900">
-                                                    Vezi Detalii
-                                                </button>
-                                                <button type="button"
-                                                        @onclick="() => NotifyStakeholders(student.StudentId)"
-                                                        class="text-amber-600 hover:text-amber-900">
-                                                    Notifica
-                                                </button>
-                                                <button type="button"
-                                                        @onclick="() => RecordIntervention(student.StudentId)"
-                                                        class="text-green-600 hover:text-green-900">
-                                                    Interventie
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
-                    </div>
-                }
-                else
-                {
-                    <div class="text-center py-12 text-gray-500">
-                        <svg class="mx-auto h-12 w-12 mb-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        <p class="text-sm">Nu exista studenti in risc ridicat sau critic</p>
-                    </div>
-                }
-            </div>
-
-            <!-- Active Alerts Section -->
-            <div class="bg-white shadow-sm rounded-lg border border-gray-200 p-6">
-                <div class="mb-6 flex items-center justify-between">
-                    <div>
-                        <h2 class="text-lg font-semibold text-gray-900">Alerte Active</h2>
-                        <p class="mt-1 text-sm text-gray-600">Alerte neconfirmate care necesita atentie</p>
-                    </div>
-                    <div class="flex items-center gap-2 px-3 py-1.5 bg-amber-50 rounded-lg">
-                        <svg class="h-4 w-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                        </svg>
-                        <span class="text-sm font-semibold text-amber-900">@activeAlerts.Count alerte</span>
-                    </div>
-                </div>
-
-                @if (activeAlerts.Any())
-                {
-                    <div class="space-y-4">
-                        @foreach (var alert in activeAlerts)
-                        {
-                            <div class="flex items-start gap-4 p-4 border border-gray-200 rounded-lg hover:bg-gray-50">
-                                <div class="flex-shrink-0 mt-1">
-                                    @GetAlertIcon(alert.RiskLevel)
-                                </div>
-                                <div class="flex-1 min-w-0">
-                                    <div class="flex items-center gap-3 mb-2">
-                                        <p class="text-sm font-semibold text-gray-900">@alert.Student.User.FullName</p>
-                                        @GetRiskBadge(alert.RiskLevel)
-                                        <span class="text-xs text-gray-500">@alert.AlertType</span>
-                                    </div>
-                                    <p class="text-sm text-gray-700 mb-2">@alert.Message</p>
-                                    <p class="text-xs text-gray-500">Creat: @alert.CreatedAt.ToString("dd MMM yyyy HH:mm")</p>
-                                </div>
-                                <div class="flex-shrink-0">
-                                    <button type="button"
-                                            @onclick="() => AcknowledgeAlert(alert.Id)"
-                                            class="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700">
-                                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                                        </svg>
-                                        Confirma
-                                    </button>
-                                </div>
-                            </div>
-                        }
-                    </div>
-                }
-                else
-                {
-                    <div class="text-center py-12 text-gray-500">
-                        <svg class="mx-auto h-12 w-12 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        <p class="text-sm">Nu exista alerte active</p>
-                    </div>
-                }
-            </div>
-        }
-    </div>
-</div>
+                </RadzenStack>
+            }
+            else
+            {
+                <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Style="padding: 3rem;">
+                    <RadzenIcon Icon="check_circle" Style="font-size: 3rem; color: var(--rz-success);" />
+                    <RadzenText TextStyle="TextStyle.Body2" Style="margin-top: 1rem; color: var(--rz-text-secondary-color);">Nu exista alerte active</RadzenText>
+                </RadzenStack>
+            }
+        </RadzenCard>
+    }
+</RadzenStack>
 
 @code {
     [Inject] private IRiskScoringService RiskScoringService { get; set; } = default!;
@@ -302,6 +316,7 @@
     // Faculty selection for Rector/Admin
     private string selectedFacultyId = string.Empty;
     private List<Faculty> faculties = new();
+    private List<FacultyOption> facultyOptions = new();
 
     // Data
     private RiskDistributionDto riskDistribution = new();
@@ -310,6 +325,12 @@
 
     // Chart Data
     private List<SmuDonutChart.ChartDataSegment> riskChartData = new();
+
+    private class FacultyOption
+    {
+        public string Value { get; set; } = "";
+        public string Text { get; set; } = "";
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -348,6 +369,12 @@
                     .Where(f => f.IsActive)
                     .OrderBy(f => f.Name)
                     .ToListAsync();
+
+                facultyOptions = faculties.Select(f => new FacultyOption
+                {
+                    Value = f.Id.ToString(),
+                    Text = f.Name
+                }).ToList();
             }
 
             // Determine which faculty to query
@@ -404,53 +431,31 @@
         await LoadDataAsync();
     }
 
-    private RenderFragment GetRiskBadge(RiskLevel level) => level switch
+    private BadgeStyle GetRiskBadgeStyle(RiskLevel level) => level switch
     {
-        RiskLevel.Low => @<span class="inline-flex items-center gap-1 rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-800">
-            <svg class="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-            </svg>
-            Scazut
-        </span>,
-
-        RiskLevel.Medium => @<span class="inline-flex items-center gap-1 rounded-full bg-yellow-100 px-3 py-1 text-xs font-semibold text-yellow-800">
-            <svg class="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
-            </svg>
-            Mediu
-        </span>,
-
-        RiskLevel.High => @<span class="inline-flex items-center gap-1 rounded-full bg-orange-100 px-3 py-1 text-xs font-semibold text-orange-800">
-            <svg class="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
-            </svg>
-            Ridicat
-        </span>,
-
-        RiskLevel.Critical => @<span class="inline-flex items-center gap-1 rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-800">
-            <svg class="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
-            </svg>
-            Critic
-        </span>,
-
-        _ => @<span class="text-gray-500">-</span>
+        RiskLevel.Low => BadgeStyle.Success,
+        RiskLevel.Medium => BadgeStyle.Warning,
+        RiskLevel.High => BadgeStyle.Warning,
+        RiskLevel.Critical => BadgeStyle.Danger,
+        _ => BadgeStyle.Light
     };
 
-    private RenderFragment GetAlertIcon(RiskLevel level)
+    private string GetRiskLevelText(RiskLevel level) => level switch
     {
-        var colorClass = level switch
-        {
-            RiskLevel.Critical => "text-red-600",
-            RiskLevel.High => "text-orange-600",
-            RiskLevel.Medium => "text-yellow-600",
-            _ => "text-green-600"
-        };
+        RiskLevel.Low => "Scazut",
+        RiskLevel.Medium => "Mediu",
+        RiskLevel.High => "Ridicat",
+        RiskLevel.Critical => "Critic",
+        _ => "-"
+    };
 
-        return @<svg class="h-6 w-6 @colorClass" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-        </svg>;
-    }
+    private string GetAlertIconColor(RiskLevel level) => level switch
+    {
+        RiskLevel.Critical => "#dc2626",
+        RiskLevel.High => "#ea580c",
+        RiskLevel.Medium => "#d97706",
+        _ => "#16a34a"
+    };
 
     private string GetTopRiskFactors(StudentRiskScore riskScore)
     {

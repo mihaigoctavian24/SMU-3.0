@@ -20,7 +20,10 @@
     <!-- ASP.NET Identity -->
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.0-preview.5.25277.114" />
 
-    <!-- Charts & Visualization -->
+    <!-- UI Components -->
+    <PackageReference Include="Radzen.Blazor" Version="7.1.2" />
+
+    <!-- Charts & Visualization (kept for advanced charts Radzen doesn't cover) -->
     <PackageReference Include="Blazor-ApexCharts" Version="4.0.0" />
 
     <!-- Document Generation -->

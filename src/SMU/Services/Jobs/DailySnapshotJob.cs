@@ -268,59 +268,128 @@ public class DailySnapshotJob : IScheduledJob
         DateTime snapshotDate,
         CancellationToken cancellationToken)
     {
-        var students = await dbContext.Students
-            .Where(s => s.Status == StudentStatus.Active)
+        var snapshotDateOnly = DateOnly.FromDateTime(snapshotDate);
+
+        // Create grade distribution snapshots per course
+        var courses = await dbContext.Courses
+            .Include(c => c.Program)
+            .Where(c => c.IsActive)
             .ToListAsync(cancellationToken);
 
-        // Get current academic year and semester (simplified logic)
-        var currentDate = DateTime.UtcNow;
-        var academicYear = currentDate.Month >= 9 ? currentDate.Year : currentDate.Year - 1;
-        var semester = currentDate.Month >= 2 && currentDate.Month <= 6 ? 2 : 1;
-
-        foreach (var student in students)
+        foreach (var course in courses)
         {
-            var approvedGrades = await dbContext.Grades
-                .Include(g => g.Course)
-                .Where(g => g.StudentId == student.Id && g.Status == GradeStatus.Approved)
+            var courseGrades = await dbContext.Grades
+                .Where(g => g.CourseId == course.Id && g.Status == GradeStatus.Approved)
+                .Select(g => g.Value)
                 .ToListAsync(cancellationToken);
 
-            // Filter semester grades by Course.Year and Course.Semester since Grade entity doesn't have these fields
-            var semesterGrades = approvedGrades.Where(g =>
-                g.Course?.Semester == semester).ToList();
+            if (!courseGrades.Any())
+                continue;
 
-            var semesterAvg = semesterGrades.Any() ? semesterGrades.Average(g => g.Value) : (decimal?)null;
-            var cumulativeAvg = approvedGrades.Any() ? approvedGrades.Average(g => g.Value) : (decimal?)null;
-            var totalCredits = approvedGrades.Sum(g => g.Course?.Credits ?? 0);
-            var passedCredits = approvedGrades.Where(g => g.Value >= 5.0m).Sum(g => g.Course?.Credits ?? 0);
-            var failedCourses = approvedGrades.Count(g => g.Value < 5.0m);
+            // Calculate grade distribution
+            var grade_1_2 = courseGrades.Count(g => g >= 1 && g < 3);
+            var grade_3_4 = courseGrades.Count(g => g >= 3 && g < 5);
+            var grade_5_6 = courseGrades.Count(g => g >= 5 && g < 7);
+            var grade_7_8 = courseGrades.Count(g => g >= 7 && g < 9);
+            var grade_9_10 = courseGrades.Count(g => g >= 9 && g <= 10);
+            var avgGrade = courseGrades.Average();
+            var passRate = (decimal)courseGrades.Count(g => g >= 5) / courseGrades.Count * 100;
 
-            // Check if snapshot exists for this student/year/semester
+            // Check if snapshot exists for this course/date
             var existingSnapshot = await dbContext.GradeSnapshots
-                .FirstOrDefaultAsync(gs => gs.StudentId == student.Id &&
-                    gs.AcademicYear == academicYear && gs.Semester == semester, cancellationToken);
+                .FirstOrDefaultAsync(gs => gs.CourseId == course.Id &&
+                    gs.SnapshotDate == snapshotDateOnly, cancellationToken);
 
             if (existingSnapshot != null)
             {
                 // Update existing
-                existingSnapshot.SemesterAverage = semesterAvg;
-                existingSnapshot.CumulativeAverage = cumulativeAvg;
-                existingSnapshot.TotalCredits = totalCredits;
-                existingSnapshot.PassedCredits = passedCredits;
-                existingSnapshot.FailedCourses = failedCourses;
+                existingSnapshot.Grade_1_2 = grade_1_2;
+                existingSnapshot.Grade_3_4 = grade_3_4;
+                existingSnapshot.Grade_5_6 = grade_5_6;
+                existingSnapshot.Grade_7_8 = grade_7_8;
+                existingSnapshot.Grade_9_10 = grade_9_10;
+                existingSnapshot.AvgGrade = avgGrade;
+                existingSnapshot.PassRate = passRate;
             }
             else
             {
                 // Create new
                 var snapshot = new GradeSnapshot
                 {
-                    StudentId = student.Id,
-                    AcademicYear = academicYear,
-                    Semester = semester,
-                    SemesterAverage = semesterAvg,
-                    CumulativeAverage = cumulativeAvg,
-                    TotalCredits = totalCredits,
-                    PassedCredits = passedCredits,
-                    FailedCourses = failedCourses
+                    SnapshotDate = snapshotDateOnly,
+                    CourseId = course.Id,
+                    FacultyId = course.Program.FacultyId,
+                    Grade_1_2 = grade_1_2,
+                    Grade_3_4 = grade_3_4,
+                    Grade_5_6 = grade_5_6,
+                    Grade_7_8 = grade_7_8,
+                    Grade_9_10 = grade_9_10,
+                    AvgGrade = avgGrade,
+                    PassRate = passRate
+                };
+
+                dbContext.GradeSnapshots.Add(snapshot);
+            }
+        }
+
+        // Create faculty-level grade distribution snapshots
+        var faculties = await dbContext.Faculties.ToListAsync(cancellationToken);
+
+        foreach (var faculty in faculties)
+        {
+            var facultyCourseIds = await dbContext.Courses
+                .Include(c => c.Program)
+                .Where(c => c.Program.FacultyId == faculty.Id)
+                .Select(c => c.Id)
+                .ToListAsync(cancellationToken);
+
+            var facultyGrades = await dbContext.Grades
+                .Where(g => facultyCourseIds.Contains(g.CourseId) && g.Status == GradeStatus.Approved)
+                .Select(g => g.Value)
+                .ToListAsync(cancellationToken);
+
+            if (!facultyGrades.Any())
+                continue;
+
+            // Calculate grade distribution for faculty
+            var grade_1_2 = facultyGrades.Count(g => g >= 1 && g < 3);
+            var grade_3_4 = facultyGrades.Count(g => g >= 3 && g < 5);
+            var grade_5_6 = facultyGrades.Count(g => g >= 5 && g < 7);
+            var grade_7_8 = facultyGrades.Count(g => g >= 7 && g < 9);
+            var grade_9_10 = facultyGrades.Count(g => g >= 9 && g <= 10);
+            var avgGrade = facultyGrades.Average();
+            var passRate = (decimal)facultyGrades.Count(g => g >= 5) / facultyGrades.Count * 100;
+
+            // Check if snapshot exists for this faculty/date (CourseId = null)
+            var existingSnapshot = await dbContext.GradeSnapshots
+                .FirstOrDefaultAsync(gs => gs.FacultyId == faculty.Id &&
+                    gs.CourseId == null &&
+                    gs.SnapshotDate == snapshotDateOnly, cancellationToken);
+
+            if (existingSnapshot != null)
+            {
+                existingSnapshot.Grade_1_2 = grade_1_2;
+                existingSnapshot.Grade_3_4 = grade_3_4;
+                existingSnapshot.Grade_5_6 = grade_5_6;
+                existingSnapshot.Grade_7_8 = grade_7_8;
+                existingSnapshot.Grade_9_10 = grade_9_10;
+                existingSnapshot.AvgGrade = avgGrade;
+                existingSnapshot.PassRate = passRate;
+            }
+            else
+            {
+                var snapshot = new GradeSnapshot
+                {
+                    SnapshotDate = snapshotDateOnly,
+                    CourseId = null,
+                    FacultyId = faculty.Id,
+                    Grade_1_2 = grade_1_2,
+                    Grade_3_4 = grade_3_4,
+                    Grade_5_6 = grade_5_6,
+                    Grade_7_8 = grade_7_8,
+                    Grade_9_10 = grade_9_10,
+                    AvgGrade = avgGrade,
+                    PassRate = passRate
                 };
 
                 dbContext.GradeSnapshots.Add(snapshot);

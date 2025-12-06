@@ -1,0 +1,225 @@
+@page "/admin/audit"
+@using SMU.Data
+@using SMU.Data.Entities
+@using Microsoft.EntityFrameworkCore
+@using Microsoft.AspNetCore.Authorization
+@inject ApplicationDbContext DbContext
+@attribute [Authorize(Policy = "AdminOnly")]
+
+<PageTitle>Audit Logs - SMU</PageTitle>
+
+<RadzenStack Gap="1.5rem" Style="padding: 1.5rem;">
+    <!-- Header -->
+    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween" Gap="1rem">
+        <RadzenStack Gap="0.25rem">
+            <RadzenText TextStyle="TextStyle.H4" Style="margin: 0; font-weight: bold;">Audit Logs</RadzenText>
+            <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; color: var(--rz-text-secondary-color);">Istoric modificari in sistem</RadzenText>
+        </RadzenStack>
+    </RadzenStack>
+
+    <!-- Filters -->
+    <RadzenCard Style="padding: 1rem;">
+        <RadzenRow Gap="1rem">
+            <RadzenColumn Size="12" SizeMD="3">
+                <RadzenStack Gap="0.25rem">
+                    <RadzenLabel Text="Actiune" />
+                    <RadzenDropDown @bind-Value="@filterAction"
+                                    Data="@actionOptions"
+                                    Change="@LoadAuditLogs"
+                                    AllowClear="true"
+                                    Placeholder="Toate actiunile"
+                                    Style="width: 100%;" />
+                </RadzenStack>
+            </RadzenColumn>
+            <RadzenColumn Size="12" SizeMD="3">
+                <RadzenStack Gap="0.25rem">
+                    <RadzenLabel Text="Tip Entitate" />
+                    <RadzenDropDown @bind-Value="@filterEntityType"
+                                    Data="@entityTypeOptions"
+                                    Change="@LoadAuditLogs"
+                                    AllowClear="true"
+                                    Placeholder="Toate tipurile"
+                                    Style="width: 100%;" />
+                </RadzenStack>
+            </RadzenColumn>
+            <RadzenColumn Size="12" SizeMD="3">
+                <RadzenStack Gap="0.25rem">
+                    <RadzenLabel Text="De la data" />
+                    <RadzenDatePicker @bind-Value="@filterFromDate"
+                                      DateFormat="dd.MM.yyyy"
+                                      Change="@(args => LoadAuditLogs())"
+                                      Style="width: 100%;" />
+                </RadzenStack>
+            </RadzenColumn>
+            <RadzenColumn Size="12" SizeMD="3">
+                <RadzenStack Gap="0.25rem">
+                    <RadzenLabel Text="Pana la data" />
+                    <RadzenDatePicker @bind-Value="@filterToDate"
+                                      DateFormat="dd.MM.yyyy"
+                                      Change="@(args => LoadAuditLogs())"
+                                      Style="width: 100%;" />
+                </RadzenStack>
+            </RadzenColumn>
+        </RadzenRow>
+    </RadzenCard>
+
+    <!-- Audit Logs Table -->
+    <RadzenCard Style="padding: 0; overflow: hidden;">
+        @if (isLoading)
+        {
+            <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Style="padding: 3rem 0;">
+                <RadzenProgressBarCircular ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
+                <RadzenText TextStyle="TextStyle.Body2" Style="margin-top: 1rem; color: var(--rz-text-secondary-color);">Se incarca...</RadzenText>
+            </RadzenStack>
+        }
+        else if (auditLogs.Count == 0)
+        {
+            <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Style="padding: 3rem 0;">
+                <RadzenIcon Icon="history" Style="font-size: 4rem; color: var(--rz-text-disabled-color); margin-bottom: 1rem;" />
+                <RadzenText TextStyle="TextStyle.Body2" Style="color: var(--rz-text-secondary-color);">Nu exista inregistrari de audit</RadzenText>
+            </RadzenStack>
+        }
+        else
+        {
+            <RadzenDataGrid Data="@auditLogs" TItem="AuditLogDto"
+                            AllowSorting="true" AllowPaging="true" PageSize="20"
+                            Style="border: none;">
+                <Columns>
+                    <RadzenDataGridColumn TItem="AuditLogDto" Property="CreatedAt" Title="Data/Ora" Width="160px" Sortable="true">
+                        <Template Context="log">
+                            <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0;">@log.CreatedAt.ToString("dd.MM.yyyy HH:mm")</RadzenText>
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="AuditLogDto" Property="UserName" Title="Utilizator" Width="180px" Sortable="true">
+                        <Template Context="log">
+                            <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; font-weight: 500;">@(log.UserName ?? "System")</RadzenText>
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="AuditLogDto" Property="Action" Title="Actiune" Width="120px" Sortable="true">
+                        <Template Context="log">
+                            <RadzenBadge BadgeStyle="@GetActionBadgeStyle(log.Action)" Text="@log.Action" IsPill="true" />
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="AuditLogDto" Property="EntityType" Title="Tip Entitate" Width="140px" Sortable="true">
+                        <Template Context="log">
+                            <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0;">@log.EntityType</RadzenText>
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="AuditLogDto" Property="EntityId" Title="ID Entitate" Width="280px" Sortable="false">
+                        <Template Context="log">
+                            <RadzenText TextStyle="TextStyle.Caption" Style="margin: 0; font-family: monospace; color: var(--rz-text-secondary-color);">@log.EntityId</RadzenText>
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="AuditLogDto" Property="IpAddress" Title="IP" Width="130px" Sortable="true">
+                        <Template Context="log">
+                            <RadzenText TextStyle="TextStyle.Caption" Style="margin: 0; color: var(--rz-text-secondary-color);">@(log.IpAddress ?? "-")</RadzenText>
+                        </Template>
+                    </RadzenDataGridColumn>
+                </Columns>
+            </RadzenDataGrid>
+        }
+    </RadzenCard>
+</RadzenStack>
+
+@code {
+    private List<AuditLogDto> auditLogs = new();
+    private bool isLoading = true;
+
+    // Filters
+    private string? filterAction;
+    private string? filterEntityType;
+    private DateTime? filterFromDate;
+    private DateTime? filterToDate;
+
+    private List<string> actionOptions = new() { "Create", "Update", "Delete", "Login", "Logout" };
+    private List<string> entityTypeOptions = new() { "Student", "Grade", "Course", "User", "Faculty", "Program", "Group", "Attendance", "DocumentRequest" };
+
+    protected override async Task OnInitializedAsync()
+    {
+        filterFromDate = DateTime.UtcNow.AddDays(-30);
+        filterToDate = DateTime.UtcNow;
+        await LoadAuditLogs();
+    }
+
+    private async Task LoadAuditLogs()
+    {
+        isLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            var query = DbContext.AuditLogs
+                .Include(a => a.User)
+                .AsQueryable();
+
+            if (!string.IsNullOrEmpty(filterAction))
+            {
+                query = query.Where(a => a.Action == filterAction);
+            }
+
+            if (!string.IsNullOrEmpty(filterEntityType))
+            {
+                query = query.Where(a => a.EntityType == filterEntityType);
+            }
+
+            if (filterFromDate.HasValue)
+            {
+                query = query.Where(a => a.CreatedAt >= filterFromDate.Value);
+            }
+
+            if (filterToDate.HasValue)
+            {
+                var endDate = filterToDate.Value.Date.AddDays(1);
+                query = query.Where(a => a.CreatedAt < endDate);
+            }
+
+            auditLogs = await query
+                .OrderByDescending(a => a.CreatedAt)
+                .Take(500)
+                .Select(a => new AuditLogDto
+                {
+                    Id = a.Id,
+                    UserId = a.UserId,
+                    UserName = a.User != null ? $"{a.User.FirstName} {a.User.LastName}" : null,
+                    Action = a.Action,
+                    EntityType = a.EntityType,
+                    EntityId = a.EntityId,
+                    IpAddress = a.IpAddress,
+                    CreatedAt = a.CreatedAt
+                })
+                .ToListAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Failed to load audit logs: {ex.Message}");
+            auditLogs = new();
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private BadgeStyle GetActionBadgeStyle(string action) => action switch
+    {
+        "Create" => BadgeStyle.Success,
+        "Update" => BadgeStyle.Info,
+        "Delete" => BadgeStyle.Danger,
+        "Login" => BadgeStyle.Primary,
+        "Logout" => BadgeStyle.Light,
+        _ => BadgeStyle.Secondary
+    };
+
+    private class AuditLogDto
+    {
+        public Guid Id { get; set; }
+        public Guid? UserId { get; set; }
+        public string? UserName { get; set; }
+        public string Action { get; set; } = string.Empty;
+        public string EntityType { get; set; } = string.Empty;
+        public Guid? EntityId { get; set; }
+        public string? IpAddress { get; set; }
+        public DateTime CreatedAt { get; set; }
+    }
+}

@@ -458,4 +458,96 @@ public class ScheduleService : IScheduleService
 
         return weeklySchedule;
     }
+
+    public async Task<List<ScheduleEntryDto>> GetTodayScheduleForStudentAsync(Guid studentId)
+    {
+        var todayDayOfWeek = (int)DateTime.Today.DayOfWeek;
+        // Convert .NET DayOfWeek (Sunday=0) to our format (Monday=1)
+        if (todayDayOfWeek == 0) todayDayOfWeek = 7;
+
+        var allEntries = await GetByStudentAsync(studentId);
+        return allEntries
+            .Where(e => e.DayOfWeek == todayDayOfWeek)
+            .OrderBy(e => e.StartTime)
+            .ToList();
+    }
+
+    public async Task<List<ScheduleEntryDto>> GetTodayScheduleForProfessorAsync(Guid professorId)
+    {
+        var todayDayOfWeek = (int)DateTime.Today.DayOfWeek;
+        // Convert .NET DayOfWeek (Sunday=0) to our format (Monday=1)
+        if (todayDayOfWeek == 0) todayDayOfWeek = 7;
+
+        var allEntries = await GetByProfessorAsync(professorId);
+        return allEntries
+            .Where(e => e.DayOfWeek == todayDayOfWeek)
+            .OrderBy(e => e.StartTime)
+            .ToList();
+    }
+
+    public async Task<List<WeeklyScheduleDto>> GetWeeklyScheduleByFacultyAsync(Guid facultyId, int? year = null, int? semester = null)
+    {
+        var query = _context.ScheduleEntries
+            .Include(s => s.Course)
+                .ThenInclude(c => c.Professor)
+                .ThenInclude(p => p!.User)
+            .Include(s => s.Course)
+                .ThenInclude(c => c.Program)
+            .Include(s => s.Group)
+                .ThenInclude(g => g.Program)
+            .Where(s => s.Group.Program.FacultyId == facultyId);
+
+        // Filter by year if specified
+        if (year.HasValue)
+        {
+            query = query.Where(s => s.Group.Year == year.Value);
+        }
+
+        // Filter by semester if specified (courses have semester info)
+        if (semester.HasValue)
+        {
+            query = query.Where(s => s.Course.Semester == semester.Value);
+        }
+
+        var entries = await query.ToListAsync();
+        var entryDtos = MapToScheduleEntryDtos(entries);
+
+        return BuildWeeklySchedule(entryDtos);
+    }
+
+    public async Task<List<int>> GetAvailableYearsAsync(Guid facultyId)
+    {
+        return await _context.Groups
+            .Include(g => g.Program)
+            .Where(g => g.Program.FacultyId == facultyId && g.IsActive)
+            .Select(g => g.Year)
+            .Distinct()
+            .OrderBy(y => y)
+            .ToListAsync();
+    }
+
+    public async Task<List<GroupOptionDto>> GetGroupsByFacultyAsync(Guid facultyId, int? year = null)
+    {
+        var query = _context.Groups
+            .Include(g => g.Program)
+            .Where(g => g.Program.FacultyId == facultyId && g.IsActive);
+
+        if (year.HasValue)
+        {
+            query = query.Where(g => g.Year == year.Value);
+        }
+
+        return await query
+            .OrderBy(g => g.Program.Name)
+            .ThenBy(g => g.Year)
+            .ThenBy(g => g.Name)
+            .Select(g => new GroupOptionDto
+            {
+                Id = g.Id,
+                Name = g.Name,
+                ProgramName = g.Program.Name,
+                Year = g.Year
+            })
+            .ToListAsync();
+    }
 }

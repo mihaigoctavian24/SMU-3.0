@@ -1,0 +1,112 @@
+@using SMU.Services
+@using SMU.Services.DTOs
+@using SMU.Data.Entities
+@inject IGradeService GradeService
+
+<RadzenStack Gap="1rem">
+    @if (IsLoading)
+    {
+        <RadzenProgressBarCircular ShowValue="false" Mode="ProgressBarMode.Indeterminate" Size="ProgressBarCircularSize.Medium" />
+    }
+    else if (History != null && History.Any())
+    {
+        <RadzenTimeline>
+            @foreach (var entry in History)
+            {
+                <RadzenTimelineItem PointVariant="@GetVariantForAction(entry.Action)">
+                    <ChildContent>
+                        <RadzenCard Style="margin-bottom: 1rem;">
+                            <RadzenStack Gap="0.5rem">
+                                <RadzenStack Orientation="Radzen.Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
+                                    <RadzenBadge BadgeStyle="@GetBadgeStyleForAction(entry.Action)" Text="@GetActionLabel(entry.Action)" IsPill="true" />
+                                    <RadzenText TextStyle="TextStyle.Caption" class="rz-color-secondary" Style="margin: 0;">
+                                        @entry.Timestamp.ToString("dd.MM.yyyy HH:mm")
+                                    </RadzenText>
+                                </RadzenStack>
+
+                                <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0;">
+                                    <strong>@entry.PerformedBy</strong> - @entry.Description
+                                </RadzenText>
+
+                                @if (!string.IsNullOrEmpty(entry.OldValue) || !string.IsNullOrEmpty(entry.NewValue))
+                                {
+                                    <RadzenStack Orientation="Radzen.Orientation.Horizontal" Gap="1rem" Wrap="FlexWrap.Wrap">
+                                        @if (!string.IsNullOrEmpty(entry.OldValue))
+                                        {
+                                            <RadzenStack Gap="0.25rem">
+                                                <RadzenText TextStyle="TextStyle.Overline" class="rz-color-secondary" Style="margin: 0;">Valoare Veche</RadzenText>
+                                                <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; text-decoration: line-through;">@entry.OldValue</RadzenText>
+                                            </RadzenStack>
+                                        }
+                                        @if (!string.IsNullOrEmpty(entry.NewValue))
+                                        {
+                                            <RadzenStack Gap="0.25rem">
+                                                <RadzenText TextStyle="TextStyle.Overline" class="rz-color-secondary" Style="margin: 0;">Valoare Nouă</RadzenText>
+                                                <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; font-weight: 500;">@entry.NewValue</RadzenText>
+                                            </RadzenStack>
+                                        }
+                                    </RadzenStack>
+                                }
+
+                                @if (!string.IsNullOrEmpty(entry.Notes))
+                                {
+                                    <RadzenText TextStyle="TextStyle.Caption" class="rz-color-secondary" Style="margin: 0; font-style: italic;">
+                                        @entry.Notes
+                                    </RadzenText>
+                                }
+                            </RadzenStack>
+                        </RadzenCard>
+                    </ChildContent>
+                </RadzenTimelineItem>
+            }
+        </RadzenTimeline>
+    }
+    else
+    {
+        <RadzenAlert AlertStyle="AlertStyle.Info" Variant="Variant.Flat" Shade="Shade.Lighter">
+            Nu există istoric de modificări pentru această notă.
+        </RadzenAlert>
+    }
+</RadzenStack>
+
+@code {
+    [Parameter]
+    public Guid GradeId { get; set; }
+
+    private List<GradeHistoryDto>? History;
+    private bool IsLoading = true;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        IsLoading = true;
+        History = await GradeService.GetGradeHistoryAsync(GradeId);
+        IsLoading = false;
+    }
+
+    private Variant GetVariantForAction(string action) => action.ToLower() switch
+    {
+        "created" => Variant.Filled,
+        "updated" => Variant.Filled,
+        "approved" => Variant.Filled,
+        "rejected" => Variant.Filled,
+        _ => Variant.Outlined
+    };
+
+    private BadgeStyle GetBadgeStyleForAction(string action) => action.ToLower() switch
+    {
+        "created" => BadgeStyle.Info,
+        "updated" => BadgeStyle.Warning,
+        "approved" => BadgeStyle.Success,
+        "rejected" => BadgeStyle.Danger,
+        _ => BadgeStyle.Secondary
+    };
+
+    private string GetActionLabel(string action) => action.ToLower() switch
+    {
+        "created" => "Creat",
+        "updated" => "Modificat",
+        "approved" => "Aprobat",
+        "rejected" => "Respins",
+        _ => action
+    };
+}

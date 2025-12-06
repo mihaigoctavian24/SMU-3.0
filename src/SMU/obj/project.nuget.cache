@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "RfgIVvyH3sA=",
+  "dgSpecHash": "HJQ4CWu8q4I=",
   "success": true,
   "projectFilePath": "/Users/octavianmihai/Documents/GitHub/GIGEL/REPOS/SMU-3.0/src/SMU/SMU.csproj",
   "expectedPackageFiles": [
@@ -38,6 +38,7 @@
     "/Users/octavianmihai/.nuget/packages/npgsql/9.0.3/npgsql.9.0.3.nupkg.sha512",
     "/Users/octavianmihai/.nuget/packages/npgsql.entityframeworkcore.postgresql/10.0.0-preview.5/npgsql.entityframeworkcore.postgresql.10.0.0-preview.5.nupkg.sha512",
     "/Users/octavianmihai/.nuget/packages/questpdf/2024.10.2/questpdf.2024.10.2.nupkg.sha512",
+    "/Users/octavianmihai/.nuget/packages/radzen.blazor/7.1.2/radzen.blazor.7.1.2.nupkg.sha512",
     "/Users/octavianmihai/.nuget/packages/rbush/4.0.0/rbush.4.0.0.nupkg.sha512",
     "/Users/octavianmihai/.nuget/packages/sixlabors.fonts/1.0.0/sixlabors.fonts.1.0.0.nupkg.sha512",
     "/Users/octavianmihai/.nuget/packages/system.codedom/9.0.0/system.codedom.9.0.0.nupkg.sha512",

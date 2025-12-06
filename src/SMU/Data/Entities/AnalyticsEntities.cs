@@ -29,25 +29,27 @@ public class DailySnapshot
 }
 
 /// <summary>
-/// Pre-calculated grade statistics per student and semester
-/// Optimizes dashboard performance by caching computed metrics
+/// Grade distribution snapshot per course/faculty
+/// Aggregates grade statistics for analytics dashboards
 /// </summary>
 public class GradeSnapshot
 {
     public Guid Id { get; set; }
-    public Guid StudentId { get; set; }
-    public int AcademicYear { get; set; }
-    public int Semester { get; set; }
-    public decimal? SemesterAverage { get; set; }
-    public decimal? CumulativeAverage { get; set; }
-    public int TotalCredits { get; set; }
-    public int PassedCredits { get; set; }
-    public int FailedCourses { get; set; }
+    public DateOnly SnapshotDate { get; set; }
+    public Guid? CourseId { get; set; }
+    public Guid? FacultyId { get; set; }
+    public int Grade_1_2 { get; set; }
+    public int Grade_3_4 { get; set; }
+    public int Grade_5_6 { get; set; }
+    public int Grade_7_8 { get; set; }
+    public int Grade_9_10 { get; set; }
+    public decimal? AvgGrade { get; set; }
+    public decimal? PassRate { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
     // Navigation
-    public Student Student { get; set; } = null!;
+    public Course? Course { get; set; }
+    public Faculty? Faculty { get; set; }
 }
 
 /// <summary>

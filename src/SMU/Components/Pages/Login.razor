@@ -1,4 +1,5 @@
 @page "/login"
+@layout SMU.Components.Layout.EmptyLayout
 @rendermode InteractiveServer
 @using System.Net.Http.Json
 @using SMU.Data.Entities
@@ -7,226 +8,140 @@
 
 <PageTitle>Autentificare - SMU</PageTitle>
 
-<div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-purple-50 py-12 px-4 sm:px-6 lg:px-8">
-    <div class="max-w-md w-full space-y-8">
+<div style="min-height: 100vh; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #eef2ff 0%, #ffffff 50%, #faf5ff 100%); padding: 2rem;">
+    <RadzenCard Style="width: 100%; max-width: 420px; padding: 0; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);">
         <!-- Logo & Title -->
-        <div class="text-center">
-            <div class="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-gradient-to-br from-indigo-600 to-purple-600 shadow-2xl mb-6 transform hover:scale-105 transition-transform duration-300">
-                <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5z"/>
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"/>
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5l4-2.222"/>
-                </svg>
-            </div>
-            <h1 class="text-4xl font-bold text-gray-900 font-display tracking-tight">
-                Student Management
-            </h1>
-            <p class="mt-3 text-lg text-gray-600">
-                Sistemul de Management Universitar
-            </p>
-        </div>
+        <RadzenStack Gap="1rem" AlignItems="AlignItems.Center" Class="rz-p-6 rz-pb-4">
+            <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center"
+                         Style="width: 80px; height: 80px; background: linear-gradient(135deg, #4f46e5, #7c3aed); border-radius: 24px; box-shadow: 0 20px 25px -5px rgba(79, 70, 229, 0.3);">
+                <RadzenIcon Icon="school" Style="color: white; font-size: 40px;" />
+            </RadzenStack>
+            <RadzenText TextStyle="TextStyle.H4" Style="font-weight: 700; margin: 0;">Student Management</RadzenText>
+            <RadzenText TextStyle="TextStyle.Body2" class="rz-color-secondary" Style="margin: 0;">Sistemul de Management Universitar</RadzenText>
+        </RadzenStack>
 
-        <!-- Login Card -->
-        <div class="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
-            <div class="p-8 space-y-6">
-                <h2 class="text-2xl font-semibold text-gray-900 text-center">
-                    Autentificare
-                </h2>
+        <!-- Login Form -->
+        <RadzenStack Gap="1.5rem" Class="rz-p-6 rz-pt-2">
+            <RadzenText TextStyle="TextStyle.H5" TextAlign="TextAlign.Center" Style="font-weight: 600; margin: 0;">
+                Autentificare
+            </RadzenText>
 
-                @if (!string.IsNullOrEmpty(ErrorMessage))
-                {
-                    <div class="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
-                        <svg class="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
-                        </svg>
-                        <span class="text-red-800 text-sm">@ErrorMessage</span>
-                    </div>
-                }
+            @if (!string.IsNullOrEmpty(ErrorMessage))
+            {
+                <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat" ShowIcon="true" Size="AlertSize.Small">
+                    @ErrorMessage
+                </RadzenAlert>
+            }
 
-                <EditForm Model="@loginModel" OnValidSubmit="HandleLogin">
-                    <DataAnnotationsValidator />
+            <RadzenTemplateForm TItem="LoginModel" Data="@loginModel" Submit="@(args => HandleLogin(args))" InvalidSubmit="@OnInvalidSubmit">
+                <DataAnnotationsValidator />
 
-                    <div class="space-y-5">
-                        <!-- Email -->
-                        <div>
-                            <label for="email" class="block text-sm font-medium text-gray-700 mb-2">Email</label>
-                            <div class="relative">
-                                <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                                    <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207"/>
-                                    </svg>
-                                </div>
-                                <InputText id="email" @bind-Value="loginModel.Email"
-                                           class="block w-full pl-11 pr-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
-                                           placeholder="exemplu@universitate.ro"
-                                           autocomplete="email" />
-                            </div>
-                            <ValidationMessage For="@(() => loginModel.Email)" class="text-red-600 text-xs mt-1" />
-                        </div>
+                <RadzenStack Gap="1.25rem">
+                    <!-- Email -->
+                    <RadzenFormField Text="Email" Variant="Variant.Outlined" Style="width: 100%;">
+                        <ChildContent>
+                            <RadzenTextBox @bind-Value="loginModel.Email" Name="Email" Style="width: 100%;" />
+                        </ChildContent>
+                        <Helper>
+                            <RadzenRequiredValidator Component="Email" Text="Email-ul este obligatoriu" />
+                            <RadzenEmailValidator Component="Email" Text="Format email invalid" />
+                        </Helper>
+                    </RadzenFormField>
 
-                        <!-- Password -->
-                        <div>
-                            <label for="password" class="block text-sm font-medium text-gray-700 mb-2">Parola</label>
-                            <div class="relative">
-                                <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                                    <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
-                                    </svg>
-                                </div>
-                                <InputText id="password" @bind-Value="loginModel.Password"
-                                           type="@(showPassword ? "text" : "password")"
-                                           class="block w-full pl-11 pr-11 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
-                                           placeholder="Introduceți parola"
-                                           autocomplete="current-password" />
-                                <button type="button"
-                                        @onclick="@(() => showPassword = !showPassword)"
-                                        class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-gray-600 transition-colors">
-                                    @if (showPassword)
-                                    {
-                                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>
-                                        </svg>
-                                    }
-                                    else
-                                    {
-                                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                                        </svg>
-                                    }
-                                </button>
-                            </div>
-                            <ValidationMessage For="@(() => loginModel.Password)" class="text-red-600 text-xs mt-1" />
-                        </div>
+                    <!-- Password -->
+                    <RadzenFormField Text="Parola" Variant="Variant.Outlined" Style="width: 100%;">
+                        <ChildContent>
+                            <RadzenPassword @bind-Value="loginModel.Password" Name="Password" Style="width: 100%;" />
+                        </ChildContent>
+                        <Helper>
+                            <RadzenRequiredValidator Component="Password" Text="Parola este obligatorie" />
+                        </Helper>
+                    </RadzenFormField>
 
-                        <!-- Remember Me & Forgot Password -->
-                        <div class="flex items-center justify-between">
-                            <label class="flex items-center gap-2 cursor-pointer group">
-                                <InputCheckbox @bind-Value="loginModel.RememberMe"
-                                               class="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500 cursor-pointer" />
-                                <span class="text-sm text-gray-600 group-hover:text-gray-900 transition-colors">Ține-mă minte</span>
-                            </label>
-                            <a href="/forgot-password" class="text-sm text-indigo-600 hover:text-indigo-700 font-medium transition-colors">
-                                Ai uitat parola?
-                            </a>
-                        </div>
+                    <!-- Remember Me & Forgot Password -->
+                    <RadzenStack Orientation="Radzen.Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center">
+                        <RadzenStack Orientation="Radzen.Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
+                            <RadzenCheckBox @bind-Value="loginModel.RememberMe" Name="rememberMe" TValue="bool" />
+                            <RadzenLabel Text="Ține-mă minte" Component="rememberMe" />
+                        </RadzenStack>
+                        <RadzenLink Path="/forgot-password" Text="Ai uitat parola?" />
+                    </RadzenStack>
 
-                        <!-- Submit Button -->
-                        <button type="submit"
-                                class="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold py-3 px-4 rounded-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-                                disabled="@IsLoading">
-                            @if (IsLoading)
-                            {
-                                <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                </svg>
-                                <span>Se autentifică...</span>
-                            }
-                            else
-                            {
-                                <span>Autentificare</span>
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
-                                </svg>
-                            }
-                        </button>
-                    </div>
-                </EditForm>
-            </div>
+                    <!-- Submit Button -->
+                    <RadzenButton ButtonType="ButtonType.Submit"
+                                  Text="@(IsLoading ? "Se autentifică..." : "Autentificare")"
+                                  Icon="@(IsLoading ? "" : "login")"
+                                  IsBusy="@IsLoading"
+                                  Disabled="@IsLoading"
+                                  ButtonStyle="ButtonStyle.Primary"
+                                  Style="width: 100%;"
+                                  Size="ButtonSize.Large" />
+                </RadzenStack>
+            </RadzenTemplateForm>
+        </RadzenStack>
 
-            <!-- Quick Login Development Section -->
-            <div class="bg-gray-50 border-t border-gray-200 px-8 py-6">
-                <div class="flex items-center justify-center gap-2 mb-4">
-                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/>
-                    </svg>
-                    <span class="text-sm font-medium text-gray-600">Quick Login (Development)</span>
-                </div>
-                <div class="grid grid-cols-2 gap-2">
-                    <button @onclick="@(() => QuickLogin("student@smu.edu", "Demo123!"))"
-                            class="px-3 py-2 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-700 rounded-lg text-xs font-medium transition-colors flex items-center justify-center gap-1.5"
-                            disabled="@IsLoading">
-                        <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3zM3.31 9.397L5 10.12v4.102a8.969 8.969 0 00-1.05-.174 1 1 0 01-.89-.89 11.115 11.115 0 01.25-3.762zM9.3 16.573A9.026 9.026 0 007 14.935v-3.957l1.818.78a3 3 0 002.364 0l5.508-2.361a11.026 11.026 0 01.25 3.762 1 1 0 01-.89.89 8.968 8.968 0 00-5.35 2.524 1 1 0 01-1.4 0zM6 18a1 1 0 001-1v-2.065a8.935 8.935 0 00-2-.712V17a1 1 0 001 1z"/>
-                        </svg>
-                        Student
-                    </button>
-                    <button @onclick="@(() => QuickLogin("profesor@smu.edu", "Demo123!"))"
-                            class="px-3 py-2 bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 rounded-lg text-xs font-medium transition-colors flex items-center justify-center gap-1.5"
-                            disabled="@IsLoading">
-                        <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"/>
-                        </svg>
-                        Profesor
-                    </button>
-                    <button @onclick="@(() => QuickLogin("secretar@smu.edu", "Demo123!"))"
-                            class="px-3 py-2 bg-purple-50 hover:bg-purple-100 border border-purple-200 text-purple-700 rounded-lg text-xs font-medium transition-colors flex items-center justify-center gap-1.5"
-                            disabled="@IsLoading">
-                        <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M6 6V5a3 3 0 013-3h2a3 3 0 013 3v1h2a2 2 0 012 2v3.57A22.952 22.952 0 0110 13a22.95 22.95 0 01-8-1.43V8a2 2 0 012-2h2zm2-1a1 1 0 011-1h2a1 1 0 011 1v1H8V5zm1 5a1 1 0 011-1h.01a1 1 0 110 2H10a1 1 0 01-1-1z" clip-rule="evenodd"/>
-                            <path d="M2 13.692V16a2 2 0 002 2h12a2 2 0 002-2v-2.308A24.974 24.974 0 0110 15c-2.796 0-5.487-.46-8-1.308z"/>
-                        </svg>
-                        Secretar
-                    </button>
-                    <button @onclick="@(() => QuickLogin("decan@smu.edu", "Demo123!"))"
-                            class="px-3 py-2 bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-700 rounded-lg text-xs font-medium transition-colors flex items-center justify-center gap-1.5"
-                            disabled="@IsLoading">
-                        <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M6 6V5a3 3 0 013-3h2a3 3 0 013 3v1h2a2 2 0 012 2v3.57A22.952 22.952 0 0110 13a22.95 22.95 0 01-8-1.43V8a2 2 0 012-2h2zm2-1a1 1 0 011-1h2a1 1 0 011 1v1H8V5zm1 5a1 1 0 011-1h.01a1 1 0 110 2H10a1 1 0 01-1-1z" clip-rule="evenodd"/>
-                            <path d="M2 13.692V16a2 2 0 002 2h12a2 2 0 002-2v-2.308A24.974 24.974 0 0110 15c-2.796 0-5.487-.46-8-1.308z"/>
-                        </svg>
-                        Decan
-                    </button>
-                    <button @onclick="@(() => QuickLogin("rector@smu.edu", "Demo123!"))"
-                            class="px-3 py-2 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 rounded-lg text-xs font-medium transition-colors flex items-center justify-center gap-1.5"
-                            disabled="@IsLoading">
-                        <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M3 6a3 3 0 013-3h10a1 1 0 01.8 1.6L14.25 8l2.55 3.4A1 1 0 0116 13H6a1 1 0 00-1 1v3a1 1 0 11-2 0V6z" clip-rule="evenodd"/>
-                        </svg>
-                        Rector
-                    </button>
-                    <button @onclick="@(() => QuickLogin("admin@smu.edu", "Demo123!"))"
-                            class="px-3 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 rounded-lg text-xs font-medium transition-colors flex items-center justify-center gap-1.5"
-                            disabled="@IsLoading">
-                        <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/>
-                        </svg>
-                        Admin
-                    </button>
-                </div>
-            </div>
-        </div>
+        <!-- Quick Login Development Section -->
+        <RadzenStack Gap="1rem" Class="rz-p-6" Style="background: #f9fafb; border-top: 1px solid #e5e7eb;">
+            <RadzenStack Orientation="Radzen.Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Gap="0.5rem">
+                <RadzenIcon Icon="code" Style="font-size: 16px; color: #9ca3af;" />
+                <RadzenText TextStyle="TextStyle.Caption" class="rz-color-secondary" Style="margin: 0; font-weight: 500;">
+                    Quick Login (Development)
+                </RadzenText>
+            </RadzenStack>
+
+            <RadzenStack Orientation="Radzen.Orientation.Horizontal" Wrap="FlexWrap.Wrap" Gap="0.5rem" JustifyContent="JustifyContent.Center">
+                <RadzenButton Text="Student" Icon="school"
+                              ButtonStyle="ButtonStyle.Success" Variant="Variant.Outlined" Size="ButtonSize.Small"
+                              Click="@(() => QuickLogin("student@smu.edu", "Demo123!"))" Disabled="@IsLoading" />
+                <RadzenButton Text="Profesor" Icon="person"
+                              ButtonStyle="ButtonStyle.Info" Variant="Variant.Outlined" Size="ButtonSize.Small"
+                              Click="@(() => QuickLogin("profesor@smu.edu", "Demo123!"))" Disabled="@IsLoading" />
+                <RadzenButton Text="Secretar" Icon="badge"
+                              ButtonStyle="ButtonStyle.Secondary" Variant="Variant.Outlined" Size="ButtonSize.Small"
+                              Click="@(() => QuickLogin("secretar@smu.edu", "Demo123!"))" Disabled="@IsLoading" />
+                <RadzenButton Text="Decan" Icon="work"
+                              ButtonStyle="ButtonStyle.Warning" Variant="Variant.Outlined" Size="ButtonSize.Small"
+                              Click="@(() => QuickLogin("decan@smu.edu", "Demo123!"))" Disabled="@IsLoading" />
+                <RadzenButton Text="Rector" Icon="flag"
+                              ButtonStyle="ButtonStyle.Danger" Variant="Variant.Outlined" Size="ButtonSize.Small"
+                              Click="@(() => QuickLogin("rector@smu.edu", "Demo123!"))" Disabled="@IsLoading" />
+                <RadzenButton Text="Admin" Icon="settings"
+                              ButtonStyle="ButtonStyle.Dark" Variant="Variant.Outlined" Size="ButtonSize.Small"
+                              Click="@(() => QuickLogin("admin@smu.edu", "Demo123!"))" Disabled="@IsLoading" />
+            </RadzenStack>
+        </RadzenStack>
 
         <!-- Footer -->
-        <p class="text-center text-sm text-gray-500">
-            © @DateTime.Now.Year Student Management University
-        </p>
-    </div>
+        <RadzenStack AlignItems="AlignItems.Center" Class="rz-p-4" Style="border-top: 1px solid #e5e7eb;">
+            <RadzenText TextStyle="TextStyle.Caption" class="rz-color-secondary" Style="margin: 0;">
+                © @DateTime.Now.Year Student Management University
+            </RadzenText>
+        </RadzenStack>
+    </RadzenCard>
 </div>
 
 @code {
     private LoginModel loginModel = new();
     private string? ErrorMessage;
     private bool IsLoading;
-    private bool showPassword;
 
     [SupplyParameterFromQuery]
     public string? ReturnUrl { get; set; }
 
-    private async Task HandleLogin()
+    private async Task HandleLogin(LoginModel model)
     {
         ErrorMessage = null;
         IsLoading = true;
+        StateHasChanged();
 
         try
         {
             // Use JavaScript fetch to make the request from the browser
             // This ensures cookies are properly set in the browser
             var result = await JS.InvokeAsync<LoginResult>("performLogin",
-                loginModel.Email,
-                loginModel.Password,
-                loginModel.RememberMe);
+                model.Email,
+                model.Password,
+                model.RememberMe);
 
             if (result.Success)
             {
@@ -246,16 +161,22 @@
         finally
         {
             IsLoading = false;
+            StateHasChanged();
         }
     }
 
     private record LoginResult(bool Success, string? RedirectUrl, string? Error);
 
+    private void OnInvalidSubmit(FormInvalidSubmitEventArgs args)
+    {
+        // Validation errors are shown automatically by validators
+    }
+
     private async Task QuickLogin(string email, string password)
     {
         loginModel.Email = email;
         loginModel.Password = password;
-        await HandleLogin();
+        await HandleLogin(loginModel);
     }
 
 

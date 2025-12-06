@@ -67,13 +67,13 @@ public class RiskScoringService : IRiskScoringService
 
         if (existingScore != null)
         {
-            existingScore.OverallScore = overallScore;
-            existingScore.Level = riskLevel;
+            existingScore.RiskScore = overallScore;
+            existingScore.RiskLevel = riskLevel;
             existingScore.GradeRiskFactor = riskFactors.CurrentGradeScore;
             existingScore.AttendanceRiskFactor = riskFactors.AttendanceScore;
             existingScore.TrendRiskFactor = riskFactors.GradeTrendScore;
             existingScore.EngagementRiskFactor = riskFactors.EngagementScore;
-            existingScore.RiskFactors = JsonSerializer.Serialize(GetRiskFactorsList(riskFactors));
+            existingScore.Factors = JsonSerializer.Serialize(GetRiskFactorsList(riskFactors));
             existingScore.Recommendations = JsonSerializer.Serialize(recommendations);
             existingScore.CalculatedAt = DateTime.UtcNow;
         }
@@ -82,13 +82,13 @@ public class RiskScoringService : IRiskScoringService
             existingScore = new StudentRiskScore
             {
                 StudentId = studentId,
-                OverallScore = overallScore,
-                Level = riskLevel,
+                RiskScore = overallScore,
+                RiskLevel = riskLevel,
                 GradeRiskFactor = riskFactors.CurrentGradeScore,
                 AttendanceRiskFactor = riskFactors.AttendanceScore,
                 TrendRiskFactor = riskFactors.GradeTrendScore,
                 EngagementRiskFactor = riskFactors.EngagementScore,
-                RiskFactors = JsonSerializer.Serialize(GetRiskFactorsList(riskFactors)),
+                Factors = JsonSerializer.Serialize(GetRiskFactorsList(riskFactors)),
                 Recommendations = JsonSerializer.Serialize(recommendations),
                 CalculatedAt = DateTime.UtcNow
             };
@@ -304,7 +304,7 @@ public class RiskScoringService : IRiskScoringService
                 .ThenInclude(s => s.Group)
                     .ThenInclude(g => g.Program)
                         .ThenInclude(p => p.Faculty)
-            .Where(r => r.Level == RiskLevel.High || r.Level == RiskLevel.Critical);
+            .Where(r => r.RiskLevel == RiskLevel.High || r.RiskLevel == RiskLevel.Critical);
 
         if (facultyId.HasValue)
         {
@@ -314,7 +314,7 @@ public class RiskScoringService : IRiskScoringService
         }
 
         return await query
-            .OrderByDescending(r => r.OverallScore)
+            .OrderByDescending(r => r.RiskScore)
             .Take(limit)
             .ToListAsync();
     }
@@ -345,10 +345,10 @@ public class RiskScoringService : IRiskScoringService
             };
         }
 
-        var lowCount = scores.Count(s => s.Level == RiskLevel.Low);
-        var mediumCount = scores.Count(s => s.Level == RiskLevel.Medium);
-        var highCount = scores.Count(s => s.Level == RiskLevel.High);
-        var criticalCount = scores.Count(s => s.Level == RiskLevel.Critical);
+        var lowCount = scores.Count(s => s.RiskLevel == RiskLevel.Low);
+        var mediumCount = scores.Count(s => s.RiskLevel == RiskLevel.Medium);
+        var highCount = scores.Count(s => s.RiskLevel == RiskLevel.High);
+        var criticalCount = scores.Count(s => s.RiskLevel == RiskLevel.Critical);
 
         return new RiskDistributionDto
         {

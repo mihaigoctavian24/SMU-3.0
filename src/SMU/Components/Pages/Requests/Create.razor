@@ -12,127 +12,137 @@
 @inject AuthenticationStateProvider AuthStateProvider
 @inject NavigationManager Navigation
 @inject IJSRuntime JS
+@inject Radzen.NotificationService RadzenNotificationService
 
-<div class="max-w-2xl mx-auto space-y-6">
-    <!-- Page Header -->
-    <div>
-        <div class="flex items-center mb-2">
-            <a href="/cereri" class="text-gray-500 hover:text-gray-700 mr-2">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
-                </svg>
-            </a>
-            <h1 class="text-2xl font-bold text-gray-900">Cerere Nouă Document</h1>
-        </div>
-        <p class="text-sm text-gray-600">Completează formularul pentru a solicita un document</p>
-    </div>
+<PageTitle>Cerere Nouă Document - SMU</PageTitle>
 
-    <!-- Form Card -->
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-        <EditForm Model="@Model" OnValidSubmit="HandleSubmit">
-            <DataAnnotationsValidator />
+<div style="max-width: 800px; margin: 0 auto;">
+    <RadzenStack Gap="1.5rem">
+        <!-- Page Header -->
+        <RadzenStack Gap="0.5rem">
+            <RadzenStack Orientation="Radzen.Orientation.Horizontal" Gap="0.5rem" AlignItems="AlignItems.Center">
+                <RadzenButton Icon="arrow_back" ButtonStyle="ButtonStyle.Light" Variant="Variant.Text"
+                              Click="@(() => Navigation.NavigateTo("/cereri"))" />
+                <RadzenText TextStyle="TextStyle.H4" Style="margin: 0; font-weight: 700;">
+                    Cerere Nouă Document
+                </RadzenText>
+            </RadzenStack>
+            <RadzenText TextStyle="TextStyle.Body2" class="rz-color-secondary" Style="margin: 0;">
+                Completează formularul pentru a solicita un document
+            </RadzenText>
+        </RadzenStack>
 
-            <div class="space-y-6">
-                <!-- Document Type -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">
-                        Tip Document <span class="text-danger-600">*</span>
-                    </label>
-                    <select @bind="Model.Type" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
-                        <option value="">-- Selectează tipul documentului --</option>
-                        <option value="@RequestType.StudentCertificate">Adeverință de Student</option>
-                        <option value="@RequestType.GradeReport">Adeverință cu Note</option>
-                        <option value="@RequestType.EnrollmentProof">Foaie Matricolă</option>
-                        <option value="@RequestType.Other">Altele</option>
-                    </select>
-                    <ValidationMessage For="@(() => Model.Type)" class="mt-1 text-sm text-danger-600" />
-                </div>
+        <!-- Form Card -->
+        <RadzenCard>
+            <EditForm Model="@Model" OnValidSubmit="HandleSubmit">
+                <DataAnnotationsValidator />
 
-                <!-- Document Type Descriptions -->
-                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <h3 class="text-sm font-medium text-blue-900 mb-2">Informații despre documentele disponibile:</h3>
-                    <ul class="text-sm text-blue-800 space-y-2">
-                        <li>
-                            <strong>Adeverință de Student:</strong> Document care atestă calitatea de student activ
-                        </li>
-                        <li>
-                            <strong>Adeverință cu Note:</strong> Document care conține situația academică (notele obținute)
-                        </li>
-                        <li>
-                            <strong>Foaie Matricolă:</strong> Document oficial cu toate informațiile academice complete
-                        </li>
-                        <li>
-                            <strong>Altele:</strong> Alte tipuri de documente (specifică în observații)
-                        </li>
-                    </ul>
-                </div>
+                <RadzenStack Gap="1.5rem">
+                    <!-- Document Type -->
+                    <RadzenFormField Text="Tip Document" Variant="Variant.Outlined" Style="width: 100%;">
+                        <ChildContent>
+                            <RadzenDropDown @bind-Value="Model.Type" Data="@documentTypes"
+                                            TextProperty="Text" ValueProperty="Value"
+                                            Placeholder="-- Selectează tipul documentului --"
+                                            Style="width: 100%;" />
+                        </ChildContent>
+                        <Helper>
+                            <RadzenText TextStyle="TextStyle.Caption" class="rz-color-danger">* Obligatoriu</RadzenText>
+                        </Helper>
+                    </RadzenFormField>
 
-                <!-- Notes -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">
-                        Observații (opțional)
-                    </label>
-                    <textarea @bind="Model.Notes" rows="4"
-                              placeholder="Adaugă detalii suplimentare despre cerere..."
-                              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"></textarea>
-                    <p class="mt-1 text-sm text-gray-500">
-                        Dacă ai selectat "Altele", specifică aici ce document necesiți
-                    </p>
-                </div>
+                    <!-- Document Type Descriptions -->
+                    <RadzenAlert AlertStyle="AlertStyle.Info" Variant="Variant.Flat" ShowIcon="true">
+                        <RadzenStack Gap="0.75rem">
+                            <RadzenText TextStyle="TextStyle.Subtitle2" Style="margin: 0; font-weight: 600;">
+                                Informații despre documentele disponibile:
+                            </RadzenText>
+                            <RadzenStack Gap="0.5rem">
+                                <RadzenStack Gap="0.25rem">
+                                    <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; font-weight: 500;">
+                                        Adeverință de Student:
+                                    </RadzenText>
+                                    <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0;">
+                                        Document care atestă calitatea de student activ
+                                    </RadzenText>
+                                </RadzenStack>
+                                <RadzenStack Gap="0.25rem">
+                                    <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; font-weight: 500;">
+                                        Adeverință cu Note:
+                                    </RadzenText>
+                                    <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0;">
+                                        Document care conține situația academică (notele obținute)
+                                    </RadzenText>
+                                </RadzenStack>
+                                <RadzenStack Gap="0.25rem">
+                                    <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; font-weight: 500;">
+                                        Foaie Matricolă:
+                                    </RadzenText>
+                                    <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0;">
+                                        Document oficial cu toate informațiile academice complete
+                                    </RadzenText>
+                                </RadzenStack>
+                                <RadzenStack Gap="0.25rem">
+                                    <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; font-weight: 500;">
+                                        Altele:
+                                    </RadzenText>
+                                    <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0;">
+                                        Alte tipuri de documente (specifică în observații)
+                                    </RadzenText>
+                                </RadzenStack>
+                            </RadzenStack>
+                        </RadzenStack>
+                    </RadzenAlert>
 
-                <!-- Error Message -->
-                @if (!string.IsNullOrEmpty(ErrorMessage))
-                {
-                    <div class="bg-danger-50 border border-danger-200 rounded-lg p-4">
-                        <div class="flex">
-                            <svg class="h-5 w-5 text-danger-400" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
-                            </svg>
-                            <p class="ml-3 text-sm text-danger-700">@ErrorMessage</p>
-                        </div>
-                    </div>
-                }
+                    <!-- Notes -->
+                    <RadzenFormField Text="Observații (opțional)" Variant="Variant.Outlined" Style="width: 100%;">
+                        <ChildContent>
+                            <RadzenTextArea @bind-Value="Model.Notes" Rows="4"
+                                            Placeholder="Adaugă detalii suplimentare despre cerere..."
+                                            Style="width: 100%;" />
+                        </ChildContent>
+                        <Helper>
+                            <RadzenText TextStyle="TextStyle.Caption" class="rz-color-secondary">
+                                Dacă ai selectat "Altele", specifică aici ce document necesiți
+                            </RadzenText>
+                        </Helper>
+                    </RadzenFormField>
 
-                <!-- Success Message -->
-                @if (!string.IsNullOrEmpty(SuccessMessage))
-                {
-                    <div class="bg-success-50 border border-success-200 rounded-lg p-4">
-                        <div class="flex">
-                            <svg class="h-5 w-5 text-success-400" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                            </svg>
-                            <p class="ml-3 text-sm text-success-700">@SuccessMessage</p>
-                        </div>
-                    </div>
-                }
+                    <!-- Error Message -->
+                    @if (!string.IsNullOrEmpty(ErrorMessage))
+                    {
+                        <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat" ShowIcon="true">
+                            @ErrorMessage
+                        </RadzenAlert>
+                    }
 
-                <!-- Action Buttons -->
-                <div class="flex gap-4 pt-4">
-                    <button type="submit"
-                            disabled="@IsSubmitting"
-                            class="flex-1 px-6 py-3 bg-primary-600 hover:bg-primary-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-colors">
-                        @if (IsSubmitting)
-                        {
-                            <span class="flex items-center justify-center">
-                                <svg class="animate-spin h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24">
-                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                </svg>
-                                Se trimite...
-                            </span>
-                        }
-                        else
-                        {
-                            <text>Trimite Cererea</text>
-                        }
-                    </button>
-                    <a href="/cereri" class="flex-1 px-6 py-3 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium rounded-lg text-center transition-colors">
-                        Anulează
-                    </a>
-                </div>
-            </div>
-        </EditForm>
-    </div>
+                    <!-- Success Message -->
+                    @if (!string.IsNullOrEmpty(SuccessMessage))
+                    {
+                        <RadzenAlert AlertStyle="AlertStyle.Success" Variant="Variant.Flat" ShowIcon="true">
+                            @SuccessMessage
+                        </RadzenAlert>
+                    }
+
+                    <!-- Action Buttons -->
+                    <RadzenStack Orientation="Radzen.Orientation.Horizontal" Gap="1rem" Style="padding-top: 1rem;">
+                        <RadzenButton Text="@(IsSubmitting ? "Se trimite..." : "Trimite Cererea")"
+                                      Icon="@(IsSubmitting ? "" : "send")"
+                                      ButtonStyle="ButtonStyle.Primary" ButtonType="ButtonType.Submit"
+                                      Disabled="@IsSubmitting" Style="flex: 1;">
+                            @if (IsSubmitting)
+                            {
+                                <RadzenProgressBarCircular ShowValue="false" Mode="ProgressBarMode.Indeterminate"
+                                                           Size="ProgressBarCircularSize.Small" Style="width: 20px; height: 20px; margin-right: 8px;" />
+                            }
+                        </RadzenButton>
+                        <RadzenButton Text="Anulează" Icon="close" ButtonStyle="ButtonStyle.Light"
+                                      Click="@(() => Navigation.NavigateTo("/cereri"))" Style="flex: 1;" />
+                    </RadzenStack>
+                </RadzenStack>
+            </EditForm>
+        </RadzenCard>
+    </RadzenStack>
 </div>
 
 @code {
@@ -141,6 +151,14 @@
     private string? ErrorMessage;
     private string? SuccessMessage;
     private Guid CurrentStudentId;
+
+    private List<dynamic> documentTypes = new List<dynamic>
+    {
+        new { Text = "Adeverință de Student", Value = RequestType.StudentCertificate },
+        new { Text = "Adeverință cu Note", Value = RequestType.GradeReport },
+        new { Text = "Foaie Matricolă", Value = RequestType.EnrollmentProof },
+        new { Text = "Altele", Value = RequestType.Other }
+    };
 
     protected override async Task OnInitializedAsync()
     {
@@ -174,8 +192,14 @@
 
             if (result.Succeeded)
             {
-                SuccessMessage = "Cererea a fost trimisă cu succes!";
-                await Task.Delay(1500); // Show success message briefly
+                RadzenNotificationService.Notify(new NotificationMessage
+                {
+                    Severity = NotificationSeverity.Success,
+                    Summary = "Succes",
+                    Detail = "Cererea a fost trimisă cu succes!",
+                    Duration = 4000
+                });
+                await Task.Delay(1500);
                 Navigation.NavigateTo("/cereri");
             }
             else

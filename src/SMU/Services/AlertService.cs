@@ -290,7 +290,7 @@ public class AlertService : IAlertService
                 .ToListAsync();
 
             // Risk Score > 80 → Critical alert
-            if (riskScore != null && riskScore.OverallScore > 80)
+            if (riskScore != null && riskScore.RiskScore > 80)
             {
                 if (!recentAlerts.Any(a => a.AlertType == "RiskScoreCritical"))
                 {
@@ -298,14 +298,14 @@ public class AlertService : IAlertService
                         studentId,
                         RiskLevel.Critical,
                         "RiskScoreCritical",
-                        $"Scor de risc critic: {riskScore.OverallScore}/100. Necesită intervenție urgentă."
+                        $"Scor de risc critic: {riskScore.RiskScore}/100. Necesită intervenție urgentă."
                     );
 
                     await NotifyStakeholdersAsync(alert.Id);
                 }
             }
             // Risk Score > 60 → High alert
-            else if (riskScore != null && riskScore.OverallScore > 60)
+            else if (riskScore != null && riskScore.RiskScore > 60)
             {
                 if (!recentAlerts.Any(a => a.AlertType == "RiskScoreHigh"))
                 {
@@ -313,7 +313,7 @@ public class AlertService : IAlertService
                         studentId,
                         RiskLevel.High,
                         "RiskScoreHigh",
-                        $"Scor de risc ridicat: {riskScore.OverallScore}/100. Se recomandă monitorizare atentă."
+                        $"Scor de risc ridicat: {riskScore.RiskScore}/100. Se recomandă monitorizare atentă."
                     );
 
                     await NotifyStakeholdersAsync(alert.Id);
@@ -338,7 +338,7 @@ public class AlertService : IAlertService
 
             _logger.LogInformation(
                 "Auto-alert check completed for student {StudentId}: Risk Score = {Score}, Max Consecutive Absences = {Absences}",
-                studentId, riskScore?.OverallScore ?? 0, maxConsecutiveAbsences);
+                studentId, riskScore?.RiskScore ?? 0, maxConsecutiveAbsences);
         }
         catch (Exception ex)
         {

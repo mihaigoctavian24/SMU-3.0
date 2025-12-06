@@ -1,22 +1,114 @@
-﻿<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html>
+<html lang="ro">
 
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <base href="/" />
-    <ResourcePreloader />
-    <link rel="stylesheet" href="@Assets["css/app.css"]" />
-    <link rel="stylesheet" href="@Assets["SMU.styles.css"]" />
-    <ImportMap />
+    <title>SMU - Student Management University</title>
+
+    <!-- Google Fonts: Roboto (required for Radzen) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet" />
+
+    <!-- Material Icons Font (required for Radzen icons) -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+
+    <!-- Radzen Blazor Theme Component (v7.x) -->
+    <RadzenTheme Theme="material" @rendermode="InteractiveServer" />
+
+    <!-- Override Radzen font paths to use Google Fonts CDN -->
+    <style>
+        /* Force Material Icons from Google CDN */
+        .rz-icon, .material-icons, [class^="rzi-"], [class*=" rzi-"] {
+            font-family: 'Material Icons' !important;
+        }
+    </style>
+
+    <!-- Custom app styles (minimal) -->
+    <link rel="stylesheet" href="css/app.css" />
+    <link rel="stylesheet" href="SMU.styles.css" />
+
+    <!-- Override Radzen CSS variables - MUST be after all CSS files -->
+    <style id="smu-theme-overrides">
+        /* Override Radzen v7.x border-radius CSS variables */
+        :root,
+        html,
+        body,
+        [data-rz-theme],
+        .rz-body {
+            --rz-border-radius: 24px !important;
+            --rz-border-radius-sm: 16px !important;
+            --rz-border-radius-lg: 32px !important;
+        }
+
+        /* Force border-radius on popups and dropdowns */
+        .rz-popup,
+        .rz-datepicker-popup-container,
+        .rz-dropdown-panel,
+        .rz-multiselect-panel,
+        .rz-autocomplete-panel {
+            border-radius: 24px !important;
+            overflow: hidden !important;
+        }
+
+        /* Force border-radius on buttons */
+        .rz-button {
+            border-radius: 24px !important;
+        }
+
+        /* Force border-radius on inputs */
+        .rz-textbox,
+        .rz-dropdown,
+        .rz-datepicker,
+        .rz-autocomplete,
+        .rz-numeric,
+        .rz-textarea,
+        .rz-inputtext,
+        .rz-form-field-content {
+            border-radius: 24px !important;
+        }
+
+        /* Cards with larger radius */
+        .rz-card {
+            border-radius: 32px !important;
+        }
+
+        /* Dialog with larger radius */
+        .rz-dialog {
+            border-radius: 32px !important;
+            overflow: hidden !important;
+        }
+
+        /* Header bar rounded corners */
+        .smu-header {
+            border-radius: 24px !important;
+            margin: 0.5rem !important;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+        }
+
+        /* Sidebar rounded corners */
+        .rz-sidebar {
+            border-radius: 0 24px 24px 0 !important;
+        }
+
+        /* Content area rounded corners */
+        .rz-content {
+            border-radius: 24px !important;
+            margin: 0.5rem !important;
+        }
+    </style>
+
     <link rel="icon" type="image/png" href="favicon.png" />
-    <HeadOutlet />
+    <HeadOutlet @rendermode="InteractiveServer" />
 </head>
 
 <body>
-    <Routes />
-    <ReconnectModal />
-    <script src="@Assets["_framework/blazor.web.js"]"></script>
+    <Routes @rendermode="InteractiveServer" />
+
+    <script src="_framework/blazor.web.js"></script>
+    <script src="_content/Radzen.Blazor/Radzen.Blazor.js"></script>
     <script src="js/theme.js"></script>
     <script src="js/fileDownload.js"></script>
     <script src="js/keyboard.js"></script>
@@ -39,11 +131,11 @@
                     return { success: true, redirectUrl: data.redirectUrl, error: null };
                 } else {
                     const errorData = await response.json();
-                    return { success: false, redirectUrl: null, error: errorData.error || 'Email sau parolă incorectă.' };
+                    return { success: false, redirectUrl: null, error: errorData.error || 'Email sau parola incorecta.' };
                 }
             } catch (error) {
                 console.error('Login error:', error);
-                return { success: false, redirectUrl: null, error: 'Eroare de conectare. Vă rugăm încercați din nou.' };
+                return { success: false, redirectUrl: null, error: 'Eroare de conectare. Va rugam incercati din nou.' };
             }
         };
 

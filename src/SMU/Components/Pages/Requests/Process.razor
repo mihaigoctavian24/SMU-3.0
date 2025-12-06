@@ -9,198 +9,171 @@
 @inject IDocumentRequestService RequestService
 @inject AuthenticationStateProvider AuthStateProvider
 @inject NavigationManager Navigation
-@inject IJSRuntime JS
+@inject DialogService DialogService
+@inject Radzen.NotificationService RadzenNotificationService
 
-<div class="max-w-3xl mx-auto space-y-6">
+<PageTitle>Procesare Cerere - SMU</PageTitle>
+
+<RadzenStack Gap="1.5rem" Style="max-width: 900px; margin: 0 auto;">
     <!-- Page Header -->
-    <div>
-        <div class="flex items-center mb-2">
-            <a href="/cereri" class="text-gray-500 hover:text-gray-700 mr-2">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
-                </svg>
-            </a>
-            <h1 class="text-2xl font-bold text-gray-900">Procesare Cerere Document</h1>
-        </div>
-        <p class="text-sm text-gray-600">Aprobă sau respinge cererea studentului</p>
-    </div>
+    <RadzenStack Gap="0.5rem">
+        <RadzenButton Text="Înapoi la Cereri" Icon="arrow_back" Variant="Variant.Text"
+                      ButtonStyle="ButtonStyle.Secondary" Click="@(() => Navigation.NavigateTo("/cereri"))"
+                      Style="align-self: flex-start; margin-bottom: 0.5rem;" />
+        <RadzenText TextStyle="TextStyle.H4" Style="margin: 0; font-weight: 700;">Procesare Cerere Document</RadzenText>
+        <RadzenText TextStyle="TextStyle.Body2" class="rz-color-secondary" Style="margin: 0;">
+            Aprobă sau respinge cererea studentului
+        </RadzenText>
+    </RadzenStack>
 
     @if (IsLoading)
     {
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-8 text-center">
-            <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-            <p class="mt-2 text-gray-600">Se încarcă...</p>
-        </div>
+        <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Style="padding: 3rem 0;">
+            <RadzenProgressBarCircular ShowValue="false" Mode="ProgressBarMode.Indeterminate" Size="ProgressBarCircularSize.Large" />
+            <RadzenText TextStyle="TextStyle.Body2" class="rz-color-secondary" Style="margin-top: 1rem;">
+                Se încarcă...
+            </RadzenText>
+        </RadzenStack>
     }
     else if (Request == null)
     {
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-8 text-center">
-            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-            </svg>
-            <p class="mt-2 text-gray-600">Cererea nu a fost găsită.</p>
-            <a href="/cereri" class="mt-4 inline-block text-primary-600 hover:text-primary-700">
-                Înapoi la lista de cereri
-            </a>
-        </div>
+        <RadzenCard>
+            <RadzenStack AlignItems="AlignItems.Center" Gap="1rem" Style="padding: 2rem 0;">
+                <RadzenIcon Icon="error_outline" Style="font-size: 48px; color: var(--rz-text-disabled-color);" />
+                <RadzenText TextStyle="TextStyle.Body1" class="rz-color-secondary" Style="margin: 0;">
+                    Cererea nu a fost găsită.
+                </RadzenText>
+                <RadzenButton Text="Înapoi la lista de cereri" ButtonStyle="ButtonStyle.Primary"
+                              Click="@(() => Navigation.NavigateTo("/cereri"))" />
+            </RadzenStack>
+        </RadzenCard>
     }
     else
     {
         <!-- Request Details Card -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-            <h2 class="text-lg font-semibold text-gray-900 mb-4">Detalii Cerere</h2>
+        <RadzenCard>
+            <RadzenText TextStyle="TextStyle.H6" Style="margin: 0 0 1rem 0; font-weight: 600;">Detalii Cerere</RadzenText>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Student</label>
-                    <p class="text-sm text-gray-900">@Request.StudentName</p>
-                    <p class="text-xs text-gray-500">@Request.StudentNumber</p>
-                </div>
+            <RadzenRow Gap="1.5rem" RowGap="1.5rem">
+                <RadzenColumn Size="12" SizeMD="6">
+                    <RadzenStack Gap="0.25rem">
+                        <RadzenText TextStyle="TextStyle.Caption" class="rz-color-secondary" Style="margin: 0;">Student</RadzenText>
+                        <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; font-weight: 500;">@Request.StudentName</RadzenText>
+                        <RadzenText TextStyle="TextStyle.Caption" class="rz-color-secondary" Style="margin: 0;">@Request.StudentNumber</RadzenText>
+                    </RadzenStack>
+                </RadzenColumn>
 
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Tip Document</label>
-                    <p class="text-sm text-gray-900">@Request.TypeLabel</p>
-                </div>
+                <RadzenColumn Size="12" SizeMD="6">
+                    <RadzenStack Gap="0.25rem">
+                        <RadzenText TextStyle="TextStyle.Caption" class="rz-color-secondary" Style="margin: 0;">Tip Document</RadzenText>
+                        <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; font-weight: 500;">@Request.TypeLabel</RadzenText>
+                    </RadzenStack>
+                </RadzenColumn>
 
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Status Curent</label>
-                    <span class="@GetStatusBadgeClass(Request.Status)">
-                        @Request.StatusLabel
-                    </span>
-                </div>
+                <RadzenColumn Size="12" SizeMD="6">
+                    <RadzenStack Gap="0.25rem">
+                        <RadzenText TextStyle="TextStyle.Caption" class="rz-color-secondary" Style="margin: 0;">Status Curent</RadzenText>
+                        <RadzenBadge BadgeStyle="@GetStatusBadgeStyle(Request.Status)" Text="@Request.StatusLabel" IsPill="true" />
+                    </RadzenStack>
+                </RadzenColumn>
 
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Data Cererii</label>
-                    <p class="text-sm text-gray-900">@Request.CreatedAt.ToString("dd.MM.yyyy HH:mm")</p>
-                </div>
+                <RadzenColumn Size="12" SizeMD="6">
+                    <RadzenStack Gap="0.25rem">
+                        <RadzenText TextStyle="TextStyle.Caption" class="rz-color-secondary" Style="margin: 0;">Data Cererii</RadzenText>
+                        <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; font-weight: 500;">@Request.CreatedAt.ToString("dd.MM.yyyy HH:mm")</RadzenText>
+                    </RadzenStack>
+                </RadzenColumn>
 
                 @if (!string.IsNullOrEmpty(Request.Notes))
                 {
-                    <div class="md:col-span-2">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Observații Student</label>
-                        <div class="bg-gray-50 rounded-lg p-4">
-                            <p class="text-sm text-gray-900 whitespace-pre-wrap">@Request.Notes</p>
-                        </div>
-                    </div>
+                    <RadzenColumn Size="12">
+                        <RadzenStack Gap="0.25rem">
+                            <RadzenText TextStyle="TextStyle.Caption" class="rz-color-secondary" Style="margin: 0;">Observații Student</RadzenText>
+                            <RadzenCard Style="background-color: var(--rz-base-100); padding: 1rem; margin-top: 0.25rem;">
+                                <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; white-space: pre-wrap;">@Request.Notes</RadzenText>
+                            </RadzenCard>
+                        </RadzenStack>
+                    </RadzenColumn>
                 }
-            </div>
-        </div>
+            </RadzenRow>
+        </RadzenCard>
 
         @if (Request.Status == RequestStatus.Pending)
         {
             <!-- Processing Form Card -->
-            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                <h2 class="text-lg font-semibold text-gray-900 mb-4">Procesare Cerere</h2>
+            <RadzenCard>
+                <RadzenText TextStyle="TextStyle.H6" Style="margin: 0 0 1rem 0; font-weight: 600;">Procesare Cerere</RadzenText>
 
-                <div class="space-y-6">
-                    <!-- Decision Radio Buttons -->
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-3">
-                            Decizie <span class="text-danger-600">*</span>
-                        </label>
-                        <div class="space-y-3">
-                            <label class="flex items-center p-4 border-2 rounded-lg cursor-pointer transition-colors @(ProcessDto.Approved ? "border-success-500 bg-success-50" : "border-gray-200 hover:border-gray-300")">
-                                <input type="radio" name="decision" value="true"
-                                       checked="@ProcessDto.Approved"
-                                       @onchange="@(() => { ProcessDto.Approved = true; ProcessDto.RejectionReason = null; })"
-                                       class="h-4 w-4 text-success-600 focus:ring-success-500" />
-                                <div class="ml-3">
-                                    <span class="block text-sm font-medium text-gray-900">Aprobă Cererea</span>
-                                    <span class="block text-xs text-gray-500">Cererea va fi aprobată și studentul va fi notificat</span>
-                                </div>
-                            </label>
+                <RadzenTemplateForm TItem="ProcessDocumentRequestDto" Data="@ProcessDto" Submit="@HandleSubmit">
+                    <RadzenStack Gap="1.5rem">
+                        <!-- Decision Radio Buttons -->
+                        <RadzenStack Gap="0.75rem">
+                            <RadzenText TextStyle="TextStyle.Subtitle2" Style="margin: 0; font-weight: 500;">
+                                Decizie <span style="color: var(--rz-danger);">*</span>
+                            </RadzenText>
 
-                            <label class="flex items-center p-4 border-2 rounded-lg cursor-pointer transition-colors @(!ProcessDto.Approved ? "border-danger-500 bg-danger-50" : "border-gray-200 hover:border-gray-300")">
-                                <input type="radio" name="decision" value="false"
-                                       checked="@(!ProcessDto.Approved)"
-                                       @onchange="@(() => ProcessDto.Approved = false)"
-                                       class="h-4 w-4 text-danger-600 focus:ring-danger-500" />
-                                <div class="ml-3">
-                                    <span class="block text-sm font-medium text-gray-900">Respinge Cererea</span>
-                                    <span class="block text-xs text-gray-500">Va fi necesară o motivare pentru respingere</span>
-                                </div>
-                            </label>
-                        </div>
-                    </div>
+                            <RadzenRadioButtonList TValue="bool" @bind-Value="ProcessDto.Approved" Orientation="Orientation.Vertical">
+                                <Items>
+                                    <RadzenRadioButtonListItem TValue="bool" Value="true" Text="Aprobă Cererea" />
+                                    <RadzenRadioButtonListItem TValue="bool" Value="false" Text="Respinge Cererea" />
+                                </Items>
+                            </RadzenRadioButtonList>
+                        </RadzenStack>
 
-                    <!-- Rejection Reason (shown only if rejecting) -->
-                    @if (!ProcessDto.Approved)
-                    {
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">
-                                Motiv Respingere <span class="text-danger-600">*</span>
-                            </label>
-                            <textarea @bind="ProcessDto.RejectionReason" rows="4"
-                                      placeholder="Specifică motivul respingerii cererii..."
-                                      class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"></textarea>
-                            <p class="mt-1 text-sm text-gray-500">
-                                Studentul va vedea acest mesaj
-                            </p>
-                        </div>
-                    }
+                        <!-- Rejection Reason (shown only if rejecting) -->
+                        @if (!ProcessDto.Approved)
+                        {
+                            <RadzenFormField Text="Motiv Respingere" Variant="Variant.Outlined" Style="width: 100%;">
+                                <ChildContent>
+                                    <RadzenTextArea @bind-Value="ProcessDto.RejectionReason" Rows="4"
+                                                    Placeholder="Specifică motivul respingerii cererii..." Style="width: 100%;" />
+                                </ChildContent>
+                                <Helper>
+                                    <RadzenText TextStyle="TextStyle.Caption" class="rz-color-secondary" Style="margin: 0;">
+                                        Studentul va vedea acest mesaj
+                                    </RadzenText>
+                                </Helper>
+                            </RadzenFormField>
+                        }
 
-                    <!-- Error Message -->
-                    @if (!string.IsNullOrEmpty(ErrorMessage))
-                    {
-                        <div class="bg-danger-50 border border-danger-200 rounded-lg p-4">
-                            <div class="flex">
-                                <svg class="h-5 w-5 text-danger-400" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
-                                </svg>
-                                <p class="ml-3 text-sm text-danger-700">@ErrorMessage</p>
-                            </div>
-                        </div>
-                    }
+                        <!-- Error Message -->
+                        @if (!string.IsNullOrEmpty(ErrorMessage))
+                        {
+                            <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat" ShowIcon="true">
+                                @ErrorMessage
+                            </RadzenAlert>
+                        }
 
-                    <!-- Action Buttons -->
-                    <div class="flex gap-4 pt-4">
-                        <button @onclick="HandleSubmit"
-                                disabled="@IsSubmitting"
-                                class="flex-1 px-6 py-3 @(ProcessDto.Approved ? "bg-success-600 hover:bg-success-700" : "bg-danger-600 hover:bg-danger-700") disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-colors">
-                            @if (IsSubmitting)
-                            {
-                                <span class="flex items-center justify-center">
-                                    <svg class="animate-spin h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24">
-                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                    </svg>
-                                    Se procesează...
-                                </span>
-                            }
-                            else
-                            {
-                                <text>@(ProcessDto.Approved ? "Aprobă Cererea" : "Respinge Cererea")</text>
-                            }
-                        </button>
-                        <a href="/cereri" class="flex-1 px-6 py-3 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium rounded-lg text-center transition-colors">
-                            Anulează
-                        </a>
-                    </div>
-                </div>
-            </div>
+                        <!-- Action Buttons -->
+                        <RadzenStack Orientation="Radzen.Orientation.Horizontal" Gap="0.75rem">
+                            <RadzenButton Text="@(ProcessDto.Approved ? "Aprobă Cererea" : "Respinge Cererea")"
+                                          ButtonType="ButtonType.Submit"
+                                          ButtonStyle="@(ProcessDto.Approved ? ButtonStyle.Success : ButtonStyle.Danger)"
+                                          Disabled="@IsSubmitting" Style="flex: 1;" />
+                            <RadzenButton Text="Anulează" Variant="Variant.Outlined" ButtonStyle="ButtonStyle.Secondary"
+                                          Click="@(() => Navigation.NavigateTo("/cereri"))" Style="flex: 1;" />
+                        </RadzenStack>
+                    </RadzenStack>
+                </RadzenTemplateForm>
+            </RadzenCard>
         }
         else
         {
             <!-- Already Processed Message -->
-            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <div class="flex">
-                    <svg class="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
-                    </svg>
-                    <div class="ml-3">
-                        <p class="text-sm text-blue-700">
-                            Această cerere a fost deja procesată.
-                            @if (Request.ProcessedByName != null)
-                            {
-                                <span>Procesată de <strong>@Request.ProcessedByName</strong> pe @Request.ProcessedAt?.ToString("dd.MM.yyyy HH:mm").</span>
-                            }
-                        </p>
-                    </div>
-                </div>
-            </div>
+            <RadzenAlert AlertStyle="AlertStyle.Info" Variant="Variant.Flat" ShowIcon="true">
+                <RadzenStack Gap="0.5rem">
+                    <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0;">
+                        Această cerere a fost deja procesată.
+                        @if (Request.ProcessedByName != null)
+                        {
+                            <text>Procesată de <strong>@Request.ProcessedByName</strong> pe @Request.ProcessedAt?.ToString("dd.MM.yyyy HH:mm").</text>
+                        }
+                    </RadzenText>
+                </RadzenStack>
+            </RadzenAlert>
         }
     }
-</div>
+</RadzenStack>
 
 @code {
     [Parameter]
@@ -244,12 +217,14 @@
             return;
         }
 
-        var confirmed = await JS.InvokeAsync<bool>("confirm",
+        var confirmed = await DialogService.Confirm(
             ProcessDto.Approved
                 ? "Sigur doriți să aprobați această cerere?"
-                : "Sigur doriți să respingeți această cerere?");
+                : "Sigur doriți să respingeți această cerere?",
+            "Confirmare",
+            new ConfirmOptions { OkButtonText = "Da", CancelButtonText = "Nu" });
 
-        if (!confirmed) return;
+        if (confirmed != true) return;
 
         IsSubmitting = true;
 
@@ -259,10 +234,15 @@
 
             if (result.Succeeded)
             {
-                await JS.InvokeVoidAsync("alert",
-                    ProcessDto.Approved
+                RadzenNotificationService.Notify(new NotificationMessage
+                {
+                    Severity = NotificationSeverity.Success,
+                    Summary = "Succes",
+                    Detail = ProcessDto.Approved
                         ? "Cererea a fost aprobată cu succes!"
-                        : "Cererea a fost respinsă.");
+                        : "Cererea a fost respinsă.",
+                    Duration = 4000
+                });
                 Navigation.NavigateTo("/cereri");
             }
             else
@@ -280,16 +260,25 @@
         }
     }
 
-    private string GetStatusBadgeClass(RequestStatus status)
+    private BadgeStyle GetStatusBadgeStyle(RequestStatus status) => status switch
     {
-        return status switch
-        {
-            RequestStatus.Pending => "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-warning-100 text-warning-700",
-            RequestStatus.InProgress => "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-info-100 text-info-700",
-            RequestStatus.Approved => "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-success-100 text-success-700",
-            RequestStatus.Rejected => "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-danger-100 text-danger-700",
-            RequestStatus.Completed => "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-success-100 text-success-700",
-            _ => "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700"
-        };
+        RequestStatus.Pending => BadgeStyle.Warning,
+        RequestStatus.InProgress => BadgeStyle.Info,
+        RequestStatus.Approved => BadgeStyle.Success,
+        RequestStatus.Rejected => BadgeStyle.Danger,
+        RequestStatus.Completed => BadgeStyle.Success,
+        _ => BadgeStyle.Light
+    };
+
+    private string GetDecisionCardStyle(bool isApprove)
+    {
+        var isSelected = isApprove == ProcessDto.Approved;
+        var borderColor = isSelected
+            ? (isApprove ? "var(--rz-success)" : "var(--rz-danger)")
+            : "var(--rz-base-300)";
+        var backgroundColor = isSelected
+            ? (isApprove ? "var(--rz-success-lighter)" : "var(--rz-danger-lighter)")
+            : "transparent";
+        return $"border: 2px solid {borderColor}; background-color: {backgroundColor}; cursor: pointer; transition: all 0.2s;";
     }
 }

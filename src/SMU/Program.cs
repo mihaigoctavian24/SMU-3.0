@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Localization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Npgsql;
+using Radzen;
 using SMU.Components;
 using SMU.Data;
 using SMU.Data.Entities;
@@ -173,8 +174,9 @@ builder.Services.AddScoped<IScheduleService, ScheduleService>();
 builder.Services.AddScoped<IFacultyService, FacultyService>();
 builder.Services.AddScoped<IProgramService, ProgramService>();
 builder.Services.AddScoped<IGroupService, GroupService>();
-builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<INotificationService, SMU.Services.NotificationService>();
 builder.Services.AddScoped<IDocumentRequestService, DocumentRequestService>();
+builder.Services.AddScoped<IDocumentGenerationService, DocumentGenerationService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IAnalyticsService, AnalyticsService>();
 builder.Services.AddScoped<IExportService, ExportService>();
@@ -187,7 +189,7 @@ builder.Services.AddScoped<IAlertService, AlertService>();
 
 // UI Services
 builder.Services.AddScoped<IKeyboardShortcutService, KeyboardShortcutService>();
-builder.Services.AddScoped<IThemeService, ThemeService>();
+builder.Services.AddScoped<IThemeService, SMU.Services.ThemeService>();
 
 // Background Jobs
 builder.Services.AddScoped<DailySnapshotJob>();
@@ -204,6 +206,11 @@ builder.Services.AddHttpClient("ServerAPI", client =>
 // SignalR Configuration
 // ===========================================
 builder.Services.AddSignalR();
+
+// ===========================================
+// Radzen Blazor Components
+// ===========================================
+builder.Services.AddRadzenComponents();
 
 // ===========================================
 // Blazor Components
@@ -303,6 +310,32 @@ app.MapGet("/logout", async (HttpContext httpContext, SignInManager<ApplicationU
     await signInManager.SignOutAsync();
     httpContext.Response.Redirect("/login");
 }).AllowAnonymous();
+
+// ===========================================
+// Document Download Endpoint
+// ===========================================
+app.MapGet("/documents/{fileName}", async (HttpContext httpContext, string fileName) =>
+{
+    var documentsPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "documents");
+    var filePath = Path.Combine(documentsPath, fileName);
+
+    // Security: Prevent directory traversal attacks
+    var normalizedPath = Path.GetFullPath(filePath);
+    if (!normalizedPath.StartsWith(documentsPath))
+    {
+        return Results.BadRequest("Invalid file path.");
+    }
+
+    if (!File.Exists(filePath))
+    {
+        return Results.NotFound();
+    }
+
+    var contentType = "application/pdf";
+    var fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+
+    return Results.File(fileStream, contentType, fileName);
+}).RequireAuthorization();
 
 app.MapStaticAssets();
 app.MapRazorComponents<App>()

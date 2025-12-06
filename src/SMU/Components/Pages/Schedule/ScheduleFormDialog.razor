@@ -1,0 +1,207 @@
+@using SMU.Services
+@using SMU.Services.DTOs
+
+<RadzenStack Gap="1.5rem">
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat" ShowIcon="true" Size="AlertSize.Small">
+            @errorMessage
+        </RadzenAlert>
+    }
+
+    @if (!string.IsNullOrEmpty(conflictMessage))
+    {
+        <RadzenAlert AlertStyle="AlertStyle.Warning" Variant="Variant.Flat" ShowIcon="true" Size="AlertSize.Small">
+            @conflictMessage
+        </RadzenAlert>
+    }
+
+    <!-- Group Selection -->
+    <RadzenFormField Text="Grupă" Variant="Variant.Outlined" Style="width: 100%;">
+        <RadzenDropDown @bind-Value="FormDto.GroupId"
+                        Data="@Groups"
+                        TextProperty="DisplayName"
+                        ValueProperty="Id"
+                        Placeholder="Selectează grupa"
+                        Style="width: 100%;" />
+    </RadzenFormField>
+
+    <!-- Course Selection -->
+    <RadzenFormField Text="Curs" Variant="Variant.Outlined" Style="width: 100%;">
+        <RadzenDropDown @bind-Value="FormDto.CourseId"
+                        Data="@Courses"
+                        TextProperty="Name"
+                        ValueProperty="Id"
+                        Placeholder="Selectează cursul"
+                        Style="width: 100%;" />
+    </RadzenFormField>
+
+    <!-- Day Selection -->
+    <RadzenFormField Text="Zi" Variant="Variant.Outlined" Style="width: 100%;">
+        <RadzenDropDown @bind-Value="formDayOfWeek"
+                        Data="@DayOptions"
+                        TextProperty="Text"
+                        ValueProperty="Value"
+                        Style="width: 100%;" />
+    </RadzenFormField>
+
+    <!-- Time Selection -->
+    <RadzenRow Gap="1rem">
+        <RadzenColumn Size="6">
+            <RadzenFormField Text="Ora Început" Variant="Variant.Outlined" Style="width: 100%;">
+                <RadzenTextBox @bind-Value="formStartTime" Placeholder="08:00" Style="width: 100%;" />
+            </RadzenFormField>
+        </RadzenColumn>
+        <RadzenColumn Size="6">
+            <RadzenFormField Text="Ora Sfârșit" Variant="Variant.Outlined" Style="width: 100%;">
+                <RadzenTextBox @bind-Value="formEndTime" Placeholder="10:00" Style="width: 100%;" />
+            </RadzenFormField>
+        </RadzenColumn>
+    </RadzenRow>
+
+    <!-- Type Selection -->
+    <RadzenFormField Text="Tip" Variant="Variant.Outlined" Style="width: 100%;">
+        <RadzenDropDown @bind-Value="FormDto.Type"
+                        Data="@TypeOptions"
+                        Style="width: 100%;" />
+    </RadzenFormField>
+
+    <!-- Room -->
+    <RadzenFormField Text="Sala (opțional)" Variant="Variant.Outlined" Style="width: 100%;">
+        <RadzenTextBox @bind-Value="FormDto.Room" Placeholder="ex: A101" />
+    </RadzenFormField>
+
+    <!-- Actions -->
+    <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.75rem" Style="padding-top: 1rem; border-top: 1px solid var(--rz-border-color);">
+        <RadzenButton Text="Anulează"
+                      ButtonStyle="ButtonStyle.Light"
+                      Click="@Cancel" />
+        <RadzenButton Text="@(isSaving ? "Se salvează..." : (EditingEntry != null ? "Salvează Modificări" : "Adaugă"))"
+                      Icon="@(isSaving ? "" : "check")"
+                      ButtonStyle="ButtonStyle.Primary"
+                      IsBusy="@isSaving"
+                      Disabled="@isSaving"
+                      Click="@SaveEntry" />
+    </RadzenStack>
+</RadzenStack>
+
+@code {
+    [Parameter] public CreateScheduleEntryDto FormDto { get; set; } = new();
+    [Parameter] public ScheduleEntryDto? EditingEntry { get; set; }
+    [Parameter] public List<GroupOptionDisplay> Groups { get; set; } = new();
+    [Parameter] public List<CourseOptionDto> Courses { get; set; } = new();
+    [Parameter] public List<DayOption> DayOptions { get; set; } = new();
+    [Parameter] public List<string> TypeOptions { get; set; } = new();
+    [Parameter] public string FormDayOfWeek { get; set; } = "1";
+    [Parameter] public string FormStartTime { get; set; } = "08:00";
+    [Parameter] public string FormEndTime { get; set; } = "10:00";
+    [Parameter] public IScheduleService ScheduleService { get; set; } = default!;
+
+    [Inject] private Radzen.DialogService DialogService { get; set; } = default!;
+
+    private string formDayOfWeek = "1";
+    private string formStartTime = "08:00";
+    private string formEndTime = "10:00";
+    private bool isSaving = false;
+    private string errorMessage = "";
+    private string conflictMessage = "";
+
+    protected override void OnParametersSet()
+    {
+        formDayOfWeek = FormDayOfWeek;
+        formStartTime = FormStartTime;
+        formEndTime = FormEndTime;
+    }
+
+    private async Task SaveEntry()
+    {
+        isSaving = true;
+        errorMessage = "";
+        conflictMessage = "";
+        StateHasChanged();
+
+        try
+        {
+            // Parse time values
+            var dayOfWeek = int.Parse(formDayOfWeek);
+            var startTime = TimeOnly.Parse(formStartTime);
+            var endTime = TimeOnly.Parse(formEndTime);
+
+            FormDto.DayOfWeek = dayOfWeek;
+            FormDto.StartTime = startTime;
+            FormDto.EndTime = endTime;
+
+            // Check for conflicts
+            var conflict = await ScheduleService.CheckConflictAsync(EditingEntry?.Id, dayOfWeek, startTime, endTime, FormDto.Room);
+            if (conflict.HasConflict)
+            {
+                conflictMessage = "Conflict detectat: " + conflict.ConflictMessage;
+                isSaving = false;
+                return;
+            }
+
+            if (EditingEntry != null)
+            {
+                var updateDto = new UpdateScheduleEntryDto
+                {
+                    DayOfWeek = dayOfWeek,
+                    StartTime = startTime,
+                    EndTime = endTime,
+                    Room = FormDto.Room,
+                    Type = FormDto.Type
+                };
+                var result = await ScheduleService.UpdateAsync(EditingEntry.Id, updateDto);
+                if (result.Succeeded)
+                {
+                    DialogService.Close(true);
+                }
+                else
+                {
+                    errorMessage = result.ErrorMessage ?? "A apărut o eroare.";
+                }
+            }
+            else
+            {
+                var createResult = await ScheduleService.CreateAsync(FormDto);
+                if (createResult.Succeeded)
+                {
+                    DialogService.Close(true);
+                }
+                else
+                {
+                    errorMessage = createResult.ErrorMessage ?? "A apărut o eroare.";
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = "Eroare: " + ex.Message;
+        }
+        finally
+        {
+            isSaving = false;
+            StateHasChanged();
+        }
+    }
+
+    private void Cancel()
+    {
+        DialogService.Close(false);
+    }
+
+    public class GroupOptionDisplay
+    {
+        public Guid Id { get; set; }
+        public string IdString { get; set; } = "";
+        public string Name { get; set; } = "";
+        public string ProgramName { get; set; } = "";
+        public int Year { get; set; }
+        public string DisplayName { get; set; } = "";
+    }
+
+    public class DayOption
+    {
+        public string Text { get; set; } = "";
+        public string Value { get; set; } = "";
+    }
+}

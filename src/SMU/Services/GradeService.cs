@@ -26,13 +26,17 @@ public class GradeService : IGradeService
             .Include(g => g.Student)
                 .ThenInclude(s => s.User)
             .Include(g => g.Course)
+                .ThenInclude(c => c.Professor)
+                    .ThenInclude(p => p.User)
             .Include(g => g.EnteredBy)
             .OrderByDescending(g => g.ExamDate)
             .Select(g => new GradeListDto
             {
                 Id = g.Id,
                 StudentName = $"{g.Student.User.FirstName} {g.Student.User.LastName}",
+                StudentNumber = g.Student.StudentNumber,
                 CourseName = g.Course.Name,
+                ProfessorName = g.Course.Professor != null ? $"{g.Course.Professor.User.FirstName} {g.Course.Professor.User.LastName}" : "",
                 Value = g.Value,
                 Type = g.Type,
                 Status = g.Status,
@@ -51,6 +55,8 @@ public class GradeService : IGradeService
             .Include(g => g.Student)
                 .ThenInclude(s => s.User)
             .Include(g => g.Course)
+                .ThenInclude(c => c.Professor)
+                    .ThenInclude(p => p.User)
             .Include(g => g.EnteredBy)
             .OrderBy(g => g.Student.User.LastName)
                 .ThenBy(g => g.Student.User.FirstName)
@@ -58,7 +64,9 @@ public class GradeService : IGradeService
             {
                 Id = g.Id,
                 StudentName = $"{g.Student.User.FirstName} {g.Student.User.LastName}",
+                StudentNumber = g.Student.StudentNumber,
                 CourseName = g.Course.Name,
+                ProfessorName = g.Course.Professor != null ? $"{g.Course.Professor.User.FirstName} {g.Course.Professor.User.LastName}" : "",
                 Value = g.Value,
                 Type = g.Type,
                 Status = g.Status,
@@ -79,6 +87,9 @@ public class GradeService : IGradeService
             .Include(g => g.Course)
                 .ThenInclude(c => c.Program)
                 .ThenInclude(p => p.Faculty)
+            .Include(g => g.Course)
+                .ThenInclude(c => c.Professor)
+                    .ThenInclude(p => p.User)
             .Include(g => g.EnteredBy)
             .AsQueryable();
 
@@ -93,7 +104,9 @@ public class GradeService : IGradeService
             {
                 Id = g.Id,
                 StudentName = $"{g.Student.User.FirstName} {g.Student.User.LastName}",
+                StudentNumber = g.Student.StudentNumber,
                 CourseName = g.Course.Name,
+                ProfessorName = g.Course.Professor != null ? $"{g.Course.Professor.User.FirstName} {g.Course.Professor.User.LastName}" : "",
                 Value = g.Value,
                 Type = g.Type,
                 Status = g.Status,
@@ -340,7 +353,9 @@ public class GradeService : IGradeService
                 StudentId = studentId,
                 WeightedAverage = 0,
                 TotalCredits = 0,
-                CompletedCourses = 0
+                CompletedCourses = 0,
+                PassedGrades = 0,
+                FailedGrades = 0
             };
         }
 
@@ -353,7 +368,9 @@ public class GradeService : IGradeService
             StudentId = studentId,
             WeightedAverage = totalCredits > 0 ? totalWeightedGrades / totalCredits : 0,
             TotalCredits = totalCredits,
-            CompletedCourses = approvedGrades.Select(g => g.CourseId).Distinct().Count()
+            CompletedCourses = approvedGrades.Select(g => g.CourseId).Distinct().Count(),
+            PassedGrades = approvedGrades.Count(g => g.Value >= 5),
+            FailedGrades = approvedGrades.Count(g => g.Value < 5)
         };
     }
 
@@ -376,5 +393,254 @@ public class GradeService : IGradeService
 
         _logger.LogInformation("Grade deleted: {GradeId}", id);
         return GradeResult.Success();
+    }
+
+    public async Task<List<GradeListDto>> GetFilteredGradesAsync(GradeFilterDto filter)
+    {
+        var query = _context.Grades
+            .Include(g => g.Student)
+                .ThenInclude(s => s.User)
+            .Include(g => g.Course)
+                .ThenInclude(c => c.Professor)
+                    .ThenInclude(p => p.User)
+            .Include(g => g.EnteredBy)
+            .AsQueryable();
+
+        // Apply filters
+        if (filter.StudentId.HasValue)
+            query = query.Where(g => g.StudentId == filter.StudentId.Value);
+
+        if (filter.CourseId.HasValue)
+            query = query.Where(g => g.CourseId == filter.CourseId.Value);
+
+        if (filter.ProfessorId.HasValue)
+            query = query.Where(g => g.Course.ProfessorId == filter.ProfessorId.Value);
+
+        if (filter.Semester.HasValue)
+            query = query.Where(g => g.Course.Semester == filter.Semester.Value);
+
+        if (filter.Status.HasValue)
+            query = query.Where(g => g.Status == filter.Status.Value);
+
+        if (filter.Type.HasValue)
+            query = query.Where(g => g.Type == filter.Type.Value);
+
+        if (filter.FromDate.HasValue)
+            query = query.Where(g => g.ExamDate >= filter.FromDate.Value);
+
+        if (filter.ToDate.HasValue)
+            query = query.Where(g => g.ExamDate <= filter.ToDate.Value);
+
+        return await query
+            .OrderByDescending(g => g.ExamDate)
+            .Select(g => new GradeListDto
+            {
+                Id = g.Id,
+                StudentName = $"{g.Student.User.FirstName} {g.Student.User.LastName}",
+                StudentNumber = g.Student.StudentNumber,
+                CourseName = g.Course.Name,
+                ProfessorName = g.Course.Professor != null ? $"{g.Course.Professor.User.FirstName} {g.Course.Professor.User.LastName}" : "",
+                Value = g.Value,
+                Type = g.Type,
+                Status = g.Status,
+                ExamDate = g.ExamDate,
+                EnteredByName = g.EnteredBy != null ? $"{g.EnteredBy.FirstName} {g.EnteredBy.LastName}" : null,
+                Credits = g.Course.Credits,
+                Semester = g.Course.Semester
+            })
+            .ToListAsync();
+    }
+
+    public async Task<GradeStatisticsDto> GetStatisticsAsync(Guid? facultyId = null)
+    {
+        var query = _context.Grades.AsQueryable();
+
+        if (facultyId.HasValue)
+        {
+            query = query
+                .Include(g => g.Course)
+                    .ThenInclude(c => c.Program)
+                .Where(g => g.Course.Program.FacultyId == facultyId.Value);
+        }
+
+        var today = DateTime.UtcNow.Date;
+        var weekAgo = today.AddDays(-7);
+
+        var grades = await query.ToListAsync();
+
+        var stats = new GradeStatisticsDto
+        {
+            TotalGrades = grades.Count,
+            PendingGrades = grades.Count(g => g.Status == GradeStatus.Pending),
+            ApprovedToday = grades.Count(g => g.Status == GradeStatus.Approved && g.UpdatedAt.Date == today),
+            ApprovedThisWeek = grades.Count(g => g.Status == GradeStatus.Approved && g.UpdatedAt.Date >= weekAgo),
+            AverageGrade = grades.Any(g => g.Status == GradeStatus.Approved)
+                ? grades.Where(g => g.Status == GradeStatus.Approved).Average(g => g.Value)
+                : 0,
+            FailingGrades = grades.Count(g => g.Status == GradeStatus.Approved && g.Value < 5),
+            GradesByType = grades
+                .GroupBy(g => g.Type)
+                .ToDictionary(g => g.Key, g => g.Count())
+        };
+
+        return stats;
+    }
+
+    public async Task<List<GradeListDto>> GetFailingGradesAsync(Guid? facultyId = null)
+    {
+        var query = _context.Grades
+            .Where(g => g.Status == GradeStatus.Approved && g.Value < 5)
+            .Include(g => g.Student)
+                .ThenInclude(s => s.User)
+            .Include(g => g.Course)
+                .ThenInclude(c => c.Professor)
+                    .ThenInclude(p => p.User)
+            .Include(g => g.EnteredBy)
+            .AsQueryable();
+
+        if (facultyId.HasValue)
+        {
+            query = query
+                .Include(g => g.Course)
+                    .ThenInclude(c => c.Program)
+                .Where(g => g.Course.Program.FacultyId == facultyId.Value);
+        }
+
+        return await query
+            .OrderBy(g => g.Value)
+            .Select(g => new GradeListDto
+            {
+                Id = g.Id,
+                StudentName = $"{g.Student.User.FirstName} {g.Student.User.LastName}",
+                StudentNumber = g.Student.StudentNumber,
+                CourseName = g.Course.Name,
+                ProfessorName = g.Course.Professor != null ? $"{g.Course.Professor.User.FirstName} {g.Course.Professor.User.LastName}" : "",
+                Value = g.Value,
+                Type = g.Type,
+                Status = g.Status,
+                ExamDate = g.ExamDate,
+                EnteredByName = g.EnteredBy != null ? $"{g.EnteredBy.FirstName} {g.EnteredBy.LastName}" : null,
+                Credits = g.Course.Credits,
+                Semester = g.Course.Semester
+            })
+            .ToListAsync();
+    }
+
+    public async Task<List<MissingGradeDto>> GetMissingGradesAsync(Guid courseId)
+    {
+        // Get all students enrolled in the course
+        var courseStudents = await _context.Students
+            .Include(s => s.User)
+            .Include(s => s.Group)
+                .ThenInclude(g => g.Program)
+                    .ThenInclude(p => p.Courses)
+            .Where(s => s.Group.Program.Courses.Any(c => c.Id == courseId))
+            .ToListAsync();
+
+        // Get existing grades for the course
+        var existingGrades = await _context.Grades
+            .Where(g => g.CourseId == courseId && g.Status != GradeStatus.Rejected)
+            .Select(g => g.StudentId)
+            .Distinct()
+            .ToListAsync();
+
+        // Find students without grades
+        var studentsWithoutGrades = courseStudents
+            .Where(s => !existingGrades.Contains(s.Id))
+            .ToList();
+
+        var course = await _context.Courses.FindAsync(courseId);
+
+        return studentsWithoutGrades.Select(s => new MissingGradeDto
+        {
+            StudentId = s.Id,
+            StudentName = $"{s.User.FirstName} {s.User.LastName}",
+            StudentNumber = s.StudentNumber,
+            CourseId = courseId,
+            CourseName = course?.Name ?? ""
+        }).ToList();
+    }
+
+    public async Task<List<GradeHistoryDto>> GetGradeHistoryAsync(Guid gradeId)
+    {
+        var grade = await _context.Grades
+            .Include(g => g.Student)
+                .ThenInclude(s => s.User)
+            .Include(g => g.Course)
+            .Include(g => g.EnteredBy)
+            .FirstOrDefaultAsync(g => g.Id == gradeId);
+
+        if (grade == null)
+        {
+            return new List<GradeHistoryDto>();
+        }
+
+        var history = new List<GradeHistoryDto>();
+
+        // Created event
+        history.Add(new GradeHistoryDto
+        {
+            GradeId = grade.Id,
+            Action = "Created",
+            Timestamp = grade.CreatedAt,
+            PerformedBy = grade.EnteredBy != null
+                ? $"{grade.EnteredBy.FirstName} {grade.EnteredBy.LastName}"
+                : "Necunoscut",
+            Description = $"Nota a fost introdusă pentru {grade.Student.User.FirstName} {grade.Student.User.LastName} la disciplina {grade.Course.Name}",
+            NewValue = grade.Value.ToString("0.00"),
+            Notes = grade.Notes
+        });
+
+        // Status changes
+        if (grade.Status == GradeStatus.Approved)
+        {
+            history.Add(new GradeHistoryDto
+            {
+                GradeId = grade.Id,
+                Action = "Approved",
+                Timestamp = grade.UpdatedAt,
+                PerformedBy = grade.EnteredBy != null
+                    ? $"{grade.EnteredBy.FirstName} {grade.EnteredBy.LastName}"
+                    : "Necunoscut",
+                Description = "Nota a fost aprobată",
+                OldValue = "În așteptare",
+                NewValue = "Aprobat"
+            });
+        }
+        else if (grade.Status == GradeStatus.Rejected)
+        {
+            history.Add(new GradeHistoryDto
+            {
+                GradeId = grade.Id,
+                Action = "Rejected",
+                Timestamp = grade.UpdatedAt,
+                PerformedBy = grade.EnteredBy != null
+                    ? $"{grade.EnteredBy.FirstName} {grade.EnteredBy.LastName}"
+                    : "Necunoscut",
+                Description = "Nota a fost respinsă",
+                OldValue = "În așteptare",
+                NewValue = "Respins",
+                Notes = grade.Notes
+            });
+        }
+
+        // If updated after creation
+        if (grade.UpdatedAt > grade.CreatedAt.AddSeconds(1) && grade.Status == GradeStatus.Pending)
+        {
+            history.Add(new GradeHistoryDto
+            {
+                GradeId = grade.Id,
+                Action = "Updated",
+                Timestamp = grade.UpdatedAt,
+                PerformedBy = grade.EnteredBy != null
+                    ? $"{grade.EnteredBy.FirstName} {grade.EnteredBy.LastName}"
+                    : "Necunoscut",
+                Description = "Nota a fost modificată",
+                Notes = grade.Notes
+            });
+        }
+
+        // Sort by timestamp descending (most recent first)
+        return history.OrderByDescending(h => h.Timestamp).ToList();
     }
 }

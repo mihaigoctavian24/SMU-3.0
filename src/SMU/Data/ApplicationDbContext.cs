@@ -465,39 +465,35 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
             b.HasIndex(a => new { a.EntityType, a.EntityId });
         });
 
-        // StudentRiskScore
+        // StudentRiskScore - risk score for early warning system
         builder.Entity<StudentRiskScore>(b =>
         {
             b.ToTable("student_risk_scores");
             b.HasKey(r => r.Id);
             b.Property(r => r.Id).HasColumnName("id");
             b.Property(r => r.StudentId).HasColumnName("student_id").IsRequired();
-            b.Property(r => r.OverallScore).HasColumnName("overall_score").IsRequired();
-            b.Property(r => r.Level).HasColumnName("level").IsRequired();
-            b.Property(r => r.GradeRiskFactor).HasColumnName("grade_risk_factor").HasPrecision(5, 2);
-            b.Property(r => r.AttendanceRiskFactor).HasColumnName("attendance_risk_factor").HasPrecision(5, 2);
-            b.Property(r => r.TrendRiskFactor).HasColumnName("trend_risk_factor").HasPrecision(5, 2);
-            b.Property(r => r.EngagementRiskFactor).HasColumnName("engagement_risk_factor").HasPrecision(5, 2);
-            b.Property(r => r.RiskFactors).HasColumnName("risk_factors").HasColumnType("jsonb");
+            b.Property(r => r.RiskScore).HasColumnName("risk_score").IsRequired();
+            b.Property(r => r.RiskLevel).HasColumnName("risk_level").IsRequired();
+            b.Property(r => r.DropoutProbability).HasColumnName("dropout_probability").HasPrecision(5, 2);
+            b.Property(r => r.FailureProbability).HasColumnName("failure_probability").HasPrecision(5, 2);
+            b.Property(r => r.Factors).HasColumnName("factors").HasColumnType("jsonb");
             b.Property(r => r.Recommendations).HasColumnName("recommendations").HasColumnType("jsonb");
             b.Property(r => r.CalculatedAt).HasColumnName("calculated_at");
-            b.Property(r => r.ReviewedAt).HasColumnName("reviewed_at");
-            b.Property(r => r.ReviewedById).HasColumnName("reviewed_by");
-            b.Property(r => r.Notes).HasColumnName("notes");
+            b.Property(r => r.ValidUntil).HasColumnName("valid_until");
+            b.Property(r => r.CreatedAt).HasColumnName("created_at");
+            b.Property(r => r.AttendanceRiskFactor).HasColumnName("attendance_risk_factor").HasPrecision(5, 2);
+            b.Property(r => r.GradeRiskFactor).HasColumnName("grade_risk_factor").HasPrecision(5, 2);
+            b.Property(r => r.TrendRiskFactor).HasColumnName("trend_risk_factor").HasPrecision(5, 2);
+            b.Property(r => r.EngagementRiskFactor).HasColumnName("engagement_risk_factor").HasPrecision(5, 2);
 
             b.HasOne(r => r.Student)
                 .WithMany()
                 .HasForeignKey(r => r.StudentId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            b.HasOne(r => r.ReviewedBy)
-                .WithMany()
-                .HasForeignKey(r => r.ReviewedById)
-                .OnDelete(DeleteBehavior.SetNull);
-
             b.HasIndex(r => r.StudentId);
-            b.HasIndex(r => r.Level);
-            b.HasIndex(r => r.OverallScore);
+            b.HasIndex(r => r.RiskLevel);
+            b.HasIndex(r => r.RiskScore);
         });
 
         // DailySnapshot
@@ -531,29 +527,35 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
             b.HasIndex(d => new { d.Date, d.FacultyId, d.ProgramId }).IsUnique();
         });
 
-        // GradeSnapshot
+        // GradeSnapshot - aggregated grade distribution per course/faculty
         builder.Entity<GradeSnapshot>(b =>
         {
             b.ToTable("grade_snapshots");
             b.HasKey(g => g.Id);
             b.Property(g => g.Id).HasColumnName("id");
-            b.Property(g => g.StudentId).HasColumnName("student_id").IsRequired();
-            b.Property(g => g.AcademicYear).HasColumnName("academic_year");
-            b.Property(g => g.Semester).HasColumnName("semester");
-            b.Property(g => g.SemesterAverage).HasColumnName("semester_average").HasPrecision(4, 2);
-            b.Property(g => g.CumulativeAverage).HasColumnName("cumulative_average").HasPrecision(4, 2);
-            b.Property(g => g.TotalCredits).HasColumnName("total_credits");
-            b.Property(g => g.PassedCredits).HasColumnName("passed_credits");
-            b.Property(g => g.FailedCourses).HasColumnName("failed_courses");
+            b.Property(g => g.SnapshotDate).HasColumnName("snapshot_date").IsRequired();
+            b.Property(g => g.CourseId).HasColumnName("course_id");
+            b.Property(g => g.FacultyId).HasColumnName("faculty_id");
+            b.Property(g => g.Grade_1_2).HasColumnName("grade_1_2");
+            b.Property(g => g.Grade_3_4).HasColumnName("grade_3_4");
+            b.Property(g => g.Grade_5_6).HasColumnName("grade_5_6");
+            b.Property(g => g.Grade_7_8).HasColumnName("grade_7_8");
+            b.Property(g => g.Grade_9_10).HasColumnName("grade_9_10");
+            b.Property(g => g.AvgGrade).HasColumnName("avg_grade").HasPrecision(4, 2);
+            b.Property(g => g.PassRate).HasColumnName("pass_rate").HasPrecision(5, 2);
             b.Property(g => g.CreatedAt).HasColumnName("created_at");
-            b.Property(g => g.UpdatedAt).HasColumnName("updated_at");
 
-            b.HasOne(g => g.Student)
+            b.HasOne(g => g.Course)
                 .WithMany()
-                .HasForeignKey(g => g.StudentId)
+                .HasForeignKey(g => g.CourseId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            b.HasIndex(g => new { g.StudentId, g.AcademicYear, g.Semester }).IsUnique();
+            b.HasOne(g => g.Faculty)
+                .WithMany()
+                .HasForeignKey(g => g.FacultyId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            b.HasIndex(g => new { g.SnapshotDate, g.CourseId, g.FacultyId });
         });
 
         // AttendanceStats

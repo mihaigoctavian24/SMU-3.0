@@ -17,6 +17,11 @@ public interface IAttendanceService
     Task<CalendarMonthDto> GetMonthlyCalendarAsync(Guid studentId, int year, int month);
     Task<List<CourseDto>> GetProfessorCoursesAsync(Guid professorId);
     Task<List<StudentInCourseDto>> GetStudentsInCourseAsync(Guid courseId);
+    Task<List<AttendanceListDto>> GetByProfessorCoursesAsync(Guid professorId, Guid? courseId, DateOnly? date);
+
+    // Dean-specific methods
+    Task<FacultyAttendanceOverviewDto> GetFacultyOverviewAsync(Guid facultyId, Guid? courseId, int? year);
+    Task<List<CourseDto>> GetFacultyCoursesAsync(Guid facultyId);
 }
 
 public class AttendanceService : IAttendanceService
@@ -123,8 +128,8 @@ public class AttendanceService : IAttendanceService
 
     public async Task<AttendanceResult> BulkMarkAsync(BulkAttendanceDto dto, Guid recordedById)
     {
-        using var transaction = await _context.Database.BeginTransactionAsync();
-
+        // Note: Using execution strategy pattern to work with NpgsqlRetryingExecutionStrategy
+        // SaveChangesAsync() already uses an implicit transaction, so explicit transaction is not needed
         try
         {
             foreach (var attendance in dto.Attendances)
@@ -159,7 +164,6 @@ public class AttendanceService : IAttendanceService
             }
 
             await _context.SaveChangesAsync();
-            await transaction.CommitAsync();
 
             _logger.LogInformation("Bulk attendance marked for course {CourseId} on {Date}: {Count} students",
                 dto.CourseId, dto.Date, dto.Attendances.Count);
@@ -168,9 +172,10 @@ public class AttendanceService : IAttendanceService
         }
         catch (Exception ex)
         {
-            await transaction.RollbackAsync();
-            _logger.LogError(ex, "Error in bulk attendance marking for course {CourseId}", dto.CourseId);
-            return AttendanceResult.Failed("Eroare la salvarea prezențelor.");
+            _logger.LogError(ex, "Error in bulk attendance marking for course {CourseId}. Exception: {Message}. Inner: {Inner}",
+                dto.CourseId, ex.Message, ex.InnerException?.Message);
+            var errorDetail = ex.InnerException?.Message ?? ex.Message;
+            return AttendanceResult.Failed($"Eroare la salvarea prezențelor: {errorDetail}");
         }
     }
 
@@ -299,6 +304,190 @@ public class AttendanceService : IAttendanceService
 
         return students;
     }
+
+    public async Task<List<AttendanceListDto>> GetByProfessorCoursesAsync(Guid professorId, Guid? courseId, DateOnly? date)
+    {
+        // Get professor's courses
+        var professorCourseIds = await _context.Courses
+            .Where(c => c.ProfessorId == professorId && c.IsActive)
+            .Select(c => c.Id)
+            .ToListAsync();
+
+        if (!professorCourseIds.Any())
+        {
+            return new List<AttendanceListDto>();
+        }
+
+        var query = _context.Attendances
+            .Include(a => a.Course)
+            .Include(a => a.Student)
+                .ThenInclude(s => s.User)
+            .Where(a => professorCourseIds.Contains(a.CourseId));
+
+        // Filter by specific course if provided
+        if (courseId.HasValue)
+        {
+            query = query.Where(a => a.CourseId == courseId.Value);
+        }
+
+        // Filter by date if provided
+        if (date.HasValue)
+        {
+            query = query.Where(a => a.Date == date.Value);
+        }
+
+        var attendances = await query
+            .OrderByDescending(a => a.Date)
+            .ThenBy(a => a.Course.Name)
+            .Select(a => new AttendanceListDto
+            {
+                Id = a.Id,
+                CourseName = a.Course.Name + " - " + a.Student.User.FirstName + " " + a.Student.User.LastName,
+                Date = a.Date,
+                Status = a.Status,
+                Notes = a.Notes
+            })
+            .Take(100) // Limit results
+            .ToListAsync();
+
+        return attendances;
+    }
+
+    public async Task<List<CourseDto>> GetFacultyCoursesAsync(Guid facultyId)
+    {
+        var courses = await _context.Courses
+            .Where(c => c.Program.FacultyId == facultyId && c.IsActive)
+            .OrderBy(c => c.Name)
+            .Select(c => new CourseDto
+            {
+                Id = c.Id,
+                Name = c.Name,
+                Code = c.Code,
+                Year = c.Year,
+                Semester = c.Semester
+            })
+            .ToListAsync();
+
+        return courses;
+    }
+
+    public async Task<FacultyAttendanceOverviewDto> GetFacultyOverviewAsync(Guid facultyId, Guid? courseId, int? year)
+    {
+        // Get all courses in faculty
+        var coursesQuery = _context.Courses
+            .Where(c => c.Program.FacultyId == facultyId && c.IsActive);
+
+        if (courseId.HasValue)
+        {
+            coursesQuery = coursesQuery.Where(c => c.Id == courseId.Value);
+        }
+
+        if (year.HasValue)
+        {
+            coursesQuery = coursesQuery.Where(c => c.Year == year.Value);
+        }
+
+        var courseIds = await coursesQuery.Select(c => c.Id).ToListAsync();
+
+        // Get all attendance records for these courses
+        var attendances = await _context.Attendances
+            .Include(a => a.Course)
+            .Include(a => a.Student)
+                .ThenInclude(s => s.User)
+            .Where(a => courseIds.Contains(a.CourseId))
+            .ToListAsync();
+
+        // Overall stats
+        var totalRecords = attendances.Count;
+        var present = attendances.Count(a => a.Status == AttendanceStatus.Present);
+        var absent = attendances.Count(a => a.Status == AttendanceStatus.Absent);
+        var excused = attendances.Count(a => a.Status == AttendanceStatus.Excused);
+        var overallRate = totalRecords > 0 ? (decimal)present / totalRecords * 100 : 0;
+
+        // Stats by course
+        var statsByCourse = attendances
+            .GroupBy(a => new { a.CourseId, a.Course.Name })
+            .Select(g => new CourseAttendanceStatsDto
+            {
+                CourseId = g.Key.CourseId,
+                CourseName = g.Key.Name,
+                TotalRecords = g.Count(),
+                Present = g.Count(a => a.Status == AttendanceStatus.Present),
+                Absent = g.Count(a => a.Status == AttendanceStatus.Absent),
+                Excused = g.Count(a => a.Status == AttendanceStatus.Excused),
+                AttendanceRate = g.Count() > 0
+                    ? (decimal)g.Count(a => a.Status == AttendanceStatus.Present) / g.Count() * 100
+                    : 0
+            })
+            .OrderByDescending(s => s.TotalRecords)
+            .ToList();
+
+        // Stats by year (from courses)
+        var courseYears = await coursesQuery
+            .Select(c => new { c.Id, c.Year })
+            .ToListAsync();
+
+        var courseYearDict = courseYears.ToDictionary(c => c.Id, c => c.Year);
+
+        var statsByYear = attendances
+            .Where(a => courseYearDict.ContainsKey(a.CourseId))
+            .GroupBy(a => courseYearDict[a.CourseId])
+            .Select(g => new YearAttendanceStatsDto
+            {
+                Year = g.Key,
+                TotalRecords = g.Count(),
+                Present = g.Count(a => a.Status == AttendanceStatus.Present),
+                Absent = g.Count(a => a.Status == AttendanceStatus.Absent),
+                Excused = g.Count(a => a.Status == AttendanceStatus.Excused),
+                AttendanceRate = g.Count() > 0
+                    ? (decimal)g.Count(a => a.Status == AttendanceStatus.Present) / g.Count() * 100
+                    : 0
+            })
+            .OrderBy(s => s.Year)
+            .ToList();
+
+        // Top students with most absences
+        var studentsWithAbsences = attendances
+            .Where(a => a.Status == AttendanceStatus.Absent)
+            .GroupBy(a => new { a.StudentId, a.Student.User.FirstName, a.Student.User.LastName, a.Student.StudentNumber })
+            .Select(g => new StudentAbsenceDto
+            {
+                StudentId = g.Key.StudentId,
+                StudentName = $"{g.Key.FirstName} {g.Key.LastName}",
+                StudentNumber = g.Key.StudentNumber,
+                AbsenceCount = g.Count()
+            })
+            .OrderByDescending(s => s.AbsenceCount)
+            .Take(10)
+            .ToList();
+
+        // Recent attendance records for quick view
+        var recentRecords = attendances
+            .OrderByDescending(a => a.Date)
+            .Take(20)
+            .Select(a => new AttendanceListDto
+            {
+                Id = a.Id,
+                CourseName = $"{a.Course.Name} - {a.Student.User.FirstName} {a.Student.User.LastName}",
+                Date = a.Date,
+                Status = a.Status,
+                Notes = a.Notes
+            })
+            .ToList();
+
+        return new FacultyAttendanceOverviewDto
+        {
+            TotalRecords = totalRecords,
+            Present = present,
+            Absent = absent,
+            Excused = excused,
+            OverallAttendanceRate = overallRate,
+            StatsByCourse = statsByCourse,
+            StatsByYear = statsByYear,
+            TopAbsentStudents = studentsWithAbsences,
+            RecentRecords = recentRecords
+        };
+    }
 }
 
 // DTOs
@@ -404,4 +593,47 @@ public class AttendanceResult
         Succeeded = false,
         ErrorMessage = error
     };
+}
+
+// Dean-specific DTOs
+public class FacultyAttendanceOverviewDto
+{
+    public int TotalRecords { get; set; }
+    public int Present { get; set; }
+    public int Absent { get; set; }
+    public int Excused { get; set; }
+    public decimal OverallAttendanceRate { get; set; }
+    public List<CourseAttendanceStatsDto> StatsByCourse { get; set; } = new();
+    public List<YearAttendanceStatsDto> StatsByYear { get; set; } = new();
+    public List<StudentAbsenceDto> TopAbsentStudents { get; set; } = new();
+    public List<AttendanceListDto> RecentRecords { get; set; } = new();
+}
+
+public class CourseAttendanceStatsDto
+{
+    public Guid CourseId { get; set; }
+    public string CourseName { get; set; } = string.Empty;
+    public int TotalRecords { get; set; }
+    public int Present { get; set; }
+    public int Absent { get; set; }
+    public int Excused { get; set; }
+    public decimal AttendanceRate { get; set; }
+}
+
+public class YearAttendanceStatsDto
+{
+    public int Year { get; set; }
+    public int TotalRecords { get; set; }
+    public int Present { get; set; }
+    public int Absent { get; set; }
+    public int Excused { get; set; }
+    public decimal AttendanceRate { get; set; }
+}
+
+public class StudentAbsenceDto
+{
+    public Guid StudentId { get; set; }
+    public string StudentName { get; set; } = string.Empty;
+    public string StudentNumber { get; set; } = string.Empty;
+    public int AbsenceCount { get; set; }
 }

@@ -7,260 +7,188 @@
 @inject AuthService AuthService
 @inject AuthenticationStateProvider AuthStateProvider
 @inject NavigationManager Navigation
+@inject Radzen.NotificationService NotificationService
 @attribute [Authorize(Policy = "CanManageGrades")]
 
 <PageTitle>Marchează Prezență - SMU</PageTitle>
 
-<div class="max-w-6xl mx-auto space-y-6">
+<RadzenStack Gap="1.5rem" Style="max-width: 80rem; margin: 0 auto;">
     <!-- Header -->
-    <div class="flex items-center justify-between">
-        <div>
-            <h1 class="text-2xl font-bold text-gray-900">Marchează Prezență</h1>
-            <p class="mt-1 text-sm text-gray-600">Înregistrează prezența studenților la curs</p>
-        </div>
-        <a href="/prezente" class="text-sm text-primary-600 hover:text-primary-700 font-medium">
-            ← Înapoi la Prezențe
-        </a>
-    </div>
+    <RadzenStack Orientation="Radzen.Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center">
+        <RadzenStack Gap="0.25rem">
+            <RadzenText TextStyle="TextStyle.H4" Style="margin: 0; font-weight: 700;">Marchează Prezență</RadzenText>
+            <RadzenText TextStyle="TextStyle.Body2" class="rz-color-secondary" Style="margin: 0;">Înregistrează prezența studenților la curs</RadzenText>
+        </RadzenStack>
+        <RadzenLink Path="/prezente" Text="← Înapoi la Prezențe" Style="font-weight: 500;" />
+    </RadzenStack>
 
     @if (isLoading)
     {
-        <div class="flex items-center justify-center py-12">
-            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-        </div>
+        <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Style="padding: 3rem 0;">
+            <RadzenProgressBarCircular ShowValue="false" Mode="ProgressBarMode.Indeterminate" Size="ProgressBarCircularSize.Large" />
+            <RadzenText TextStyle="TextStyle.Body2" class="rz-color-secondary" Style="margin-top: 1rem;">
+                Se încarcă...
+            </RadzenText>
+        </RadzenStack>
     }
     else
     {
         <!-- Progress Steps -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center space-x-4">
-                    <div class="@GetStepClass(1)">
-                        <span class="text-sm font-medium">1. Curs</span>
-                    </div>
-                    <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-                    </svg>
-                    <div class="@GetStepClass(2)">
-                        <span class="text-sm font-medium">2. Dată</span>
-                    </div>
-                    <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-                    </svg>
-                    <div class="@GetStepClass(3)">
-                        <span class="text-sm font-medium">3. Studenți</span>
-                    </div>
-                </div>
-            </div>
-        </div>
+        <RadzenCard>
+            <RadzenStack Orientation="Radzen.Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center" Gap="1rem">
+                <RadzenStack Orientation="Radzen.Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem">
+                    <RadzenBadge BadgeStyle="@GetStepBadgeStyle(1)" Text="1. Curs" IsPill="true" />
+                    <RadzenIcon Icon="chevron_right" />
+                    <RadzenBadge BadgeStyle="@GetStepBadgeStyle(2)" Text="2. Dată" IsPill="true" />
+                    <RadzenIcon Icon="chevron_right" />
+                    <RadzenBadge BadgeStyle="@GetStepBadgeStyle(3)" Text="3. Studenți" IsPill="true" />
+                </RadzenStack>
+            </RadzenStack>
+        </RadzenCard>
 
         <!-- Step Content -->
         @if (currentStep == 1)
         {
             <!-- Step 1: Select Course -->
-            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                <h2 class="text-lg font-semibold text-gray-900 mb-4">Selectează Cursul</h2>
-                <div class="space-y-3">
+            <RadzenCard>
+                <RadzenStack Gap="1rem">
+                    <RadzenText TextStyle="TextStyle.H6" Style="margin: 0;">Selectează Cursul</RadzenText>
                     @if (!courses.Any())
                     {
-                        <div class="text-center py-8">
-                            <p class="text-gray-500">Nu aveți cursuri asociate.</p>
-                        </div>
+                        <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Style="padding: 2rem 0;">
+                            <RadzenText TextStyle="TextStyle.Body2" class="rz-color-secondary">Nu aveți cursuri asociate.</RadzenText>
+                        </RadzenStack>
                     }
                     else
                     {
-                        @foreach (var course in courses)
-                        {
-                            <button @onclick="() => SelectCourse(course)"
-                                    class="w-full p-4 border-2 rounded-lg text-left transition-all hover:border-primary-300 hover:bg-primary-50 @(selectedCourse?.Id == course.Id ? "border-primary-600 bg-primary-50" : "border-gray-200")">
-                                <div class="flex items-center justify-between">
-                                    <div>
-                                        <div class="font-semibold text-gray-900">@course.Name</div>
-                                        <div class="text-sm text-gray-600 mt-1">
-                                            Cod: @course.Code | An @course.Year, Sem. @course.Semester
-                                        </div>
-                                    </div>
-                                    @if (selectedCourse?.Id == course.Id)
-                                    {
-                                        <svg class="w-6 h-6 text-primary-600" fill="currentColor" viewBox="0 0 20 20">
-                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                                        </svg>
-                                    }
-                                </div>
-                            </button>
-                        }
+                        <RadzenStack Gap="0.75rem">
+                            @foreach (var course in courses)
+                            {
+                                <RadzenCard Style="@GetCourseCardStyle(course)" class="rz-border-radius-4" @onclick="@(() => SelectCourse(course))">
+                                    <RadzenStack Orientation="Radzen.Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center">
+                                        <RadzenStack Gap="0.25rem">
+                                            <RadzenText TextStyle="TextStyle.Body1" Style="margin: 0; font-weight: 600;">@course.Name</RadzenText>
+                                            <RadzenText TextStyle="TextStyle.Caption" class="rz-color-secondary" Style="margin: 0;">
+                                                Cod: @course.Code | An @course.Year, Sem. @course.Semester
+                                            </RadzenText>
+                                        </RadzenStack>
+                                        @if (selectedCourse?.Id == course.Id)
+                                        {
+                                            <RadzenIcon Icon="check_circle" Style="color: var(--rz-success);" />
+                                        }
+                                    </RadzenStack>
+                                </RadzenCard>
+                            }
+                        </RadzenStack>
                     }
-                </div>
-                @if (selectedCourse != null)
-                {
-                    <div class="mt-6 flex justify-end">
-                        <button @onclick="NextStep" class="btn btn-primary">
-                            Continuă
-                            <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-                            </svg>
-                        </button>
-                    </div>
-                }
-            </div>
+                    @if (selectedCourse != null)
+                    {
+                        <RadzenStack Orientation="Radzen.Orientation.Horizontal" JustifyContent="JustifyContent.End" Style="margin-top: 1rem;">
+                            <RadzenButton Text="Continuă" Icon="arrow_forward" ButtonStyle="ButtonStyle.Primary" Click="@NextStep" />
+                        </RadzenStack>
+                    }
+                </RadzenStack>
+            </RadzenCard>
         }
         else if (currentStep == 2)
         {
             <!-- Step 2: Select Date -->
-            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                <h2 class="text-lg font-semibold text-gray-900 mb-4">Selectează Data</h2>
-                <div class="max-w-md">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Dată</label>
-                    <input type="date" @bind="selectedDate" max="@DateTime.Now.ToString("yyyy-MM-dd")"
-                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent" />
-                    <p class="mt-2 text-sm text-gray-600">
-                        Cursul selectat: <span class="font-medium">@selectedCourse?.Name</span>
-                    </p>
-                </div>
-                <div class="mt-6 flex gap-3">
-                    <button @onclick="PreviousStep" class="btn btn-outline">
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
-                        </svg>
-                        Înapoi
-                    </button>
-                    <button @onclick="LoadStudents" class="btn btn-primary" disabled="@(selectedDate == null)">
-                        Continuă
-                        <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-                        </svg>
-                    </button>
-                </div>
-            </div>
+            <RadzenCard>
+                <RadzenStack Gap="1rem">
+                    <RadzenText TextStyle="TextStyle.H6" Style="margin: 0;">Selectează Data</RadzenText>
+                    <div style="max-width: 28rem;">
+                        <RadzenStack Gap="0.25rem">
+                            <RadzenLabel Text="Dată" />
+                            <RadzenDatePicker @bind-Value="selectedDate" DateFormat="dd.MM.yyyy" Max="@DateTime.Now" Style="width: 100%;" />
+                        </RadzenStack>
+                        <RadzenText TextStyle="TextStyle.Body2" class="rz-color-secondary" Style="margin-top: 0.5rem;">
+                            Cursul selectat: <strong>@selectedCourse?.Name</strong>
+                        </RadzenText>
+                    </div>
+                    <RadzenStack Orientation="Radzen.Orientation.Horizontal" Gap="0.75rem" Style="margin-top: 1rem;">
+                        <RadzenButton Text="Înapoi" Icon="arrow_back" ButtonStyle="ButtonStyle.Light" Click="@PreviousStep" />
+                        <RadzenButton Text="Continuă" Icon="arrow_forward" ButtonStyle="ButtonStyle.Primary" Click="@LoadStudents" Disabled="@(selectedDate == null)" />
+                    </RadzenStack>
+                </RadzenStack>
+            </RadzenCard>
         }
         else if (currentStep == 3)
         {
             <!-- Step 3: Mark Attendance -->
-            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                <div class="flex items-center justify-between mb-6">
-                    <div>
-                        <h2 class="text-lg font-semibold text-gray-900">Marchează Prezența Studenților</h2>
-                        <p class="text-sm text-gray-600 mt-1">
-                            @selectedCourse?.Name - @selectedDate?.ToString("dd.MM.yyyy")
-                        </p>
-                    </div>
-                    <div class="flex gap-2">
-                        <button @onclick="() => MarkAll(AttendanceStatus.Present)" class="text-sm px-3 py-1 bg-success-100 text-success-700 rounded-lg hover:bg-success-200">
-                            Toți Prezenți
-                        </button>
-                        <button @onclick="() => MarkAll(AttendanceStatus.Absent)" class="text-sm px-3 py-1 bg-danger-100 text-danger-700 rounded-lg hover:bg-danger-200">
-                            Toți Absenți
-                        </button>
-                    </div>
-                </div>
+            <RadzenCard>
+                <RadzenStack Gap="1.5rem">
+                    <RadzenStack Orientation="Radzen.Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Start">
+                        <RadzenStack Gap="0.25rem">
+                            <RadzenText TextStyle="TextStyle.H6" Style="margin: 0;">Marchează Prezența Studenților</RadzenText>
+                            <RadzenText TextStyle="TextStyle.Body2" class="rz-color-secondary" Style="margin: 0;">
+                                @selectedCourse?.Name - @selectedDate?.ToString("dd.MM.yyyy")
+                            </RadzenText>
+                        </RadzenStack>
+                        <RadzenStack Orientation="Radzen.Orientation.Horizontal" Gap="0.5rem">
+                            <RadzenButton Text="Toți Prezenți" Icon="check_circle" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small"
+                                          Click="@(() => MarkAll(AttendanceStatus.Present))" />
+                            <RadzenButton Text="Toți Absenți" Icon="cancel" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small"
+                                          Click="@(() => MarkAll(AttendanceStatus.Absent))" />
+                        </RadzenStack>
+                    </RadzenStack>
 
-                @if (isLoadingStudents)
-                {
-                    <div class="flex items-center justify-center py-12">
-                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-                    </div>
-                }
-                else if (!students.Any())
-                {
-                    <div class="text-center py-8">
-                        <p class="text-gray-500">Nu există studenți înscriși la acest curs.</p>
-                    </div>
-                }
-                else
-                {
-                    <div class="overflow-x-auto">
-                        <table class="w-full">
-                            <thead class="bg-gray-50 border-b border-gray-200">
-                                <tr>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Student</th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nr. Matricol</th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Grupă</th>
-                                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Status</th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Notă</th>
-                                </tr>
-                            </thead>
-                            <tbody class="bg-white divide-y divide-gray-200">
-                                @foreach (var student in students)
-                                {
-                                    <tr class="hover:bg-gray-50">
-                                        <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
-                                            @student.StudentName
-                                        </td>
-                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
-                                            @student.StudentNumber
-                                        </td>
-                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
-                                            @student.GroupName
-                                        </td>
-                                        <td class="px-4 py-3">
-                                            <div class="flex justify-center gap-2">
-                                                <button @onclick="() => SetStatus(student, AttendanceStatus.Present)"
-                                                        class="px-3 py-1 text-xs font-medium rounded-full transition-all @(GetStudentStatus(student) == AttendanceStatus.Present ? "bg-success-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-success-100 hover:text-success-700")">
-                                                    Prezent
-                                                </button>
-                                                <button @onclick="() => SetStatus(student, AttendanceStatus.Absent)"
-                                                        class="px-3 py-1 text-xs font-medium rounded-full transition-all @(GetStudentStatus(student) == AttendanceStatus.Absent ? "bg-danger-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-danger-100 hover:text-danger-700")">
-                                                    Absent
-                                                </button>
-                                                <button @onclick="() => SetStatus(student, AttendanceStatus.Excused)"
-                                                        class="px-3 py-1 text-xs font-medium rounded-full transition-all @(GetStudentStatus(student) == AttendanceStatus.Excused ? "bg-info-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-info-100 hover:text-info-700")">
-                                                    Motivat
-                                                </button>
-                                            </div>
-                                        </td>
-                                        <td class="px-4 py-3">
-                                            <input type="text" @bind="attendanceNotes[student.StudentId]"
-                                                   placeholder="Opțional"
-                                                   class="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-primary-500 focus:border-transparent" />
-                                        </td>
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
-                    </div>
+                    @if (isLoadingStudents)
+                    {
+                        <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Style="padding: 3rem 0;">
+                            <RadzenProgressBarCircular ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
+                        </RadzenStack>
+                    }
+                    else if (!students.Any())
+                    {
+                        <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Style="padding: 2rem 0;">
+                            <RadzenText TextStyle="TextStyle.Body2" class="rz-color-secondary">Nu există studenți înscriși la acest curs.</RadzenText>
+                        </RadzenStack>
+                    }
+                    else
+                    {
+                        <RadzenDataGrid Data="@students" TItem="StudentInCourseDto"
+                                        AllowSorting="true" AllowPaging="false">
+                            <Columns>
+                                <RadzenDataGridColumn TItem="StudentInCourseDto" Property="StudentName" Title="Student" />
+                                <RadzenDataGridColumn TItem="StudentInCourseDto" Property="StudentNumber" Title="Nr. Matricol" Width="140px" />
+                                <RadzenDataGridColumn TItem="StudentInCourseDto" Property="GroupName" Title="Grupă" Width="120px" />
+                                <RadzenDataGridColumn TItem="StudentInCourseDto" Title="Status" Width="320px" TextAlign="TextAlign.Center">
+                                    <Template Context="student">
+                                        <RadzenStack Orientation="Radzen.Orientation.Horizontal" JustifyContent="JustifyContent.Center" Gap="0.5rem">
+                                            <RadzenButton Text="Prezent" Size="ButtonSize.Small"
+                                                          ButtonStyle="@(GetStudentStatus(student) == AttendanceStatus.Present ? ButtonStyle.Success : ButtonStyle.Light)"
+                                                          Variant="@(GetStudentStatus(student) == AttendanceStatus.Present ? Variant.Filled : Variant.Outlined)"
+                                                          Click="@(() => SetStatus(student, AttendanceStatus.Present))" />
+                                            <RadzenButton Text="Absent" Size="ButtonSize.Small"
+                                                          ButtonStyle="@(GetStudentStatus(student) == AttendanceStatus.Absent ? ButtonStyle.Danger : ButtonStyle.Light)"
+                                                          Variant="@(GetStudentStatus(student) == AttendanceStatus.Absent ? Variant.Filled : Variant.Outlined)"
+                                                          Click="@(() => SetStatus(student, AttendanceStatus.Absent))" />
+                                            <RadzenButton Text="Motivat" Size="ButtonSize.Small"
+                                                          ButtonStyle="@(GetStudentStatus(student) == AttendanceStatus.Excused ? ButtonStyle.Info : ButtonStyle.Light)"
+                                                          Variant="@(GetStudentStatus(student) == AttendanceStatus.Excused ? Variant.Filled : Variant.Outlined)"
+                                                          Click="@(() => SetStatus(student, AttendanceStatus.Excused))" />
+                                        </RadzenStack>
+                                    </Template>
+                                </RadzenDataGridColumn>
+                                <RadzenDataGridColumn TItem="StudentInCourseDto" Title="Notă" Width="200px">
+                                    <Template Context="student">
+                                        <RadzenTextBox @bind-Value="attendanceNotes[student.StudentId]" Placeholder="Opțional" Style="width: 100%;" />
+                                    </Template>
+                                </RadzenDataGridColumn>
+                            </Columns>
+                        </RadzenDataGrid>
 
-                    <div class="mt-6 flex gap-3">
-                        <button @onclick="PreviousStep" class="btn btn-outline">
-                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
-                            </svg>
-                            Înapoi
-                        </button>
-                        <button @onclick="SaveAttendance" class="btn btn-primary" disabled="@isSaving">
-                            @if (isSaving)
-                            {
-                                <span>Se salvează...</span>
-                            }
-                            else
-                            {
-                                <span>Salvează Prezența</span>
-                            }
-                        </button>
-                    </div>
-                }
-            </div>
-        }
-
-        <!-- Success Message -->
-        @if (showSuccess)
-        {
-            <div class="fixed bottom-4 right-4 bg-success-600 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-3">
-                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                </svg>
-                <span>Prezența a fost salvată cu succes!</span>
-            </div>
-        }
-
-        <!-- Error Message -->
-        @if (!string.IsNullOrEmpty(errorMessage))
-        {
-            <div class="fixed bottom-4 right-4 bg-danger-600 text-white px-6 py-3 rounded-lg shadow-lg">
-                @errorMessage
-            </div>
+                        <RadzenStack Orientation="Radzen.Orientation.Horizontal" Gap="0.75rem" Style="margin-top: 1rem;">
+                            <RadzenButton Text="Înapoi" Icon="arrow_back" ButtonStyle="ButtonStyle.Light" Click="@PreviousStep" />
+                            <RadzenButton Text="@(isSaving ? "Se salvează..." : "Salvează Prezența")" Icon="save"
+                                          ButtonStyle="ButtonStyle.Primary" Click="@SaveAttendance" Disabled="@isSaving" />
+                        </RadzenStack>
+                    }
+                </RadzenStack>
+            </RadzenCard>
         }
     }
-</div>
+</RadzenStack>
 
 @code {
     private bool isLoading = true;
@@ -270,6 +198,7 @@
     private string? errorMessage;
 
     private Guid? currentProfessorId;
+    private Guid? currentUserId;  // User ID for recording attendance (FK to asp_net_users)
     private int currentStep = 1;
 
     private List<CourseDto> courses = new();
@@ -287,10 +216,12 @@
 
         if (user.Identity?.IsAuthenticated == true)
         {
-            var appUser = await AuthService.GetCurrentUserAsync(user);
+            // Use GetCurrentUserWithProfessorAsync to properly load Professor navigation property
+            var appUser = await AuthService.GetCurrentUserWithProfessorAsync(user);
             if (appUser?.Professor != null)
             {
                 currentProfessorId = appUser.Professor.Id;
+                currentUserId = appUser.Id;  // Store the User ID for FK constraint
                 courses = await AttendanceService.GetProfessorCoursesAsync(currentProfessorId.Value);
             }
         }
@@ -334,14 +265,12 @@
             if (existing != null)
             {
                 attendanceStatuses[student.StudentId] = existing.Status;
-                if (!string.IsNullOrEmpty(existing.Notes))
-                {
-                    attendanceNotes[student.StudentId] = existing.Notes;
-                }
+                attendanceNotes[student.StudentId] = existing.Notes ?? string.Empty;
             }
             else
             {
                 attendanceStatuses[student.StudentId] = AttendanceStatus.Absent;
+                attendanceNotes[student.StudentId] = string.Empty;
             }
         }
 
@@ -368,9 +297,15 @@
 
     private async Task SaveAttendance()
     {
-        if (selectedCourse == null || selectedDate == null || !currentProfessorId.HasValue)
+        if (selectedCourse == null || selectedDate == null || !currentUserId.HasValue)
         {
-            errorMessage = "Date incomplete pentru salvare.";
+            NotificationService.Notify(new NotificationMessage
+            {
+                Severity = NotificationSeverity.Error,
+                Summary = "Eroare",
+                Detail = "Date incomplete pentru salvare.",
+                Duration = 4000
+            });
             return;
         }
 
@@ -391,22 +326,41 @@
                 }).ToList()
             };
 
-            var result = await AttendanceService.BulkMarkAsync(bulkDto, currentProfessorId.Value);
+            // Pass User ID (not Professor ID) - recorded_by FK references asp_net_users
+            var result = await AttendanceService.BulkMarkAsync(bulkDto, currentUserId.Value);
 
             if (result.Succeeded)
             {
-                showSuccess = true;
-                await Task.Delay(2000);
+                NotificationService.Notify(new NotificationMessage
+                {
+                    Severity = NotificationSeverity.Success,
+                    Summary = "Succes",
+                    Detail = "Prezența a fost salvată cu succes!",
+                    Duration = 4000
+                });
+                await Task.Delay(1000);
                 Navigation.NavigateTo("/prezente");
             }
             else
             {
-                errorMessage = result.ErrorMessage ?? "Eroare la salvarea prezenței.";
+                NotificationService.Notify(new NotificationMessage
+                {
+                    Severity = NotificationSeverity.Error,
+                    Summary = "Eroare",
+                    Detail = result.ErrorMessage ?? "Eroare la salvarea prezenței.",
+                    Duration = 4000
+                });
             }
         }
         catch (Exception ex)
         {
-            errorMessage = "Eroare la salvarea prezenței: " + ex.Message;
+            NotificationService.Notify(new NotificationMessage
+            {
+                Severity = NotificationSeverity.Error,
+                Summary = "Eroare",
+                Detail = "Eroare la salvarea prezenței: " + ex.Message,
+                Duration = 4000
+            });
         }
         finally
         {
@@ -414,12 +368,18 @@
         }
     }
 
-    private string GetStepClass(int step)
+    private BadgeStyle GetStepBadgeStyle(int step)
     {
-        if (step == currentStep)
-            return "px-4 py-2 bg-primary-600 text-white rounded-lg";
-        if (step < currentStep)
-            return "px-4 py-2 bg-success-100 text-success-700 rounded-lg";
-        return "px-4 py-2 bg-gray-100 text-gray-600 rounded-lg";
+        if (step == currentStep) return BadgeStyle.Primary;
+        if (step < currentStep) return BadgeStyle.Success;
+        return BadgeStyle.Light;
+    }
+
+    private string GetCourseCardStyle(CourseDto course)
+    {
+        var isSelected = selectedCourse?.Id == course.Id;
+        return isSelected
+            ? "cursor: pointer; border: 2px solid var(--rz-primary); background: var(--rz-primary-lighter);"
+            : "cursor: pointer; border: 2px solid var(--rz-border-color);";
     }
 }

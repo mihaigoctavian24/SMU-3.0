@@ -17,6 +17,7 @@ public interface IAnalyticsService
     // Professor Analytics
     Task<ProfessorAnalyticsDto> GetProfessorStatsAsync(Guid professorId);
     Task<List<CoursePerformanceDto>> GetCoursePerformancesAsync(Guid professorId);
+    Task<GradeDistributionDto> GetProfessorGradeDistributionAsync(Guid professorId);
 
     // Faculty Analytics (Dean)
     Task<FacultyAnalyticsDto> GetFacultyStatsAsync(Guid facultyId);
@@ -240,6 +241,31 @@ public class AnalyticsService : IAnalyticsService
         return performances;
     }
 
+    public async Task<GradeDistributionDto> GetProfessorGradeDistributionAsync(Guid professorId)
+    {
+        var courses = await _context.Courses
+            .Include(c => c.Grades.Where(g => g.Status == GradeStatus.Approved))
+            .Where(c => c.ProfessorId == professorId && c.IsActive)
+            .ToListAsync();
+
+        var allGrades = courses
+            .SelectMany(c => c.Grades)
+            .Where(g => g.Status == GradeStatus.Approved)
+            .ToList();
+
+        var distribution = new Dictionary<int, int>();
+        for (int i = 1; i <= 10; i++)
+        {
+            distribution[i] = allGrades.Count(g => (int)Math.Round(g.Value) == i);
+        }
+
+        return new GradeDistributionDto
+        {
+            Distribution = distribution,
+            TotalGrades = allGrades.Count
+        };
+    }
+
     #endregion
 
     #region Faculty Analytics (Dean)
@@ -378,6 +404,9 @@ public class AnalyticsService : IAnalyticsService
 
         var totalProfessors = await _context.Professors.CountAsync();
         var facultyCount = await _context.Faculties.CountAsync(f => f.IsActive);
+        var programCount = await _context.Programs.CountAsync(p => p.IsActive);
+        var courseCount = await _context.Courses.CountAsync(c => c.IsActive);
+        var groupCount = await _context.Groups.CountAsync(g => g.IsActive);
 
         var allGrades = await _context.Grades
             .Where(g => g.Status == GradeStatus.Approved)
@@ -388,13 +417,24 @@ public class AnalyticsService : IAnalyticsService
             ? (decimal)allGrades.Count(g => g.Value >= 5) / allGrades.Count() * 100
             : 0;
 
+        // Calculate at-risk students (average below 5 or low attendance)
+        var atRiskCount = await _context.Students
+            .Where(s => s.Status == StudentStatus.Active)
+            .Where(s => s.Grades.Where(g => g.Status == GradeStatus.Approved).Any() &&
+                        s.Grades.Where(g => g.Status == GradeStatus.Approved).Average(g => g.Value) < 5)
+            .CountAsync();
+
         return new UniversityAnalyticsDto
         {
             TotalStudents = totalStudents,
             TotalProfessors = totalProfessors,
             FacultyCount = facultyCount,
+            ProgramCount = programCount,
+            CourseCount = courseCount,
+            GroupCount = groupCount,
             OverallAverage = overallAverage,
-            PassRate = passRate
+            PassRate = passRate,
+            AtRiskStudentsCount = atRiskCount
         };
     }
 
@@ -408,6 +448,9 @@ public class AnalyticsService : IAnalyticsService
             .Where(f => f.IsActive)
             .ToListAsync();
 
+        // Get professors separately since they're not included in Faculties directly
+        var professors = await _context.Professors.ToListAsync();
+
         var comparisons = faculties.Select(f =>
         {
             var students = f.Programs
@@ -416,6 +459,8 @@ public class AnalyticsService : IAnalyticsService
                 .ToList();
 
             var studentCount = students.Count(s => s.Status == StudentStatus.Active);
+            var professorCount = professors.Count(p => p.FacultyId == f.Id);
+            var programCount = f.Programs.Count;
 
             var grades = students
                 .SelectMany(s => s.Grades)
@@ -446,14 +491,23 @@ public class AnalyticsService : IAnalyticsService
             var trend = recentAvg > previousAvg ? "ascending" :
                         recentAvg < previousAvg ? "descending" : "stable";
 
+            // Calculate trend value as percentage difference
+            var trendValue = previousAvg > 0
+                ? Math.Round((recentAvg - previousAvg) / previousAvg * 100, 1)
+                : 0;
+
             return new FacultyComparisonDto
             {
+                FacultyId = f.Id,
                 FacultyName = f.Name,
                 FacultyCode = f.Code,
                 StudentCount = studentCount,
+                ProfessorCount = professorCount,
+                ProgramCount = programCount,
                 AverageGrade = averageGrade,
                 PassRate = passRate,
-                Trend = trend
+                Trend = trend,
+                TrendValue = (decimal)trendValue
             };
         }).OrderByDescending(c => c.StudentCount).ToList();
 
@@ -622,8 +676,12 @@ public class UniversityAnalyticsDto
     public int TotalStudents { get; set; }
     public int TotalProfessors { get; set; }
     public int FacultyCount { get; set; }
+    public int ProgramCount { get; set; }
+    public int CourseCount { get; set; }
+    public int GroupCount { get; set; }
     public decimal OverallAverage { get; set; }
     public decimal PassRate { get; set; }
+    public int AtRiskStudentsCount { get; set; }
 }
 
 /// <summary>
@@ -631,12 +689,16 @@ public class UniversityAnalyticsDto
 /// </summary>
 public class FacultyComparisonDto
 {
+    public Guid FacultyId { get; set; }
     public string FacultyName { get; set; } = string.Empty;
     public string FacultyCode { get; set; } = string.Empty;
     public int StudentCount { get; set; }
+    public int ProfessorCount { get; set; }
+    public int ProgramCount { get; set; }
     public decimal AverageGrade { get; set; }
     public decimal PassRate { get; set; }
     public string Trend { get; set; } = "stable"; // "ascending", "descending", "stable"
+    public decimal TrendValue { get; set; } // Percentage change
 }
 
 /// <summary>

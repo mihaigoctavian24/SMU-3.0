@@ -9,147 +9,127 @@
 @inject ApplicationDbContext DbContext
 @inject AuthenticationStateProvider AuthStateProvider
 
-<PageTitle>Analiza Tendințelor - SMU</PageTitle>
+<PageTitle>Analiza Tendintelor - SMU</PageTitle>
 
-<div class="space-y-6">
+<RadzenStack Gap="1.5rem">
     <!-- Header Section -->
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-            <h1 class="text-3xl font-bold text-gray-900 flex items-center gap-3">
-                <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                </svg>
-                Analiza Tendințelor
-            </h1>
-            <p class="text-gray-600 mt-1">Evoluția indicatorilor academici în timp</p>
-        </div>
+    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween" Wrap="FlexWrap.Wrap" Gap="1rem">
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem">
+            <div style="width: 3.5rem; height: 3.5rem; background: rgba(59, 130, 246, 0.1); border-radius: 0.5rem; display: flex; align-items: center; justify-content: center;">
+                <RadzenIcon Icon="trending_up" Style="font-size: 2rem; color: #3b82f6;" />
+            </div>
+            <RadzenStack Gap="0.25rem">
+                <RadzenText TextStyle="TextStyle.H3" Style="margin: 0; font-weight: bold;">Analiza Tendintelor</RadzenText>
+                <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; color: var(--rz-text-secondary-color);">Evolutia indicatorilor academici in timp</RadzenText>
+            </RadzenStack>
+        </RadzenStack>
 
-        <div class="flex flex-col sm:flex-row gap-3">
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem">
             <!-- Period Selector -->
-            <select @bind="selectedPeriod" @bind:after="LoadTrendData"
-                    class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                <option value="@AnalysisPeriod.LastMonth">Ultima lună</option>
-                <option value="@AnalysisPeriod.Last3Months">Ultimele 3 luni</option>
-                <option value="@AnalysisPeriod.Last6Months">Ultimele 6 luni</option>
-                <option value="@AnalysisPeriod.LastYear">Ultimul an</option>
-            </select>
+            <RadzenFormField Text="Perioada" Variant="Variant.Outlined">
+                <RadzenDropDown @bind-Value="selectedPeriod"
+                                Change="@LoadTrendData"
+                                Data="@periodOptions"
+                                TextProperty="Text"
+                                ValueProperty="Value"
+                                Style="width: 180px;" />
+            </RadzenFormField>
 
             <!-- Faculty Filter -->
-            <select @bind="selectedFacultyId" @bind:after="LoadTrendData"
-                    class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                <option value="">Toate facultățile</option>
-                @foreach (var faculty in faculties)
-                {
-                    <option value="@faculty.Id">@faculty.Name</option>
-                }
-            </select>
-        </div>
-    </div>
+            <RadzenFormField Text="Facultate" Variant="Variant.Outlined">
+                <RadzenDropDown @bind-Value="selectedFacultyId"
+                                Change="@LoadTrendData"
+                                Data="@facultyOptions"
+                                TextProperty="Text"
+                                ValueProperty="Value"
+                                AllowClear="true"
+                                Placeholder="Toate facultatile"
+                                Style="width: 220px;" />
+            </RadzenFormField>
+        </RadzenStack>
+    </RadzenStack>
 
     @if (isLoading)
     {
-        <div class="flex items-center justify-center py-12">
-            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-        </div>
+        <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Style="min-height: 400px;">
+            <RadzenProgressBarCircular ShowValue="false" Mode="ProgressBarMode.Indeterminate" Size="ProgressBarCircularSize.Large" />
+            <RadzenText TextStyle="TextStyle.Body1" Style="margin-top: 1rem; color: var(--rz-text-secondary-color);">Se incarca datele...</RadzenText>
+        </RadzenStack>
     }
     else
     {
         <!-- Trend Summary Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <RadzenRow Gap="1.5rem" RowGap="1.5rem">
             <!-- Average Grade Trend -->
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm font-medium text-gray-600">Trend Medie Note</p>
-                        <p class="text-2xl font-bold text-gray-900 mt-1">@averageGradeTrend.CurrentValue.ToString("F2")</p>
-                    </div>
-                    <div class="@GetTrendColorClass(averageGradeTrend.ChangePercent) p-3 rounded-full">
-                        @if (averageGradeTrend.ChangePercent >= 0)
-                        {
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" />
-                            </svg>
-                        }
-                        else
-                        {
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-                            </svg>
-                        }
-                    </div>
-                </div>
-                <div class="mt-4 flex items-center gap-2">
-                    <span class="@GetTrendTextColorClass(averageGradeTrend.ChangePercent) text-sm font-semibold">
-                        @(averageGradeTrend.ChangePercent >= 0 ? "+" : "")@averageGradeTrend.ChangePercent.ToString("F1")%
-                    </span>
-                    <span class="text-gray-500 text-sm">față de perioada anterioară</span>
-                </div>
-            </div>
+            <RadzenColumn Size="12" SizeMD="4">
+                <RadzenCard Style="padding: 1.5rem; height: 100%;">
+                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
+                        <RadzenStack Gap="0.5rem">
+                            <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; color: var(--rz-text-secondary-color); font-weight: 500;">Trend Medie Note</RadzenText>
+                            <RadzenText TextStyle="TextStyle.H3" Style="margin: 0; font-weight: bold;">@averageGradeTrend.CurrentValue.ToString("F2")</RadzenText>
+                        </RadzenStack>
+                        <div style="width: 3rem; height: 3rem; background: @(averageGradeTrend.ChangePercent >= 0 ? "#dcfce7" : "#fee2e2"); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                            <RadzenIcon Icon="@(averageGradeTrend.ChangePercent >= 0 ? "arrow_upward" : "arrow_downward")"
+                                        Style="@($"font-size: 1.5rem; color: {(averageGradeTrend.ChangePercent >= 0 ? "#16a34a" : "#dc2626")};")" />
+                        </div>
+                    </RadzenStack>
+                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="margin-top: 1rem;">
+                        <RadzenText TextStyle="TextStyle.Body2" Style="@($"margin: 0; font-weight: 600; color: {(averageGradeTrend.ChangePercent >= 0 ? "#16a34a" : "#dc2626")};")">
+                            @(averageGradeTrend.ChangePercent >= 0 ? "+" : "")@averageGradeTrend.ChangePercent.ToString("F1")%
+                        </RadzenText>
+                        <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; color: var(--rz-text-secondary-color);">fata de perioada anterioara</RadzenText>
+                    </RadzenStack>
+                </RadzenCard>
+            </RadzenColumn>
 
             <!-- Attendance Trend -->
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm font-medium text-gray-600">Trend Prezență</p>
-                        <p class="text-2xl font-bold text-gray-900 mt-1">@attendanceTrend.CurrentValue.ToString("F1")%</p>
-                    </div>
-                    <div class="@GetTrendColorClass(attendanceTrend.ChangePercent) p-3 rounded-full">
-                        @if (attendanceTrend.ChangePercent >= 0)
-                        {
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" />
-                            </svg>
-                        }
-                        else
-                        {
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-                            </svg>
-                        }
-                    </div>
-                </div>
-                <div class="mt-4 flex items-center gap-2">
-                    <span class="@GetTrendTextColorClass(attendanceTrend.ChangePercent) text-sm font-semibold">
-                        @(attendanceTrend.ChangePercent >= 0 ? "+" : "")@attendanceTrend.ChangePercent.ToString("F1")%
-                    </span>
-                    <span class="text-gray-500 text-sm">față de perioada anterioară</span>
-                </div>
-            </div>
+            <RadzenColumn Size="12" SizeMD="4">
+                <RadzenCard Style="padding: 1.5rem; height: 100%;">
+                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
+                        <RadzenStack Gap="0.5rem">
+                            <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; color: var(--rz-text-secondary-color); font-weight: 500;">Trend Prezenta</RadzenText>
+                            <RadzenText TextStyle="TextStyle.H3" Style="margin: 0; font-weight: bold;">@attendanceTrend.CurrentValue.ToString("F1")%</RadzenText>
+                        </RadzenStack>
+                        <div style="width: 3rem; height: 3rem; background: @(attendanceTrend.ChangePercent >= 0 ? "#dcfce7" : "#fee2e2"); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                            <RadzenIcon Icon="@(attendanceTrend.ChangePercent >= 0 ? "arrow_upward" : "arrow_downward")"
+                                        Style="@($"font-size: 1.5rem; color: {(attendanceTrend.ChangePercent >= 0 ? "#16a34a" : "#dc2626")};")" />
+                        </div>
+                    </RadzenStack>
+                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="margin-top: 1rem;">
+                        <RadzenText TextStyle="TextStyle.Body2" Style="@($"margin: 0; font-weight: 600; color: {(attendanceTrend.ChangePercent >= 0 ? "#16a34a" : "#dc2626")};")">
+                            @(attendanceTrend.ChangePercent >= 0 ? "+" : "")@attendanceTrend.ChangePercent.ToString("F1")%
+                        </RadzenText>
+                        <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; color: var(--rz-text-secondary-color);">fata de perioada anterioara</RadzenText>
+                    </RadzenStack>
+                </RadzenCard>
+            </RadzenColumn>
 
             <!-- At-Risk Students Trend -->
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm font-medium text-gray-600">Studenți la Risc</p>
-                        <p class="text-2xl font-bold text-gray-900 mt-1">@atRiskTrend.CurrentValue.ToString("F1")%</p>
-                    </div>
-                    <div class="@GetTrendColorClass(-atRiskTrend.ChangePercent) p-3 rounded-full">
-                        @if (atRiskTrend.ChangePercent <= 0)
-                        {
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" />
-                            </svg>
-                        }
-                        else
-                        {
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-                            </svg>
-                        }
-                    </div>
-                </div>
-                <div class="mt-4 flex items-center gap-2">
-                    <span class="@GetTrendTextColorClass(-atRiskTrend.ChangePercent) text-sm font-semibold">
-                        @(atRiskTrend.ChangePercent >= 0 ? "+" : "")@atRiskTrend.ChangePercent.ToString("F1")%
-                    </span>
-                    <span class="text-gray-500 text-sm">față de perioada anterioară</span>
-                </div>
-            </div>
-        </div>
+            <RadzenColumn Size="12" SizeMD="4">
+                <RadzenCard Style="padding: 1.5rem; height: 100%;">
+                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
+                        <RadzenStack Gap="0.5rem">
+                            <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; color: var(--rz-text-secondary-color); font-weight: 500;">Studenti la Risc</RadzenText>
+                            <RadzenText TextStyle="TextStyle.H3" Style="margin: 0; font-weight: bold;">@atRiskTrend.CurrentValue.ToString("F1")%</RadzenText>
+                        </RadzenStack>
+                        <div style="width: 3rem; height: 3rem; background: @(atRiskTrend.ChangePercent <= 0 ? "#dcfce7" : "#fee2e2"); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                            <RadzenIcon Icon="@(atRiskTrend.ChangePercent <= 0 ? "arrow_downward" : "arrow_upward")"
+                                        Style="@($"font-size: 1.5rem; color: {(atRiskTrend.ChangePercent <= 0 ? "#16a34a" : "#dc2626")};")" />
+                        </div>
+                    </RadzenStack>
+                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="margin-top: 1rem;">
+                        <RadzenText TextStyle="TextStyle.Body2" Style="@($"margin: 0; font-weight: 600; color: {(atRiskTrend.ChangePercent <= 0 ? "#16a34a" : "#dc2626")};")">
+                            @(atRiskTrend.ChangePercent >= 0 ? "+" : "")@atRiskTrend.ChangePercent.ToString("F1")%
+                        </RadzenText>
+                        <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; color: var(--rz-text-secondary-color);">fata de perioada anterioara</RadzenText>
+                    </RadzenStack>
+                </RadzenCard>
+            </RadzenColumn>
+        </RadzenRow>
 
         <!-- Metrics Evolution Chart -->
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h2 class="text-xl font-semibold text-gray-900 mb-6">Evoluția Indicatorilor</h2>
+        <RadzenCard Style="padding: 1.5rem;">
+            <RadzenText TextStyle="TextStyle.H5" Style="margin: 0 0 1.5rem 0; font-weight: 600;">Evolutia Indicatorilor</RadzenText>
 
             @if (metricsChartData.Labels.Any())
             {
@@ -160,28 +140,29 @@
             }
             else
             {
-                <div class="text-center py-12 text-gray-500">
-                    Nu există date disponibile pentru perioada selectată
-                </div>
+                <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Style="padding: 3rem;">
+                    <RadzenIcon Icon="info" Style="font-size: 3rem; color: var(--rz-text-disabled-color);" />
+                    <RadzenText TextStyle="TextStyle.Body2" Style="margin-top: 1rem; color: var(--rz-text-secondary-color);">Nu exista date disponibile pentru perioada selectata</RadzenText>
+                </RadzenStack>
             }
-        </div>
+        </RadzenCard>
 
         <!-- Faculty/Program Comparison -->
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <div class="flex items-center justify-between mb-6">
-                <h2 class="text-xl font-semibold text-gray-900">Comparație Entități</h2>
+        <RadzenCard Style="padding: 1.5rem;">
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween" Style="margin-bottom: 1.5rem;">
+                <RadzenText TextStyle="TextStyle.H5" Style="margin: 0; font-weight: 600;">Comparatie Entitati</RadzenText>
 
-                <div class="flex gap-2">
-                    <button @onclick="() => SetComparisonType(ComparisonType.Faculties)"
-                            class="@(comparisonType == ComparisonType.Faculties ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-700") px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-                        Facultăți
-                    </button>
-                    <button @onclick="() => SetComparisonType(ComparisonType.Programs)"
-                            class="@(comparisonType == ComparisonType.Programs ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-700") px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-                        Programe
-                    </button>
-                </div>
-            </div>
+                <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem">
+                    <RadzenButton Text="Facultati"
+                                  ButtonStyle="@(comparisonType == ComparisonType.Faculties ? ButtonStyle.Primary : ButtonStyle.Light)"
+                                  Size="ButtonSize.Small"
+                                  Click="@(() => SetComparisonType(ComparisonType.Faculties))" />
+                    <RadzenButton Text="Programe"
+                                  ButtonStyle="@(comparisonType == ComparisonType.Programs ? ButtonStyle.Primary : ButtonStyle.Light)"
+                                  Size="ButtonSize.Small"
+                                  Click="@(() => SetComparisonType(ComparisonType.Programs))" />
+                </RadzenStack>
+            </RadzenStack>
 
             @if (comparisonChartData.Labels.Any())
             {
@@ -192,126 +173,81 @@
             }
             else
             {
-                <div class="text-center py-12 text-gray-500">
-                    Nu există date disponibile pentru comparație
-                </div>
+                <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Style="padding: 3rem;">
+                    <RadzenIcon Icon="info" Style="font-size: 3rem; color: var(--rz-text-disabled-color);" />
+                    <RadzenText TextStyle="TextStyle.Body2" Style="margin-top: 1rem; color: var(--rz-text-secondary-color);">Nu exista date disponibile pentru comparatie</RadzenText>
+                </RadzenStack>
             }
-        </div>
+        </RadzenCard>
 
         <!-- Historical Data Table -->
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-            <div class="px-6 py-4 border-b border-gray-200">
-                <h2 class="text-xl font-semibold text-gray-900">Date Istorice</h2>
+        <RadzenCard Style="padding: 0; overflow: hidden;">
+            <div style="padding: 1rem 1.5rem; border-bottom: 1px solid var(--rz-border-color);">
+                <RadzenText TextStyle="TextStyle.H5" Style="margin: 0; font-weight: 600;">Date Istorice</RadzenText>
             </div>
 
             @if (historicalData.Any())
             {
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th @onclick="() => SortHistoricalData(nameof(DailySnapshot.Date))"
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100">
-                                    <div class="flex items-center gap-2">
-                                        Data
-                                        @if (historicalSortColumn == nameof(DailySnapshot.Date))
-                                        {
-                                            <svg class="w-4 h-4 @(historicalSortAscending ? "" : "transform rotate-180")" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
-                                            </svg>
-                                        }
-                                    </div>
-                                </th>
-                                <th @onclick="() => SortHistoricalData(nameof(DailySnapshot.TotalStudents))"
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100">
-                                    <div class="flex items-center gap-2">
-                                        Studenți
-                                        @if (historicalSortColumn == nameof(DailySnapshot.TotalStudents))
-                                        {
-                                            <svg class="w-4 h-4 @(historicalSortAscending ? "" : "transform rotate-180")" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
-                                            </svg>
-                                        }
-                                    </div>
-                                </th>
-                                <th @onclick="() => SortHistoricalData(nameof(DailySnapshot.AverageGrade))"
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100">
-                                    <div class="flex items-center gap-2">
-                                        Media
-                                        @if (historicalSortColumn == nameof(DailySnapshot.AverageGrade))
-                                        {
-                                            <svg class="w-4 h-4 @(historicalSortAscending ? "" : "transform rotate-180")" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
-                                            </svg>
-                                        }
-                                    </div>
-                                </th>
-                                <th @onclick="() => SortHistoricalData(nameof(DailySnapshot.AttendanceRate))"
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100">
-                                    <div class="flex items-center gap-2">
-                                        Prezență
-                                        @if (historicalSortColumn == nameof(DailySnapshot.AttendanceRate))
-                                        {
-                                            <svg class="w-4 h-4 @(historicalSortAscending ? "" : "transform rotate-180")" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
-                                            </svg>
-                                        }
-                                    </div>
-                                </th>
-                                <th @onclick="() => SortHistoricalData(nameof(DailySnapshot.GradesSubmitted))"
-                                    class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100">
-                                    <div class="flex items-center gap-2">
-                                        Note Introduse
-                                        @if (historicalSortColumn == nameof(DailySnapshot.GradesSubmitted))
-                                        {
-                                            <svg class="w-4 h-4 @(historicalSortAscending ? "" : "transform rotate-180")" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
-                                            </svg>
-                                        }
-                                    </div>
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white divide-y divide-gray-200">
-                            @foreach (var snapshot in historicalData.Take(10))
-                            {
-                                <tr class="hover:bg-gray-50">
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                        @snapshot.Date.ToString("dd.MM.yyyy")
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                        @snapshot.TotalStudents
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                        @(snapshot.AverageGrade?.ToString("F2") ?? "-")
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                        @(snapshot.AttendanceRate?.ToString("F1") ?? "-")%
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                        @snapshot.GradesSubmitted
-                                    </td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
+                <RadzenDataGrid Data="@historicalData.Take(10)" TItem="DailySnapshot" AllowSorting="true" Style="border: none;">
+                    <Columns>
+                        <RadzenDataGridColumn TItem="DailySnapshot" Property="Date" Title="Data" Width="150px">
+                            <Template Context="snapshot">
+                                <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; font-weight: 500;">@snapshot.Date.ToString("dd.MM.yyyy")</RadzenText>
+                            </Template>
+                        </RadzenDataGridColumn>
+
+                        <RadzenDataGridColumn TItem="DailySnapshot" Property="TotalStudents" Title="Studenti" Width="120px">
+                            <Template Context="snapshot">
+                                <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0;">@snapshot.TotalStudents</RadzenText>
+                            </Template>
+                        </RadzenDataGridColumn>
+
+                        <RadzenDataGridColumn TItem="DailySnapshot" Property="AverageGrade" Title="Media" Width="100px">
+                            <Template Context="snapshot">
+                                <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0;">@(snapshot.AverageGrade?.ToString("F2") ?? "-")</RadzenText>
+                            </Template>
+                        </RadzenDataGridColumn>
+
+                        <RadzenDataGridColumn TItem="DailySnapshot" Property="AttendanceRate" Title="Prezenta" Width="120px">
+                            <Template Context="snapshot">
+                                <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0;">@(snapshot.AttendanceRate?.ToString("F1") ?? "-")%</RadzenText>
+                            </Template>
+                        </RadzenDataGridColumn>
+
+                        <RadzenDataGridColumn TItem="DailySnapshot" Property="GradesSubmitted" Title="Note Introduse" Width="140px">
+                            <Template Context="snapshot">
+                                <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0;">@snapshot.GradesSubmitted</RadzenText>
+                            </Template>
+                        </RadzenDataGridColumn>
+                    </Columns>
+                </RadzenDataGrid>
             }
             else
             {
-                <div class="text-center py-12 text-gray-500">
-                    Nu există date istorice disponibile
-                </div>
+                <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Style="padding: 3rem;">
+                    <RadzenIcon Icon="info" Style="font-size: 3rem; color: var(--rz-text-disabled-color);" />
+                    <RadzenText TextStyle="TextStyle.Body2" Style="margin-top: 1rem; color: var(--rz-text-secondary-color);">Nu exista date istorice disponibile</RadzenText>
+                </RadzenStack>
             }
-        </div>
+        </RadzenCard>
     }
-</div>
+</RadzenStack>
 
 @code {
     private bool isLoading = true;
     private List<Faculty> faculties = new();
     private string? selectedFacultyId = null;
     private AnalysisPeriod selectedPeriod = AnalysisPeriod.Last3Months;
+
+    // Dropdown options
+    private List<FacultyOption> facultyOptions = new();
+    private List<PeriodOption> periodOptions = new()
+    {
+        new() { Value = AnalysisPeriod.LastMonth, Text = "Ultima luna" },
+        new() { Value = AnalysisPeriod.Last3Months, Text = "Ultimele 3 luni" },
+        new() { Value = AnalysisPeriod.Last6Months, Text = "Ultimele 6 luni" },
+        new() { Value = AnalysisPeriod.LastYear, Text = "Ultimul an" }
+    };
 
     // Trend data
     private TrendMetric averageGradeTrend = new();
@@ -328,6 +264,18 @@
     private string historicalSortColumn = nameof(DailySnapshot.Date);
     private bool historicalSortAscending = false;
 
+    private class FacultyOption
+    {
+        public string Value { get; set; } = "";
+        public string Text { get; set; } = "";
+    }
+
+    private class PeriodOption
+    {
+        public AnalysisPeriod Value { get; set; }
+        public string Text { get; set; } = "";
+    }
+
     protected override async Task OnInitializedAsync()
     {
         await LoadFaculties();
@@ -340,6 +288,12 @@
         faculties = await DbContext.Faculties
             .OrderBy(f => f.Name)
             .ToListAsync();
+
+        facultyOptions = faculties.Select(f => new FacultyOption
+        {
+            Value = f.Id.ToString(),
+            Text = f.Name
+        }).ToList();
     }
 
     private async Task LoadTrendData()
@@ -446,7 +400,7 @@
             {
                 new()
                 {
-                    Label = "Media generală",
+                    Label = "Media generala",
                     Data = snapshots.Select(s => (double)(s.AverageGrade ?? 0)).ToList(),
                     BorderColor = "rgb(59, 130, 246)",
                     BackgroundColor = "rgba(59, 130, 246, 0.1)",
@@ -454,7 +408,7 @@
                 },
                 new()
                 {
-                    Label = "Rata prezență (%)",
+                    Label = "Rata prezenta (%)",
                     Data = snapshots.Select(s => (double)(s.AttendanceRate ?? 0)).ToList(),
                     BorderColor = "rgb(34, 197, 94)",
                     BackgroundColor = "rgba(34, 197, 94, 0.1)",
@@ -462,7 +416,7 @@
                 },
                 new()
                 {
-                    Label = "Studenți activi (%)",
+                    Label = "Studenti activi (%)",
                     Data = snapshots.Select(s => s.TotalStudents > 0
                         ? ((double)s.ActiveStudents * 100.0 / s.TotalStudents)
                         : 0).ToList(),
@@ -524,7 +478,7 @@
             {
                 new()
                 {
-                    Label = "Media generală",
+                    Label = "Media generala",
                     Data = avgGrades,
                     BackgroundColor = "rgba(59, 130, 246, 0.8)",
                     BorderColor = "rgb(59, 130, 246)",
@@ -532,7 +486,7 @@
                 },
                 new()
                 {
-                    Label = "Rata prezență (%)",
+                    Label = "Rata prezenta (%)",
                     Data = avgAttendance,
                     BackgroundColor = "rgba(34, 197, 94, 0.8)",
                     BorderColor = "rgb(34, 197, 94)",
@@ -584,7 +538,7 @@
             {
                 new()
                 {
-                    Label = "Media generală",
+                    Label = "Media generala",
                     Data = avgGrades,
                     BackgroundColor = "rgba(59, 130, 246, 0.8)",
                     BorderColor = "rgb(59, 130, 246)",
@@ -592,7 +546,7 @@
                 },
                 new()
                 {
-                    Label = "Rata prezență (%)",
+                    Label = "Rata prezenta (%)",
                     Data = avgAttendance,
                     BackgroundColor = "rgba(34, 197, 94, 0.8)",
                     BorderColor = "rgb(34, 197, 94)",
@@ -660,16 +614,6 @@
         };
 
         return (startDate, endDate);
-    }
-
-    private string GetTrendColorClass(double changePercent)
-    {
-        return changePercent >= 0 ? "bg-green-100 text-green-600" : "bg-red-100 text-red-600";
-    }
-
-    private string GetTrendTextColorClass(double changePercent)
-    {
-        return changePercent >= 0 ? "text-green-600" : "text-red-600";
     }
 
     private enum AnalysisPeriod

@@ -1,0 +1,256 @@
+@page "/cereri/nou"
+@using SMU.Services
+@using SMU.Services.DTOs
+@using SMU.Data.Entities
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@inject IDocumentRequestService DocumentRequestService
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Navigation
+@inject Radzen.NotificationService NotificationService
+@attribute [Authorize(Roles = "Student")]
+
+<PageTitle>Solicitare Document Nou - SMU</PageTitle>
+
+<RadzenStack Gap="1.5rem">
+    <!-- Page Header -->
+    <RadzenStack Orientation="Radzen.Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center">
+        <RadzenStack Gap="0.25rem">
+            <RadzenText TextStyle="TextStyle.H4" Style="margin: 0; font-weight: 700;">Solicitare Document Nou</RadzenText>
+            <RadzenText TextStyle="TextStyle.Body2" class="rz-color-secondary" Style="margin: 0;">
+                Completează formularul pentru a solicita un document
+            </RadzenText>
+        </RadzenStack>
+        <RadzenButton Icon="arrow_back" Text="Înapoi" ButtonStyle="ButtonStyle.Light" Variant="Variant.Text" Click="@(() => Navigation.NavigateTo("/dashboard"))" />
+    </RadzenStack>
+
+    @if (isLoading)
+    {
+        <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Style="padding: 3rem 0;">
+            <RadzenProgressBarCircular ShowValue="false" Mode="ProgressBarMode.Indeterminate" Size="ProgressBarCircularSize.Large" />
+            <RadzenText TextStyle="TextStyle.Body2" class="rz-color-secondary" Style="margin-top: 1rem;">
+                Se trimite cererea...
+            </RadzenText>
+        </RadzenStack>
+    }
+    else
+    {
+        <RadzenRow Gap="1.5rem">
+            <RadzenColumn Size="12" SizeMD="8" OffsetMD="2" SizeLG="6" OffsetLG="3">
+                <RadzenCard>
+                    <RadzenStack Gap="1.5rem">
+                        <!-- Document Type Selection -->
+                        <RadzenStack Gap="0.5rem">
+                            <RadzenLabel Text="Tip Document *" Style="font-weight: 600;" />
+                            <RadzenDropDown @bind-Value="selectedType" Data="@availableTypes"
+                                            Placeholder="Selectează tipul de document"
+                                            Style="width: 100%;" AllowClear="false">
+                                <Template Context="type">
+                                    @GetRequestTypeLabel(type)
+                                </Template>
+                            </RadzenDropDown>
+                        </RadzenStack>
+
+                        <!-- Description based on selected type -->
+                        @if (selectedType != null)
+                        {
+                            <RadzenAlert AlertStyle="AlertStyle.Info" Variant="Variant.Flat" Shade="Shade.Lighter">
+                                <RadzenStack Gap="0.5rem">
+                                    <RadzenText TextStyle="TextStyle.Subtitle2" Style="margin: 0; font-weight: 600;">
+                                        @GetRequestTypeLabel(selectedType.Value)
+                                    </RadzenText>
+                                    <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0;">
+                                        @GetRequestTypeDescription(selectedType.Value)
+                                    </RadzenText>
+                                </RadzenStack>
+                            </RadzenAlert>
+                        }
+
+                        <!-- Notes -->
+                        <RadzenStack Gap="0.5rem">
+                            <RadzenLabel Text="Notițe (opțional)" Style="font-weight: 600;" />
+                            <RadzenTextArea @bind-Value="notes" Placeholder="Adaugă detalii suplimentare dacă este necesar..."
+                                            Rows="4" Style="width: 100%;" />
+                            <RadzenText TextStyle="TextStyle.Caption" class="rz-color-secondary" Style="margin: 0;">
+                                Ex: "Aveți nevoie de documentul în format fizic pentru prezentare la bancă"
+                            </RadzenText>
+                        </RadzenStack>
+
+                        <!-- Information Alert -->
+                        <RadzenAlert AlertStyle="AlertStyle.Warning" Variant="Variant.Flat" Shade="Shade.Lighter">
+                            <RadzenStack Gap="0.25rem">
+                                <RadzenText TextStyle="TextStyle.Subtitle2" Style="margin: 0; font-weight: 600;">
+                                    ⏱️ Timp de procesare
+                                </RadzenText>
+                                <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0;">
+                                    Cererile sunt procesate în maxim 3 zile lucrătoare. Vei fi notificat când documentul este gata.
+                                </RadzenText>
+                            </RadzenStack>
+                        </RadzenAlert>
+
+                        <!-- Submit Button -->
+                        <RadzenStack Orientation="Radzen.Orientation.Horizontal" Gap="1rem" JustifyContent="JustifyContent.End">
+                            <RadzenButton Text="Anulează" ButtonStyle="ButtonStyle.Light"
+                                          Click="@(() => Navigation.NavigateTo("/dashboard"))"
+                                          Style="width: 120px;" />
+                            <RadzenButton Text="Trimite Cererea" Icon="send" ButtonStyle="ButtonStyle.Primary"
+                                          Click="@SubmitRequest" Disabled="@(selectedType == null || isSubmitting)"
+                                          Style="width: 150px;" />
+                        </RadzenStack>
+                    </RadzenStack>
+                </RadzenCard>
+
+                <!-- Pending Requests Info -->
+                @if (pendingRequestsCount > 0)
+                {
+                    <RadzenAlert AlertStyle="AlertStyle.Info" Variant="Variant.Flat" Shade="Shade.Lighter">
+                        <RadzenStack Orientation="Radzen.Orientation.Horizontal" Gap="0.5rem" AlignItems="AlignItems.Center">
+                            <RadzenIcon Icon="info" />
+                            <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0;">
+                                Ai @pendingRequestsCount cerere@(pendingRequestsCount > 1 ? "i" : "") în așteptare.
+                                <RadzenLink Path="/cereri" Text="Vezi toate cererile" Style="font-weight: 600;" />
+                            </RadzenText>
+                        </RadzenStack>
+                    </RadzenAlert>
+                }
+            </RadzenColumn>
+        </RadzenRow>
+    }
+</RadzenStack>
+
+@code {
+    private bool isLoading = false;
+    private bool isSubmitting = false;
+    private Guid studentId;
+
+    private RequestType? selectedType;
+    private string notes = "";
+    private int pendingRequestsCount = 0;
+
+    private RequestType[] availableTypes = new[]
+    {
+        RequestType.StudentCertificate,
+        RequestType.GradeReport,
+        RequestType.EnrollmentProof,
+        RequestType.Other
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadStudentInfo();
+    }
+
+    private async Task LoadStudentInfo()
+    {
+        try
+        {
+            // Get student ID from claims
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+            var studentIdClaim = user.FindFirst("StudentId")?.Value;
+
+            if (Guid.TryParse(studentIdClaim, out var parsedStudentId))
+            {
+                studentId = parsedStudentId;
+
+                // Get pending requests count
+                var requests = await DocumentRequestService.GetByStudentAsync(studentId);
+                pendingRequestsCount = requests.Count(r => r.Status == RequestStatus.Pending);
+            }
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(new NotificationMessage
+            {
+                Severity = NotificationSeverity.Error,
+                Summary = "Eroare",
+                Detail = $"Nu s-au putut încărca informațiile: {ex.Message}",
+                Duration = 4000
+            });
+        }
+    }
+
+    private async Task SubmitRequest()
+    {
+        if (selectedType == null)
+        {
+            return;
+        }
+
+        try
+        {
+            isSubmitting = true;
+            isLoading = true;
+
+            var createDto = new CreateDocumentRequestDto
+            {
+                Type = selectedType.Value,
+                Notes = string.IsNullOrWhiteSpace(notes) ? null : notes
+            };
+
+            var result = await DocumentRequestService.CreateAsync(createDto, studentId);
+
+            if (result.Succeeded)
+            {
+                NotificationService.Notify(new NotificationMessage
+                {
+                    Severity = NotificationSeverity.Success,
+                    Summary = "Succes",
+                    Detail = "Cererea ta a fost trimisă cu succes! Vei fi notificat când va fi procesată.",
+                    Duration = 5000
+                });
+
+                // Navigate to requests list
+                Navigation.NavigateTo("/cereri");
+            }
+            else
+            {
+                NotificationService.Notify(new NotificationMessage
+                {
+                    Severity = NotificationSeverity.Error,
+                    Summary = "Eroare",
+                    Detail = result.ErrorMessage ?? "Nu s-a putut trimite cererea",
+                    Duration = 4000
+                });
+                isSubmitting = false;
+                isLoading = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(new NotificationMessage
+            {
+                Severity = NotificationSeverity.Error,
+                Summary = "Eroare",
+                Detail = $"Eroare la trimiterea cererii: {ex.Message}",
+                Duration = 4000
+            });
+            isSubmitting = false;
+            isLoading = false;
+        }
+    }
+
+    private string GetRequestTypeLabel(RequestType type)
+    {
+        return type switch
+        {
+            RequestType.StudentCertificate => "Adeverință de Student",
+            RequestType.GradeReport => "Adeverință cu Note",
+            RequestType.EnrollmentProof => "Foaie Matricolă",
+            RequestType.Other => "Altele",
+            _ => type.ToString()
+        };
+    }
+
+    private string GetRequestTypeDescription(RequestType type)
+    {
+        return type switch
+        {
+            RequestType.StudentCertificate => "Document oficial care atestă calitatea de student. Poate fi folosit pentru reduceri, burse, sau alte beneficii.",
+            RequestType.GradeReport => "Document oficial cu notele obținute în semestre anterioare. Necesar pentru aplicații, burse sau transferuri.",
+            RequestType.EnrollmentProof => "Foaia matricolă conține istoricul academic complet: discipline, note, credite, medie generală.",
+            RequestType.Other => "Alte tipuri de documente. Te rugăm să specifici în notițe ce document ai nevoie.",
+            _ => ""
+        };
+    }
+}

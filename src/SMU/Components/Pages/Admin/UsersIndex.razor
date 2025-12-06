@@ -6,246 +6,128 @@
 @attribute [Authorize(Policy = "CanManageUsers")]
 @inject IUserService UserService
 @inject NavigationManager Navigation
+@inject DialogService DialogService
 
 <PageTitle>Utilizatori - SMU</PageTitle>
 
-<div class="space-y-6">
+<RadzenStack Gap="1.5rem">
     <!-- Header -->
-    <div class="flex items-center justify-between">
-        <div>
-            <h1 class="text-2xl font-bold text-gray-900">Utilizatori</h1>
-            <p class="mt-1 text-sm text-gray-500">Gestionează conturile utilizatorilor din sistem</p>
-        </div>
-        <a href="/admin/utilizatori/nou" class="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-            </svg>
-            <span>Adaugă Utilizator</span>
-        </a>
-    </div>
+    <RadzenStack Orientation="Radzen.Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center">
+        <RadzenStack Gap="0.25rem">
+            <RadzenText TextStyle="TextStyle.H4" Style="margin: 0; font-weight: 700;">Utilizatori</RadzenText>
+            <RadzenText TextStyle="TextStyle.Body2" class="rz-color-secondary" Style="margin: 0;">
+                Gestionează conturile utilizatorilor din sistem
+            </RadzenText>
+        </RadzenStack>
+        <RadzenButton Text="Adaugă Utilizator" Icon="add" ButtonStyle="ButtonStyle.Primary"
+                      Click="@(() => Navigation.NavigateTo("/admin/utilizatori/nou"))" />
+    </RadzenStack>
 
     <!-- Filters & Search -->
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <RadzenCard Style="padding: 1.5rem;">
+        <RadzenRow Gap="1rem" RowGap="1rem">
             <!-- Search -->
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Căutare</label>
-                <input type="text"
-                       @bind="searchTerm"
-                       @bind:event="oninput"
-                       @onkeyup="HandleSearchKeyUp"
-                       placeholder="Nume sau email..."
-                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
-            </div>
+            <RadzenColumn Size="12" SizeMD="4">
+                <RadzenStack Gap="0.5rem">
+                    <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; font-weight: 500;">Căutare</RadzenText>
+                    <RadzenTextBox @bind-Value="searchTerm" @bind-Value:after="HandleSearch"
+                                   Placeholder="Nume sau email..." Style="width: 100%;" />
+                </RadzenStack>
+            </RadzenColumn>
 
             <!-- Role Filter -->
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Rol</label>
-                <select @bind="selectedRole" @bind:after="ApplyFilters" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
-                    <option value="">Toate rolurile</option>
-                    <option value="Admin">Administrator</option>
-                    <option value="Rector">Rector</option>
-                    <option value="Dean">Decan</option>
-                    <option value="Secretary">Secretar</option>
-                    <option value="Professor">Profesor</option>
-                    <option value="Student">Student</option>
-                </select>
-            </div>
+            <RadzenColumn Size="12" SizeMD="4">
+                <RadzenStack Gap="0.5rem">
+                    <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; font-weight: 500;">Rol</RadzenText>
+                    <RadzenDropDown @bind-Value="selectedRole" Data="@roleOptions" TextProperty="Text" ValueProperty="Value"
+                                    Style="width: 100%;" Change="ApplyFilters" AllowClear="true" Placeholder="Toate rolurile" />
+                </RadzenStack>
+            </RadzenColumn>
 
             <!-- Status Filter -->
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
-                <select @bind="selectedStatus" @bind:after="ApplyFilters" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
-                    <option value="">Toate statusurile</option>
-                    <option value="true">Activ</option>
-                    <option value="false">Inactiv</option>
-                </select>
-            </div>
-        </div>
-    </div>
+            <RadzenColumn Size="12" SizeMD="4">
+                <RadzenStack Gap="0.5rem">
+                    <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; font-weight: 500;">Status</RadzenText>
+                    <RadzenDropDown @bind-Value="selectedStatus" Data="@statusOptions" TextProperty="Text" ValueProperty="Value"
+                                    Style="width: 100%;" Change="ApplyFilters" AllowClear="true" Placeholder="Toate statusurile" />
+                </RadzenStack>
+            </RadzenColumn>
+        </RadzenRow>
+    </RadzenCard>
 
     <!-- Users Table -->
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+    <RadzenCard Style="padding: 0; overflow: hidden;">
         @if (isLoading)
         {
-            <div class="flex items-center justify-center py-12">
-                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-            </div>
+            <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Style="padding: 3rem 0;">
+                <RadzenProgressBarCircular ShowValue="false" Mode="ProgressBarMode.Indeterminate" Size="ProgressBarCircularSize.Large" />
+            </RadzenStack>
         }
         else if (users.Any())
         {
-            <div class="overflow-x-auto">
-                <table class="w-full">
-                    <thead class="bg-gray-50 border-b border-gray-100">
-                        <tr>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nume</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rol</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ultima Autentificare</th>
-                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acțiuni</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-100">
-                        @foreach (var user in users)
-                        {
-                            <tr class="hover:bg-gray-50 transition-colors">
-                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                    @user.FullName
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    @user.Email
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <span class="px-2 py-1 text-xs font-medium rounded-full @GetRoleClass(user.Role)">
-                                        @user.RoleLabel
-                                    </span>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <span class="px-2 py-1 text-xs font-medium rounded-full @(user.IsActive ? "bg-success-100 text-success-700" : "bg-gray-100 text-gray-700")">
-                                        @(user.IsActive ? "Activ" : "Inactiv")
-                                    </span>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    @(user.LastLoginAt.HasValue ? user.LastLoginAt.Value.ToString("dd.MM.yyyy HH:mm") : "Niciodată")
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
-                                    <a href="/admin/utilizatori/@user.Id/editare" class="text-primary-600 hover:text-primary-900">Editează</a>
-                                    @if (user.IsActive)
-                                    {
-                                        <button @onclick="() => ConfirmDeactivate(user.Id)" class="text-warning-600 hover:text-warning-900">Dezactivează</button>
-                                    }
-                                    else
-                                    {
-                                        <button @onclick="() => ConfirmActivate(user.Id)" class="text-success-600 hover:text-success-900">Activează</button>
-                                    }
-                                    <button @onclick="() => ShowResetPasswordModal(user.Id)" class="text-gray-600 hover:text-gray-900">Resetează Parolă</button>
-                                    <button @onclick="() => ShowChangeRoleModal(user.Id, user.Role)" class="text-info-600 hover:text-info-900">Schimbă Rol</button>
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
+            <RadzenDataGrid Data="@users" TItem="UserDto" AllowSorting="true" Style="height: auto;">
+                <Columns>
+                    <RadzenDataGridColumn TItem="UserDto" Property="FullName" Title="Nume" Width="200px" />
+                    <RadzenDataGridColumn TItem="UserDto" Property="Email" Title="Email" Width="200px" />
+                    <RadzenDataGridColumn TItem="UserDto" Property="Role" Title="Rol" Width="150px">
+                        <Template Context="user">
+                            <RadzenBadge Text="@user.RoleLabel" BadgeStyle="@GetRoleBadgeStyle(user.Role)" IsPill="true" />
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="UserDto" Property="IsActive" Title="Status" Width="120px">
+                        <Template Context="user">
+                            <RadzenBadge Text="@(user.IsActive ? "Activ" : "Inactiv")"
+                                         BadgeStyle="@(user.IsActive ? BadgeStyle.Success : BadgeStyle.Secondary)" IsPill="true" />
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="UserDto" Property="LastLoginAt" Title="Ultima Autentificare" Width="180px">
+                        <Template Context="user">
+                            @(user.LastLoginAt.HasValue ? user.LastLoginAt.Value.ToString("dd.MM.yyyy HH:mm") : "Niciodată")
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="UserDto" Title="Acțiuni" Width="350px" Sortable="false">
+                        <Template Context="user">
+                            <RadzenStack Orientation="Radzen.Orientation.Horizontal" Gap="0.5rem" AlignItems="AlignItems.Center">
+                                <RadzenButton Text="Editează" ButtonStyle="ButtonStyle.Primary" Variant="Variant.Text" Size="ButtonSize.Small"
+                                              Click="@(() => Navigation.NavigateTo($"/admin/utilizatori/{user.Id}/editare"))" />
+                                @if (user.IsActive)
+                                {
+                                    <RadzenButton Text="Dezactivează" ButtonStyle="ButtonStyle.Warning" Variant="Variant.Text" Size="ButtonSize.Small"
+                                                  Click="@(() => ConfirmDeactivate(user.Id))" />
+                                }
+                                else
+                                {
+                                    <RadzenButton Text="Activează" ButtonStyle="ButtonStyle.Success" Variant="Variant.Text" Size="ButtonSize.Small"
+                                                  Click="@(() => ConfirmActivate(user.Id))" />
+                                }
+                                <RadzenButton Text="Resetează Parolă" ButtonStyle="ButtonStyle.Secondary" Variant="Variant.Text" Size="ButtonSize.Small"
+                                              Click="@(() => ShowResetPasswordModal(user.Id))" />
+                                <RadzenButton Text="Schimbă Rol" ButtonStyle="ButtonStyle.Info" Variant="Variant.Text" Size="ButtonSize.Small"
+                                              Click="@(() => ShowChangeRoleModal(user.Id, user.Role))" />
+                            </RadzenStack>
+                        </Template>
+                    </RadzenDataGridColumn>
+                </Columns>
+            </RadzenDataGrid>
 
             <!-- User Count -->
-            <div class="px-6 py-4 border-t border-gray-100">
-                <span class="text-sm text-gray-700">
+            <RadzenStack Class="rz-p-4" Style="border-top: 1px solid var(--rz-base-300);">
+                <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0;">
                     Total: @users.Count utilizatori
-                </span>
-            </div>
+                </RadzenText>
+            </RadzenStack>
         }
         else
         {
-            <div class="px-6 py-12 text-center">
-                <svg class="w-12 h-12 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
-                </svg>
-                <p class="text-gray-500">Nu au fost găsiți utilizatori</p>
-            </div>
+            <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Style="padding: 3rem 0;">
+                <RadzenIcon Icon="group" Style="font-size: 3rem; color: var(--rz-text-disabled-color); margin-bottom: 1rem;" />
+                <RadzenText TextStyle="TextStyle.Body1" class="rz-color-secondary" Style="margin: 0;">
+                    Nu au fost găsiți utilizatori
+                </RadzenText>
+            </RadzenStack>
         }
-    </div>
-</div>
-
-<!-- Deactivate Confirmation Modal -->
-@if (showDeactivateModal)
-{
-    <div class="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50" @onclick="CancelAction">
-        <div class="bg-white rounded-xl shadow-xl max-w-md w-full mx-4 p-6" @onclick:stopPropagation>
-            <h3 class="text-lg font-semibold text-gray-900 mb-4">Confirmare Dezactivare</h3>
-            <p class="text-gray-600 mb-6">Ești sigur că vrei să dezactivezi acest utilizator? Acesta nu va mai putea accesa sistemul.</p>
-            <div class="flex space-x-3 justify-end">
-                <button @onclick="CancelAction" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors">
-                    Anulează
-                </button>
-                <button @onclick="DeactivateUser" class="px-4 py-2 bg-warning-600 text-white rounded-lg hover:bg-warning-700 font-medium transition-colors">
-                    Dezactivează
-                </button>
-            </div>
-        </div>
-    </div>
-}
-
-<!-- Activate Confirmation Modal -->
-@if (showActivateModal)
-{
-    <div class="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50" @onclick="CancelAction">
-        <div class="bg-white rounded-xl shadow-xl max-w-md w-full mx-4 p-6" @onclick:stopPropagation>
-            <h3 class="text-lg font-semibold text-gray-900 mb-4">Confirmare Activare</h3>
-            <p class="text-gray-600 mb-6">Ești sigur că vrei să activezi acest utilizator? Acesta va putea accesa sistemul.</p>
-            <div class="flex space-x-3 justify-end">
-                <button @onclick="CancelAction" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors">
-                    Anulează
-                </button>
-                <button @onclick="ActivateUser" class="px-4 py-2 bg-success-600 text-white rounded-lg hover:bg-success-700 font-medium transition-colors">
-                    Activează
-                </button>
-            </div>
-        </div>
-    </div>
-}
-
-<!-- Reset Password Modal -->
-@if (showResetPasswordModal)
-{
-    <div class="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50" @onclick="CancelAction">
-        <div class="bg-white rounded-xl shadow-xl max-w-md w-full mx-4 p-6" @onclick:stopPropagation>
-            <h3 class="text-lg font-semibold text-gray-900 mb-4">Resetare Parolă</h3>
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Parolă Nouă</label>
-                    <input type="password"
-                           @bind="newPassword"
-                           placeholder="Minimum 8 caractere"
-                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
-                </div>
-                @if (!string.IsNullOrEmpty(passwordError))
-                {
-                    <p class="text-sm text-red-600">@passwordError</p>
-                }
-            </div>
-            <div class="flex space-x-3 justify-end mt-6">
-                <button @onclick="CancelAction" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors">
-                    Anulează
-                </button>
-                <button @onclick="ResetPassword" class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium transition-colors">
-                    Resetează
-                </button>
-            </div>
-        </div>
-    </div>
-}
-
-<!-- Change Role Modal -->
-@if (showChangeRoleModal)
-{
-    <div class="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50" @onclick="CancelAction">
-        <div class="bg-white rounded-xl shadow-xl max-w-md w-full mx-4 p-6" @onclick:stopPropagation>
-            <h3 class="text-lg font-semibold text-gray-900 mb-4">Schimbare Rol</h3>
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Rol Nou</label>
-                    <select @bind="newRole" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
-                        <option value="Admin">Administrator</option>
-                        <option value="Rector">Rector</option>
-                        <option value="Dean">Decan</option>
-                        <option value="Secretary">Secretar</option>
-                        <option value="Professor">Profesor</option>
-                        <option value="Student">Student</option>
-                    </select>
-                </div>
-            </div>
-            <div class="flex space-x-3 justify-end mt-6">
-                <button @onclick="CancelAction" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors">
-                    Anulează
-                </button>
-                <button @onclick="ChangeRole" class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium transition-colors">
-                    Schimbă Rol
-                </button>
-            </div>
-        </div>
-    </div>
-}
+    </RadzenCard>
+</RadzenStack>
 
 @code {
     private List<UserDto> users = new();
@@ -257,14 +139,26 @@
     private string selectedStatus = "";
 
     // Modal states
-    private bool showDeactivateModal = false;
-    private bool showActivateModal = false;
-    private bool showResetPasswordModal = false;
-    private bool showChangeRoleModal = false;
     private Guid selectedUserId = Guid.Empty;
     private string newPassword = "";
     private string newRole = "";
-    private string passwordError = "";
+
+    // Dropdown options
+    private List<DropdownOption> roleOptions = new()
+    {
+        new() { Text = "Administrator", Value = "Admin" },
+        new() { Text = "Rector", Value = "Rector" },
+        new() { Text = "Decan", Value = "Dean" },
+        new() { Text = "Secretar", Value = "Secretary" },
+        new() { Text = "Profesor", Value = "Professor" },
+        new() { Text = "Student", Value = "Student" }
+    };
+
+    private List<DropdownOption> statusOptions = new()
+    {
+        new() { Text = "Activ", Value = "true" },
+        new() { Text = "Inactiv", Value = "false" }
+    };
 
     protected override async Task OnInitializedAsync()
     {
@@ -291,7 +185,7 @@
 
     private System.Threading.Timer? searchTimer;
 
-    private void HandleSearchKeyUp()
+    private void HandleSearch()
     {
         searchTimer?.Dispose();
         searchTimer = new System.Threading.Timer(async _ =>
@@ -305,88 +199,93 @@
         await LoadUsers();
     }
 
-    private void ConfirmDeactivate(Guid id)
+    private async Task ConfirmDeactivate(Guid id)
     {
-        selectedUserId = id;
-        showDeactivateModal = true;
-    }
+        var confirmed = await DialogService.Confirm("Ești sigur că vrei să dezactivezi acest utilizator? Acesta nu va mai putea accesa sistemul.",
+            "Confirmare Dezactivare", new ConfirmOptions { OkButtonText = "Dezactivează", CancelButtonText = "Anulează" });
 
-    private void ConfirmActivate(Guid id)
-    {
-        selectedUserId = id;
-        showActivateModal = true;
-    }
-
-    private void ShowResetPasswordModal(Guid id)
-    {
-        selectedUserId = id;
-        newPassword = "";
-        passwordError = "";
-        showResetPasswordModal = true;
-    }
-
-    private void ShowChangeRoleModal(Guid id, UserRole currentRole)
-    {
-        selectedUserId = id;
-        newRole = currentRole.ToString();
-        showChangeRoleModal = true;
-    }
-
-    private void CancelAction()
-    {
-        showDeactivateModal = false;
-        showActivateModal = false;
-        showResetPasswordModal = false;
-        showChangeRoleModal = false;
-        selectedUserId = Guid.Empty;
-        newPassword = "";
-        newRole = "";
-        passwordError = "";
-    }
-
-    private async Task DeactivateUser()
-    {
-        var result = await UserService.DeactivateAsync(selectedUserId);
-        CancelAction();
-
-        if (result.Succeeded)
+        if (confirmed == true)
         {
-            await LoadUsers();
+            var result = await UserService.DeactivateAsync(id);
+            if (result.Succeeded)
+            {
+                await LoadUsers();
+            }
         }
     }
 
-    private async Task ActivateUser()
+    private async Task ConfirmActivate(Guid id)
     {
-        var result = await UserService.ActivateAsync(selectedUserId);
-        CancelAction();
+        var confirmed = await DialogService.Confirm("Ești sigur că vrei să activezi acest utilizator? Acesta va putea accesa sistemul.",
+            "Confirmare Activare", new ConfirmOptions { OkButtonText = "Activează", CancelButtonText = "Anulează" });
 
-        if (result.Succeeded)
+        if (confirmed == true)
         {
-            await LoadUsers();
+            var result = await UserService.ActivateAsync(id);
+            if (result.Succeeded)
+            {
+                await LoadUsers();
+            }
+        }
+    }
+
+    private async Task ShowResetPasswordModal(Guid id)
+    {
+        selectedUserId = id;
+        var result = await DialogService.OpenAsync("Resetare Parolă", ds =>
+            @<RadzenStack Gap="1rem">
+                <RadzenStack Gap="0.5rem">
+                    <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; font-weight: 500;">Parolă Nouă</RadzenText>
+                    <RadzenTextBox @bind-Value="newPassword" Placeholder="Minimum 8 caractere" Style="width: 100%;" />
+                </RadzenStack>
+                <RadzenStack Orientation="Radzen.Orientation.Horizontal" Gap="0.5rem" JustifyContent="JustifyContent.End">
+                    <RadzenButton Text="Anulează" ButtonStyle="ButtonStyle.Light" Click="@(() => ds.Close(false))" />
+                    <RadzenButton Text="Resetează" ButtonStyle="ButtonStyle.Primary" Click="@(() => ds.Close(true))" />
+                </RadzenStack>
+            </RadzenStack>
+        );
+
+        if (result == true)
+        {
+            await ResetPassword();
         }
     }
 
     private async Task ResetPassword()
     {
-        if (string.IsNullOrWhiteSpace(newPassword))
+        if (string.IsNullOrWhiteSpace(newPassword) || newPassword.Length < 8)
         {
-            passwordError = "Parola este obligatorie.";
-            return;
-        }
-
-        if (newPassword.Length < 8)
-        {
-            passwordError = "Parola trebuie să aibă minimum 8 caractere.";
             return;
         }
 
         var result = await UserService.ResetPasswordAsync(selectedUserId, newPassword);
-        CancelAction();
-
-        if (!result.Succeeded)
+        if (result.Succeeded)
         {
-            // Handle error
-            Console.WriteLine($"Password reset failed: {result.ErrorMessage}");
+            newPassword = "";
+        }
+    }
+
+    private async Task ShowChangeRoleModal(Guid id, UserRole currentRole)
+    {
+        selectedUserId = id;
+        newRole = currentRole.ToString();
+
+        var result = await DialogService.OpenAsync("Schimbare Rol", ds =>
+            @<RadzenStack Gap="1rem">
+                <RadzenStack Gap="0.5rem">
+                    <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; font-weight: 500;">Rol Nou</RadzenText>
+                    <RadzenDropDown @bind-Value="newRole" Data="@roleOptions" TextProperty="Text" ValueProperty="Value" Style="width: 100%;" />
+                </RadzenStack>
+                <RadzenStack Orientation="Radzen.Orientation.Horizontal" Gap="0.5rem" JustifyContent="JustifyContent.End">
+                    <RadzenButton Text="Anulează" ButtonStyle="ButtonStyle.Light" Click="@(() => ds.Close(false))" />
+                    <RadzenButton Text="Schimbă Rol" ButtonStyle="ButtonStyle.Primary" Click="@(() => ds.Close(true))" />
+                </RadzenStack>
+            </RadzenStack>
+        );
+
+        if (result == true)
+        {
+            await ChangeRole();
         }
     }
 
@@ -399,27 +298,31 @@
 
         var roleEnum = Enum.Parse<UserRole>(newRole);
         var result = await UserService.ChangeRoleAsync(selectedUserId, roleEnum);
-        CancelAction();
-
         if (result.Succeeded)
         {
             await LoadUsers();
         }
     }
 
-    private string GetRoleClass(UserRole role) => role switch
+    private BadgeStyle GetRoleBadgeStyle(UserRole role) => role switch
     {
-        UserRole.Admin => "bg-red-100 text-red-700",
-        UserRole.Rector => "bg-purple-100 text-purple-700",
-        UserRole.Dean => "bg-info-100 text-info-700",
-        UserRole.Secretary => "bg-warning-100 text-warning-700",
-        UserRole.Professor => "bg-primary-100 text-primary-700",
-        UserRole.Student => "bg-success-100 text-success-700",
-        _ => "bg-gray-100 text-gray-700"
+        UserRole.Admin => BadgeStyle.Danger,
+        UserRole.Rector => BadgeStyle.Info,
+        UserRole.Dean => BadgeStyle.Info,
+        UserRole.Secretary => BadgeStyle.Warning,
+        UserRole.Professor => BadgeStyle.Primary,
+        UserRole.Student => BadgeStyle.Success,
+        _ => BadgeStyle.Secondary
     };
 
     public void Dispose()
     {
         searchTimer?.Dispose();
+    }
+
+    private class DropdownOption
+    {
+        public string Text { get; set; } = "";
+        public string Value { get; set; } = "";
     }
 }

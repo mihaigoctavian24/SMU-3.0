@@ -1,281 +1,338 @@
 @using SMU.Components.Shared
+@using SMU.Data
+@using SMU.Data.Entities
+@using SMU.Services
+@using SMU.Services.DTOs
+@using Microsoft.AspNetCore.Components.Authorization
+@inject IAnalyticsService AnalyticsService
+@inject AuthenticationStateProvider AuthStateProvider
 
-<div class="space-y-6">
-    <!-- Welcome Header -->
-    <div class="bg-gradient-to-r from-indigo-700 to-indigo-800 rounded-xl p-6 text-white">
-        <h1 class="text-2xl font-bold">Buna ziua, Rector @UserName!</h1>
-        <p class="mt-1 text-indigo-200">Iata un sumar al indicatorilor universitatii.</p>
-    </div>
+<RadzenStack Gap="1.5rem">
+    @if (_isLoading)
+    {
+        <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Style="padding: 3rem 0;">
+            <RadzenProgressBarCircular ShowValue="false" Mode="ProgressBarMode.Indeterminate" Size="ProgressBarCircularSize.Large" />
+            <RadzenText TextStyle="TextStyle.Body2" class="rz-color-secondary" Style="margin-top: 1rem;">
+                Se încarcă datele...
+            </RadzenText>
+        </RadzenStack>
+    }
+    else
+    {
+        <!-- Welcome Header -->
+        <RadzenCard Style="background: linear-gradient(135deg, #4338ca 0%, #3730a3 100%); color: white; padding: 1.5rem;">
+            <RadzenText TextStyle="TextStyle.H4" Style="margin: 0; color: white; font-weight: 700;">
+                Bună ziua, Rector @UserName!
+            </RadzenText>
+            <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0.5rem 0 0 0; color: rgba(255,255,255,0.9);">
+                Iată un sumar al indicatorilor universității.
+            </RadzenText>
+        </RadzenCard>
 
-    <!-- University KPIs -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatsCard
-            Label="Total Studenti"
-            Value="@TotalStudents.ToString("N0")"
-            Subtitle="@($"{TotalFaculties} facultati")"
-            IconType="users"
-            IconBgClass="bg-primary-100"
-            IconClass="text-primary-600"
-            ShowTrend="true"
-            TrendValue="@StudentsTrend" />
+        <!-- University KPIs -->
+        <RadzenRow Gap="1.5rem" RowGap="1.5rem">
+            <RadzenColumn Size="12" SizeMD="6" SizeLG="3">
+                <StatsCard
+                    Label="Total Studenți"
+                    Value="@TotalStudents.ToString("N0")"
+                    Subtitle="@($"{TotalFaculties} facultăți")"
+                    IconType="users"
+                    IconBgClass="bg-primary-100"
+                    IconClass="text-primary-600" />
+            </RadzenColumn>
 
-        <StatsCard
-            Label="Media Universitate"
-            Value="@UniversityAverage.ToString("0.00")"
-            Subtitle="medie generala"
-            IconType="academic"
-            IconBgClass="bg-success-100"
-            IconClass="text-success-600"
-            ShowTrend="true"
-            TrendValue="@AverageTrend" />
+            <RadzenColumn Size="12" SizeMD="6" SizeLG="3">
+                <StatsCard
+                    Label="Media Universitate"
+                    Value="@(UniversityAverage > 0 ? UniversityAverage.ToString("0.00") : "-")"
+                    Subtitle="medie generală"
+                    IconType="academic"
+                    IconBgClass="bg-success-100"
+                    IconClass="text-success-600" />
+            </RadzenColumn>
 
-        <StatsCard
-            Label="Rata Promovare"
-            Value="@(PassRate.ToString("0") + "%")"
-            Subtitle="an universitar curent"
-            IconType="attendance"
-            IconBgClass="bg-info-100"
-            IconClass="text-info-600" />
+            <RadzenColumn Size="12" SizeMD="6" SizeLG="3">
+                <StatsCard
+                    Label="Rata Promovare"
+                    Value="@(PassRate.ToString("0") + "%")"
+                    Subtitle="an universitar curent"
+                    IconType="attendance"
+                    IconBgClass="bg-info-100"
+                    IconClass="text-info-600" />
+            </RadzenColumn>
 
-        <StatsCard
-            Label="Total Profesori"
-            Value="@TotalProfessors.ToString()"
-            Subtitle="cadre didactice"
-            IconType="users"
-            IconBgClass="bg-secondary-100"
-            IconClass="text-secondary-600" />
-    </div>
+            <RadzenColumn Size="12" SizeMD="6" SizeLG="3">
+                <StatsCard
+                    Label="Total Profesori"
+                    Value="@TotalProfessors.ToString()"
+                    Subtitle="cadre didactice"
+                    IconType="users"
+                    IconBgClass="bg-secondary-100"
+                    IconClass="text-secondary-600" />
+            </RadzenColumn>
+        </RadzenRow>
 
-    <!-- Faculty Comparison -->
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-            <h3 class="text-lg font-semibold text-gray-900">Comparatie Facultati</h3>
-            <a href="/rapoarte/facultati" class="text-sm font-medium text-primary-600 hover:text-primary-700">
-                Raport detaliat
-            </a>
-        </div>
-        <div class="overflow-x-auto">
-            <table class="w-full">
-                <thead class="bg-gray-50">
-                    <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Facultate</th>
-                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Studenti</th>
-                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Profesori</th>
-                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Media</th>
-                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Promovare</th>
-                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Trend</th>
-                    </tr>
-                </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
-                    @foreach (var faculty in FacultyStats)
-                    {
-                        <tr class="hover:bg-gray-50">
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="flex items-center">
-                                    <div class="w-2 h-8 rounded-full @faculty.ColorClass mr-3"></div>
-                                    <div>
-                                        <div class="text-sm font-medium text-gray-900">@faculty.Name</div>
-                                        <div class="text-xs text-gray-500">@faculty.Programs programe</div>
-                                    </div>
-                                </div>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900">@faculty.Students</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900">@faculty.Professors</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-center">
-                                <span class="px-2 py-1 text-sm font-medium rounded-full @GetAverageClass(faculty.Average)">
-                                    @faculty.Average.ToString("0.00")
-                                </span>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900">@faculty.PassRate%</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-center">
-                                @if (faculty.Trend > 0)
+        <!-- Faculty Comparison -->
+        <RadzenCard Style="padding: 0; overflow: hidden;">
+            <RadzenStack Orientation="Radzen.Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center"
+                         Class="rz-p-4" Style="border-bottom: 1px solid var(--rz-base-300);">
+                <RadzenText TextStyle="TextStyle.H6" Style="margin: 0; font-weight: 600;">Comparație Facultăți</RadzenText>
+                <RadzenLink Path="/rapoarte/facultati" Text="Raport detaliat" Style="font-weight: 500;" />
+            </RadzenStack>
+            @if (FacultyStats.Any())
+            {
+                <RadzenDataGrid Data="@FacultyStats" TItem="FacultyComparisonDto" AllowSorting="true" Style="border: none;">
+                    <Columns>
+                        <RadzenDataGridColumn TItem="FacultyComparisonDto" Title="Facultate" Sortable="true">
+                            <Template Context="faculty">
+                                <RadzenStack Orientation="Radzen.Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.75rem">
+                                    <div style="@GetFacultyBarStyle(faculty.FacultyCode)"></div>
+                                    <RadzenStack Gap="0">
+                                        <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; font-weight: 500;">@faculty.FacultyName</RadzenText>
+                                        <RadzenText TextStyle="TextStyle.Caption" class="rz-color-secondary" Style="margin: 0;">@faculty.ProgramCount programe</RadzenText>
+                                    </RadzenStack>
+                                </RadzenStack>
+                            </Template>
+                        </RadzenDataGridColumn>
+                        <RadzenDataGridColumn TItem="FacultyComparisonDto" Property="StudentCount" Title="Studenți" TextAlign="TextAlign.Center" Sortable="true" />
+                        <RadzenDataGridColumn TItem="FacultyComparisonDto" Property="ProfessorCount" Title="Profesori" TextAlign="TextAlign.Center" Sortable="true" />
+                        <RadzenDataGridColumn TItem="FacultyComparisonDto" Title="Media" TextAlign="TextAlign.Center" Sortable="true" SortProperty="AverageGrade">
+                            <Template Context="faculty">
+                                <RadzenBadge BadgeStyle="@GetAverageBadgeStyle(faculty.AverageGrade)" IsPill="true"
+                                             Text="@(faculty.AverageGrade > 0 ? faculty.AverageGrade.ToString("0.00") : "-")" />
+                            </Template>
+                        </RadzenDataGridColumn>
+                        <RadzenDataGridColumn TItem="FacultyComparisonDto" Title="Promovare" TextAlign="TextAlign.Center" Sortable="true" SortProperty="PassRate">
+                            <Template Context="faculty">
+                                @faculty.PassRate.ToString("0")%
+                            </Template>
+                        </RadzenDataGridColumn>
+                        <RadzenDataGridColumn TItem="FacultyComparisonDto" Title="Trend" TextAlign="TextAlign.Center">
+                            <Template Context="faculty">
+                                @if (faculty.Trend == "ascending")
                                 {
-                                    <span class="text-success-600 flex items-center justify-center">
-                                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"/>
-                                        </svg>
-                                        @faculty.Trend%
-                                    </span>
+                                    <RadzenStack Orientation="Radzen.Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Gap="0.25rem">
+                                        <RadzenIcon Icon="trending_up" Style="color: var(--rz-success);" />
+                                        <RadzenText TextStyle="TextStyle.Caption" Style="margin: 0; color: var(--rz-success);">@Math.Abs(faculty.TrendValue)%</RadzenText>
+                                    </RadzenStack>
                                 }
-                                else if (faculty.Trend < 0)
+                                else if (faculty.Trend == "descending")
                                 {
-                                    <span class="text-danger-600 flex items-center justify-center">
-                                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/>
-                                        </svg>
-                                        @Math.Abs(faculty.Trend)%
-                                    </span>
+                                    <RadzenStack Orientation="Radzen.Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Gap="0.25rem">
+                                        <RadzenIcon Icon="trending_down" Style="color: var(--rz-danger);" />
+                                        <RadzenText TextStyle="TextStyle.Caption" Style="margin: 0; color: var(--rz-danger);">@Math.Abs(faculty.TrendValue)%</RadzenText>
+                                    </RadzenStack>
                                 }
                                 else
                                 {
-                                    <span class="text-gray-400">-</span>
+                                    <RadzenText TextStyle="TextStyle.Caption" class="rz-color-secondary" Style="margin: 0;">-</RadzenText>
                                 }
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        </div>
-    </div>
+                            </Template>
+                        </RadzenDataGridColumn>
+                    </Columns>
+                </RadzenDataGrid>
+            }
+            else
+            {
+                <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Class="rz-p-6">
+                    <RadzenText TextStyle="TextStyle.Body2" class="rz-color-secondary" Style="margin: 0;">
+                        Nu există date despre facultăți.
+                    </RadzenText>
+                </RadzenStack>
+            }
+        </RadzenCard>
 
-    <!-- Content Grid -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <!-- Quick Actions -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-            <h3 class="text-lg font-semibold text-gray-900 mb-4">Rapoarte</h3>
-            <div class="space-y-3">
-                <QuickActionButton
-                    Text="Raport Anual"
-                    IconType="document"
-                    Variant="primary"
-                    FullWidth="true"
-                    IsLink="true"
-                    Link="/rapoarte/anual" />
-                <QuickActionButton
-                    Text="Comparatie Facultati"
-                    IconType="view"
-                    Variant="outline-primary"
-                    FullWidth="true"
-                    IsLink="true"
-                    Link="/rapoarte/facultati" />
-                <QuickActionButton
-                    Text="Analiza Promovare"
-                    IconType="view"
-                    Variant="outline"
-                    FullWidth="true"
-                    IsLink="true"
-                    Link="/rapoarte/promovare" />
-                <QuickActionButton
-                    Text="Export Date"
-                    IconType="download"
-                    Variant="outline"
-                    FullWidth="true"
-                    IsLink="true"
-                    Link="/rapoarte/export" />
-            </div>
-        </div>
+        <!-- Content Grid -->
+        <RadzenRow Gap="1.5rem" RowGap="1.5rem">
+            <!-- Quick Actions -->
+            <RadzenColumn Size="12" SizeLG="4">
+                <RadzenCard>
+                    <RadzenText TextStyle="TextStyle.H6" Style="margin: 0 0 1rem 0; font-weight: 600;">Rapoarte</RadzenText>
+                    <RadzenStack Gap="0.75rem">
+                        <QuickActionButton
+                            Text="Raport Anual"
+                            IconType="document"
+                            Variant="primary"
+                            FullWidth="true"
+                            IsLink="true"
+                            Link="/rapoarte/anual" />
+                        <QuickActionButton
+                            Text="Comparație Facultăți"
+                            IconType="view"
+                            Variant="outline-primary"
+                            FullWidth="true"
+                            IsLink="true"
+                            Link="/rapoarte/facultati" />
+                        <QuickActionButton
+                            Text="Analiză Promovare"
+                            IconType="view"
+                            Variant="outline"
+                            FullWidth="true"
+                            IsLink="true"
+                            Link="/rapoarte/promovare" />
+                        <QuickActionButton
+                            Text="Export Date"
+                            IconType="download"
+                            Variant="outline"
+                            FullWidth="true"
+                            IsLink="true"
+                            Link="/rapoarte/export" />
+                    </RadzenStack>
+                </RadzenCard>
+            </RadzenColumn>
 
-        <!-- University Summary -->
-        <div class="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <div class="px-6 py-4 border-b border-gray-100">
-                <h3 class="text-lg font-semibold text-gray-900">Sumar Universitate</h3>
-            </div>
-            <div class="p-6">
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
-                    <div class="text-center">
-                        <p class="text-3xl font-bold text-primary-600">@TotalFaculties</p>
-                        <p class="text-sm text-gray-500 mt-1">Facultati</p>
-                    </div>
-                    <div class="text-center">
-                        <p class="text-3xl font-bold text-secondary-600">@TotalPrograms</p>
-                        <p class="text-sm text-gray-500 mt-1">Programe</p>
-                    </div>
-                    <div class="text-center">
-                        <p class="text-3xl font-bold text-success-600">@TotalCourses</p>
-                        <p class="text-sm text-gray-500 mt-1">Cursuri</p>
-                    </div>
-                    <div class="text-center">
-                        <p class="text-3xl font-bold text-info-600">@TotalGroups</p>
-                        <p class="text-sm text-gray-500 mt-1">Grupe</p>
-                    </div>
-                </div>
-                <div class="mt-6 pt-6 border-t border-gray-100">
-                    <div class="grid grid-cols-2 gap-4">
-                        <div class="p-4 bg-gray-50 rounded-lg">
-                            <p class="text-sm text-gray-500">An universitar</p>
-                            <p class="text-lg font-semibold text-gray-900 mt-1">2024 - 2025</p>
-                        </div>
-                        <div class="p-4 bg-gray-50 rounded-lg">
-                            <p class="text-sm text-gray-500">Semestru curent</p>
-                            <p class="text-lg font-semibold text-gray-900 mt-1">Semestrul I</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+            <!-- University Summary -->
+            <RadzenColumn Size="12" SizeLG="8">
+                <RadzenCard Style="padding: 0; overflow: hidden;">
+                    <RadzenStack Class="rz-p-4" Style="border-bottom: 1px solid var(--rz-base-300);">
+                        <RadzenText TextStyle="TextStyle.H6" Style="margin: 0; font-weight: 600;">Sumar Universitate</RadzenText>
+                    </RadzenStack>
+                    <RadzenStack Class="rz-p-4" Gap="1.5rem">
+                        <RadzenRow Gap="1.5rem" RowGap="1rem">
+                            <RadzenColumn Size="6" SizeMD="3">
+                                <RadzenStack AlignItems="AlignItems.Center" Gap="0.25rem">
+                                    <RadzenText TextStyle="TextStyle.H4" Style="margin: 0; color: var(--rz-primary); font-weight: 700;">@TotalFaculties</RadzenText>
+                                    <RadzenText TextStyle="TextStyle.Caption" class="rz-color-secondary" Style="margin: 0;">Facultăți</RadzenText>
+                                </RadzenStack>
+                            </RadzenColumn>
+                            <RadzenColumn Size="6" SizeMD="3">
+                                <RadzenStack AlignItems="AlignItems.Center" Gap="0.25rem">
+                                    <RadzenText TextStyle="TextStyle.H4" Style="margin: 0; color: var(--rz-secondary); font-weight: 700;">@TotalPrograms</RadzenText>
+                                    <RadzenText TextStyle="TextStyle.Caption" class="rz-color-secondary" Style="margin: 0;">Programe</RadzenText>
+                                </RadzenStack>
+                            </RadzenColumn>
+                            <RadzenColumn Size="6" SizeMD="3">
+                                <RadzenStack AlignItems="AlignItems.Center" Gap="0.25rem">
+                                    <RadzenText TextStyle="TextStyle.H4" Style="margin: 0; color: var(--rz-success); font-weight: 700;">@TotalCourses</RadzenText>
+                                    <RadzenText TextStyle="TextStyle.Caption" class="rz-color-secondary" Style="margin: 0;">Cursuri</RadzenText>
+                                </RadzenStack>
+                            </RadzenColumn>
+                            <RadzenColumn Size="6" SizeMD="3">
+                                <RadzenStack AlignItems="AlignItems.Center" Gap="0.25rem">
+                                    <RadzenText TextStyle="TextStyle.H4" Style="margin: 0; color: var(--rz-info); font-weight: 700;">@TotalGroups</RadzenText>
+                                    <RadzenText TextStyle="TextStyle.Caption" class="rz-color-secondary" Style="margin: 0;">Grupe</RadzenText>
+                                </RadzenStack>
+                            </RadzenColumn>
+                        </RadzenRow>
+                        <RadzenRow Gap="1rem" Style="padding-top: 1rem; border-top: 1px solid var(--rz-base-200);">
+                            <RadzenColumn Size="12" SizeMD="6">
+                                <RadzenCard Style="background: var(--rz-base-100); padding: 1rem;">
+                                    <RadzenText TextStyle="TextStyle.Caption" class="rz-color-secondary" Style="margin: 0;">An universitar</RadzenText>
+                                    <RadzenText TextStyle="TextStyle.Body1" Style="margin: 0.5rem 0 0 0; font-weight: 600;">@GetCurrentAcademicYear()</RadzenText>
+                                </RadzenCard>
+                            </RadzenColumn>
+                            <RadzenColumn Size="12" SizeMD="6">
+                                <RadzenCard Style="background: var(--rz-base-100); padding: 1rem;">
+                                    <RadzenText TextStyle="TextStyle.Caption" class="rz-color-secondary" Style="margin: 0;">Semestru curent</RadzenText>
+                                    <RadzenText TextStyle="TextStyle.Body1" Style="margin: 0.5rem 0 0 0; font-weight: 600;">@GetCurrentSemester()</RadzenText>
+                                </RadzenCard>
+                            </RadzenColumn>
+                        </RadzenRow>
+                    </RadzenStack>
+                </RadzenCard>
+            </RadzenColumn>
+        </RadzenRow>
 
-    <!-- Alerts Section -->
-    @if (AtRiskStudentsTotal > 0)
-    {
-        <div class="bg-warning-50 border border-warning-200 rounded-xl p-6">
-            <div class="flex items-start gap-4">
-                <div class="flex-shrink-0">
-                    <svg class="w-6 h-6 text-warning-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-                    </svg>
-                </div>
-                <div class="flex-1">
-                    <h4 class="font-semibold text-warning-800">Atentie: Studenti la Risc</h4>
-                    <p class="mt-1 text-sm text-warning-700">
-                        @AtRiskStudentsTotal studenti din intreaga universitate au indicatori sub pragul acceptabil.
-                        Se recomanda monitorizare si interventie la nivel de facultate.
-                    </p>
-                    <a href="/rapoarte/risc" class="mt-3 inline-flex items-center text-sm font-medium text-warning-700 hover:text-warning-800">
-                        Vezi raport detaliat
-                        <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-                        </svg>
-                    </a>
-                </div>
-            </div>
-        </div>
+        <!-- Alerts Section -->
+        @if (AtRiskStudentsTotal > 0)
+        {
+            <RadzenAlert AlertStyle="AlertStyle.Warning" Variant="Variant.Flat" ShowIcon="true" Size="AlertSize.Medium">
+                <RadzenStack Gap="0.5rem">
+                    <RadzenText TextStyle="TextStyle.Subtitle1" Style="margin: 0; font-weight: 600;">Atenție: Studenți la Risc</RadzenText>
+                    <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0;">
+                        @AtRiskStudentsTotal studenți din întreaga universitate au indicatori sub pragul acceptabil.
+                        Se recomandă monitorizare și intervenție la nivel de facultate.
+                    </RadzenText>
+                    <RadzenLink Path="/rapoarte/risc" Text="Vezi raport detaliat" Icon="chevron_right" Style="font-weight: 500;" />
+                </RadzenStack>
+            </RadzenAlert>
+        }
     }
-</div>
+</RadzenStack>
 
 @code {
     [Parameter] public string UserName { get; set; } = "";
 
+    // State
+    private bool _isLoading = true;
+
     // University KPIs
-    private int TotalStudents = 2450;
-    private decimal StudentsTrend = 5.2m;
-    private decimal UniversityAverage = 7.65m;
-    private decimal AverageTrend = 1.8m;
-    private decimal PassRate = 85.5m;
-    private int TotalProfessors = 156;
-    private int TotalFaculties = 5;
-    private int TotalPrograms = 18;
-    private int TotalCourses = 245;
-    private int TotalGroups = 72;
-    private int AtRiskStudentsTotal = 45;
+    private int TotalStudents = 0;
+    private decimal UniversityAverage = 0;
+    private decimal PassRate = 0;
+    private int TotalProfessors = 0;
+    private int TotalFaculties = 0;
+    private int TotalPrograms = 0;
+    private int TotalCourses = 0;
+    private int TotalGroups = 0;
+    private int AtRiskStudentsTotal = 0;
 
     // Data
-    private List<FacultyStatDto> FacultyStats = new();
+    private List<FacultyComparisonDto> FacultyStats = new();
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        LoadDashboardData();
+        await LoadDashboardData();
     }
 
-    private void LoadDashboardData()
+    private async Task LoadDashboardData()
     {
-        FacultyStats = new List<FacultyStatDto>
+        try
         {
-            new() { Name = "Facultatea de Informatica", Programs = 4, Students = 485, Professors = 32, Average = 7.85m, PassRate = 88, Trend = 2.5m, ColorClass = "bg-primary-500" },
-            new() { Name = "Facultatea de Economie", Programs = 5, Students = 620, Professors = 45, Average = 7.45m, PassRate = 82, Trend = -1.2m, ColorClass = "bg-success-500" },
-            new() { Name = "Facultatea de Drept", Programs = 3, Students = 380, Professors = 28, Average = 7.92m, PassRate = 90, Trend = 3.1m, ColorClass = "bg-warning-500" },
-            new() { Name = "Facultatea de Psihologie", Programs = 3, Students = 520, Professors = 35, Average = 7.58m, PassRate = 85, Trend = 0.8m, ColorClass = "bg-info-500" },
-            new() { Name = "Facultatea de Arte", Programs = 3, Students = 445, Professors = 26, Average = 8.12m, PassRate = 92, Trend = 1.5m, ColorClass = "bg-purple-500" }
-        };
+            _isLoading = true;
+
+            // Load university-wide statistics
+            var universityStats = await AnalyticsService.GetUniversityStatsAsync();
+            TotalStudents = universityStats.TotalStudents;
+            TotalProfessors = universityStats.TotalProfessors;
+            TotalFaculties = universityStats.FacultyCount;
+            TotalPrograms = universityStats.ProgramCount;
+            TotalCourses = universityStats.CourseCount;
+            TotalGroups = universityStats.GroupCount;
+            UniversityAverage = universityStats.OverallAverage;
+            PassRate = universityStats.PassRate;
+            AtRiskStudentsTotal = universityStats.AtRiskStudentsCount;
+
+            // Load faculty comparison data
+            FacultyStats = await AnalyticsService.GetFacultyComparisonsAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading dashboard: {ex.Message}");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
     }
 
-    private string GetAverageClass(decimal average) => average switch
+    private BadgeStyle GetAverageBadgeStyle(decimal average) => average switch
     {
-        >= 8.5m => "bg-success-100 text-success-700",
-        >= 7.0m => "bg-info-100 text-info-700",
-        >= 5.0m => "bg-warning-100 text-warning-700",
-        _ => "bg-danger-100 text-danger-700"
+        >= 8.5m => BadgeStyle.Success,
+        >= 7.0m => BadgeStyle.Info,
+        >= 5.0m => BadgeStyle.Warning,
+        _ => BadgeStyle.Danger
     };
 
-    private class FacultyStatDto
+    private string GetFacultyBarStyle(string code)
     {
-        public string Name { get; set; } = "";
-        public int Programs { get; set; }
-        public int Students { get; set; }
-        public int Professors { get; set; }
-        public decimal Average { get; set; }
-        public int PassRate { get; set; }
-        public decimal Trend { get; set; }
-        public string ColorClass { get; set; } = "";
+        // Assign colors based on faculty code hash for consistency
+        var hash = code.GetHashCode();
+        var colors = new[] { "var(--rz-primary)", "var(--rz-success)", "var(--rz-warning)", "var(--rz-info)", "rgb(168, 85, 247)", "var(--rz-secondary)" };
+        var color = colors[Math.Abs(hash) % colors.Length];
+        return $"width: 4px; height: 32px; border-radius: 2px; background: {color};";
+    }
+
+    private string GetCurrentAcademicYear()
+    {
+        var now = DateTime.Now;
+        var year = now.Month >= 9 ? now.Year : now.Year - 1;
+        return $"{year} - {year + 1}";
+    }
+
+    private string GetCurrentSemester()
+    {
+        var month = DateTime.Now.Month;
+        return month >= 2 && month <= 6 ? "Semestrul II" : "Semestrul I";
     }
 }

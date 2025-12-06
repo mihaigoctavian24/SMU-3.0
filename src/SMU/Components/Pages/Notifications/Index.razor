@@ -8,190 +8,173 @@
 @inject INotificationService NotificationService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager Navigation
+@inject DialogService DialogService
+@inject Radzen.NotificationService RadzenNotificationService
 @attribute [Authorize]
 
 <PageTitle>Notificări - SMU</PageTitle>
 
-<!-- Page Header -->
-<div class="mb-6">
-    <div class="flex items-center justify-between mb-2">
-        <h1 class="text-2xl font-bold text-gray-900">Notificări</h1>
+<RadzenStack Gap="1.5rem">
+    <!-- Page Header -->
+    <RadzenStack Orientation="Radzen.Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center">
+        <RadzenStack Gap="0.25rem">
+            <RadzenText TextStyle="TextStyle.H4" Style="margin: 0; font-weight: 700;">Notificări</RadzenText>
+            <RadzenText TextStyle="TextStyle.Body2" class="rz-color-secondary" Style="margin: 0;">
+                Vizualizați și gestionați toate notificările
+            </RadzenText>
+        </RadzenStack>
         @if (UnreadCount > 0)
         {
-            <button @onclick="MarkAllAsRead"
-                    class="btn-secondary text-sm">
-                <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                </svg>
-                Marchează toate ca citite
-            </button>
+            <RadzenButton Text="Marchează toate ca citite" Icon="done_all" ButtonStyle="ButtonStyle.Secondary"
+                          Click="@MarkAllAsRead" />
         }
-    </div>
-    <p class="text-gray-600">Vizualizați și gestionați toate notificările</p>
-</div>
+    </RadzenStack>
 
-<!-- Filters -->
-<div class="card mb-6">
-    <div class="flex flex-wrap items-center gap-4">
-        <!-- Filter Tabs -->
-        <div class="flex gap-2">
-            <button @onclick="() => SetFilter(null)"
-                    class="px-4 py-2 text-sm font-medium rounded-lg transition-colors @(CurrentFilter == null ? "bg-primary-100 text-primary-700" : "text-gray-600 hover:bg-gray-100")">
-                Toate @(TotalCount > 0 ? $"({TotalCount})" : "")
-            </button>
-            <button @onclick="() => SetFilter(true)"
-                    class="px-4 py-2 text-sm font-medium rounded-lg transition-colors @(CurrentFilter == true ? "bg-primary-100 text-primary-700" : "text-gray-600 hover:bg-gray-100")">
-                Necitite @(UnreadCount > 0 ? $"({UnreadCount})" : "")
-            </button>
-        </div>
+    <!-- Filters -->
+    <RadzenCard>
+        <RadzenStack Orientation="Radzen.Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center" Wrap="FlexWrap.Wrap" Gap="1rem">
+            <!-- Filter Tabs -->
+            <RadzenStack Orientation="Radzen.Orientation.Horizontal" Gap="0.5rem">
+                <RadzenButton Text="@($"Toate {(TotalCount > 0 ? $"({TotalCount})" : "")}")"
+                              ButtonStyle="@(CurrentFilter == null ? ButtonStyle.Primary : ButtonStyle.Light)"
+                              Variant="@(CurrentFilter == null ? Variant.Filled : Variant.Text)"
+                              Click="@(() => SetFilter(null))" />
+                <RadzenButton Text="@($"Necitite {(UnreadCount > 0 ? $"({UnreadCount})" : "")}")"
+                              ButtonStyle="@(CurrentFilter == true ? ButtonStyle.Primary : ButtonStyle.Light)"
+                              Variant="@(CurrentFilter == true ? Variant.Filled : Variant.Text)"
+                              Click="@(() => SetFilter(true))" />
+            </RadzenStack>
 
-        <!-- Type Filter -->
-        <div class="flex-1"></div>
-        <select @bind="SelectedType"
-                class="input max-w-xs">
-            <option value="">Toate tipurile</option>
-            <option value="@NotificationType.GradeAdded">Note noi</option>
-            <option value="@NotificationType.AttendanceMarked">Prezență</option>
-            <option value="@NotificationType.RequestUpdate">Cereri</option>
-            <option value="@NotificationType.Success">Succes</option>
-            <option value="@NotificationType.Warning">Avertismente</option>
-            <option value="@NotificationType.Info">Informații</option>
-        </select>
-    </div>
-</div>
+            <!-- Type Filter -->
+            <RadzenFormField Text="Tip" Variant="Variant.Outlined" Style="width: 200px;">
+                <RadzenDropDown @bind-Value="SelectedType" Data="@typeOptions" TextProperty="Text" ValueProperty="Value"
+                                Change="@(args => LoadNotifications())" Style="width: 100%;" />
+            </RadzenFormField>
+        </RadzenStack>
+    </RadzenCard>
 
-<!-- Notifications List -->
-<div class="card">
-    @if (IsLoading)
-    {
-        <div class="text-center py-12">
-            <div class="inline-block w-12 h-12 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin"></div>
-            <p class="text-gray-500 mt-4">Se încarcă notificările...</p>
-        </div>
-    }
-    else if (Notifications.Any())
-    {
-        <!-- Group by date -->
-        @foreach (var group in Notifications.GroupBy(n => n.CreatedAt.Date).OrderByDescending(g => g.Key))
+    <!-- Notifications List -->
+    <RadzenCard Style="padding: 0; overflow: hidden;">
+        @if (IsLoading)
         {
-            <div class="mb-6 last:mb-0">
-                <!-- Date Header -->
-                <div class="flex items-center gap-3 mb-3 px-4">
-                    <h3 class="text-sm font-semibold text-gray-700">
-                        @GetDateLabel(group.Key)
-                    </h3>
-                    <div class="flex-1 h-px bg-gray-200"></div>
-                </div>
+            <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Style="padding: 3rem 0;">
+                <RadzenProgressBarCircular ShowValue="false" Mode="ProgressBarMode.Indeterminate" Size="ProgressBarCircularSize.Large" />
+                <RadzenText TextStyle="TextStyle.Body2" class="rz-color-secondary" Style="margin-top: 1rem;">
+                    Se încarcă notificările...
+                </RadzenText>
+            </RadzenStack>
+        }
+        else if (Notifications.Any())
+        {
+            <!-- Group by date -->
+            @foreach (var group in Notifications.GroupBy(n => n.CreatedAt.Date).OrderByDescending(g => g.Key))
+            {
+                <div style="margin-bottom: 0;">
+                    <!-- Date Header -->
+                    <RadzenStack Orientation="Radzen.Orientation.Horizontal" Gap="1rem" AlignItems="AlignItems.Center"
+                                 Style="padding: 0.75rem 1rem; background: var(--rz-base-100); border-bottom: 1px solid var(--rz-base-300);">
+                        <RadzenText TextStyle="TextStyle.Subtitle2" Style="margin: 0; font-weight: 600;">
+                            @GetDateLabel(group.Key)
+                        </RadzenText>
+                        <div style="flex: 1; height: 1px; background: var(--rz-base-300);"></div>
+                    </RadzenStack>
 
-                <!-- Notifications in this date group -->
-                @foreach (var notification in group)
-                {
-                    <div @onclick="() => HandleNotificationClick(notification)"
-                         class="flex items-start gap-4 p-4 border-b border-gray-100 last:border-b-0 hover:bg-gray-50 cursor-pointer transition-colors @(!notification.IsRead ? "bg-primary-50/30" : "")">
+                    <!-- Notifications in this date group -->
+                    @foreach (var notification in group)
+                    {
+                        <div @onclick="() => HandleNotificationClick(notification)"
+                             style="@($"padding: 1rem; border-bottom: 1px solid var(--rz-base-200); cursor: pointer; transition: background 0.2s; {(!notification.IsRead ? "background: rgba(var(--rz-primary-rgb), 0.05);" : "")}")"
+                             class="notification-item">
+                            <RadzenStack Orientation="Radzen.Orientation.Horizontal" Gap="1rem" AlignItems="AlignItems.Start">
+                                <!-- Type Icon -->
+                                <div style="@GetTypeIconStyle(notification.Type)">
+                                    <RadzenIcon Icon="@GetTypeIcon(notification.Type)" Style="font-size: 20px;" />
+                                </div>
 
-                        <!-- Type Icon -->
-                        <div class="flex-shrink-0 mt-1">
-                            <span class="inline-flex items-center justify-center w-10 h-10 rounded-full text-lg @GetTypeColorClass(notification.Type)">
-                                @notification.TypeIcon
-                            </span>
-                        </div>
-
-                        <!-- Content -->
-                        <div class="flex-1 min-w-0">
-                            <div class="flex items-start justify-between gap-3">
-                                <div class="flex-1">
-                                    <div class="flex items-center gap-2 mb-1">
-                                        <h4 class="text-sm font-semibold text-gray-900 @(!notification.IsRead ? "font-bold" : "")">
+                                <!-- Content -->
+                                <RadzenStack Gap="0.5rem" Style="flex: 1; min-width: 0;">
+                                    <RadzenStack Orientation="Radzen.Orientation.Horizontal" Gap="0.5rem" AlignItems="AlignItems.Center">
+                                        <RadzenText TextStyle="TextStyle.Body1" Style="@($"margin: 0; font-weight: {(!notification.IsRead ? "600" : "500")};")">
                                             @notification.Title
-                                        </h4>
+                                        </RadzenText>
                                         @if (!notification.IsRead)
                                         {
-                                            <span class="w-2 h-2 bg-primary-500 rounded-full flex-shrink-0"></span>
+                                            <div style="width: 8px; height: 8px; border-radius: 50%; background: var(--rz-primary);"></div>
                                         }
-                                    </div>
-                                    <p class="text-sm text-gray-600 mb-2">
+                                    </RadzenStack>
+                                    <RadzenText TextStyle="TextStyle.Body2" class="rz-color-secondary" Style="margin: 0;">
                                         @notification.Message
-                                    </p>
-                                    <div class="flex items-center gap-3">
-                                        <span class="text-xs text-gray-500">@notification.TimeAgo</span>
-                                        <span class="text-xs px-2 py-1 rounded-full @GetTypeBadgeClass(notification.Type)">
-                                            @notification.TypeLabel
-                                        </span>
-                                    </div>
-                                </div>
+                                    </RadzenText>
+                                    <RadzenStack Orientation="Radzen.Orientation.Horizontal" Gap="0.75rem" AlignItems="AlignItems.Center">
+                                        <RadzenText TextStyle="TextStyle.Caption" class="rz-color-secondary" Style="margin: 0;">
+                                            @notification.TimeAgo
+                                        </RadzenText>
+                                        <RadzenBadge BadgeStyle="@GetTypeBadgeStyle(notification.Type)" Text="@notification.TypeLabel" IsPill="true"
+                                                     Style="font-size: 10px; padding: 2px 8px;" />
+                                    </RadzenStack>
+                                </RadzenStack>
 
                                 <!-- Actions -->
-                                <div class="flex items-center gap-2 flex-shrink-0">
+                                <RadzenStack Orientation="Radzen.Orientation.Horizontal" Gap="0.25rem" AlignItems="AlignItems.Center">
                                     @if (!notification.IsRead)
                                     {
-                                        <button @onclick:stopPropagation="true"
-                                                @onclick="() => MarkAsRead(notification)"
-                                                class="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded transition-colors"
-                                                title="Marchează ca citit">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                                            </svg>
-                                        </button>
+                                        <RadzenButton Icon="done" ButtonStyle="ButtonStyle.Success" Variant="Variant.Text" Size="ButtonSize.Small"
+                                                      Click="@(async () => { await MarkAsRead(notification); })"
+                                                      @onclick:stopPropagation="true" />
                                     }
-                                    <button @onclick:stopPropagation="true"
-                                            @onclick="() => DeleteNotification(notification)"
-                                            class="p-1.5 text-gray-400 hover:text-danger-600 hover:bg-danger-50 rounded transition-colors"
-                                            title="Șterge">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                                        </svg>
-                                    </button>
-                                </div>
-                            </div>
+                                    <RadzenButton Icon="delete" ButtonStyle="ButtonStyle.Danger" Variant="Variant.Text" Size="ButtonSize.Small"
+                                                  Click="@(async () => { await DeleteNotification(notification); })"
+                                                  @onclick:stopPropagation="true" />
+                                </RadzenStack>
+                            </RadzenStack>
                         </div>
-                    </div>
-                }
-            </div>
-        }
+                    }
+                </div>
+            }
 
-        <!-- Pagination -->
-        @if (PagedResult != null && PagedResult.TotalPages > 1)
-        {
-            <div class="flex items-center justify-between px-4 py-3 border-t border-gray-200">
-                <div class="text-sm text-gray-600">
-                    Pagina @PagedResult.Page din @PagedResult.TotalPages
-                    (@PagedResult.TotalCount @(PagedResult.TotalCount == 1 ? "notificare" : "notificări"))
-                </div>
-                <div class="flex gap-2">
-                    <button @onclick="PreviousPage"
-                            disabled="@(!PagedResult.HasPreviousPage)"
-                            class="btn-secondary text-sm disabled:opacity-50 disabled:cursor-not-allowed">
-                        Înapoi
-                    </button>
-                    <button @onclick="NextPage"
-                            disabled="@(!PagedResult.HasNextPage)"
-                            class="btn-secondary text-sm disabled:opacity-50 disabled:cursor-not-allowed">
-                        Următoarea
-                    </button>
-                </div>
-            </div>
+            <!-- Pagination -->
+            @if (PagedResult != null && PagedResult.TotalPages > 1)
+            {
+                <RadzenStack Orientation="Radzen.Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center"
+                             Class="rz-p-4" Style="border-top: 1px solid var(--rz-base-300);">
+                    <RadzenText TextStyle="TextStyle.Body2" class="rz-color-secondary" Style="margin: 0;">
+                        Pagina @PagedResult.Page din @PagedResult.TotalPages
+                        (@PagedResult.TotalCount @(PagedResult.TotalCount == 1 ? "notificare" : "notificări"))
+                    </RadzenText>
+                    <RadzenStack Orientation="Radzen.Orientation.Horizontal" Gap="0.5rem">
+                        <RadzenButton Text="Înapoi" Icon="chevron_left" Variant="Variant.Outlined" Size="ButtonSize.Small"
+                                      Disabled="@(!PagedResult.HasPreviousPage)" Click="@PreviousPage" />
+                        <RadzenButton Text="Următoarea" Icon="chevron_right" Variant="Variant.Outlined" Size="ButtonSize.Small"
+                                      Disabled="@(!PagedResult.HasNextPage)" Click="@NextPage" />
+                    </RadzenStack>
+                </RadzenStack>
+            }
         }
+        else
+        {
+            <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Class="rz-p-6" Gap="1rem">
+                <RadzenIcon Icon="notifications_none" Style="font-size: 64px; color: var(--rz-text-disabled-color);" />
+                <RadzenText TextStyle="TextStyle.H6" Style="margin: 0;">Nu există notificări</RadzenText>
+                <RadzenText TextStyle="TextStyle.Body2" class="rz-color-secondary" Style="margin: 0;">
+                    @if (CurrentFilter == true)
+                    {
+                        <text>Nu aveți notificări necitite în acest moment.</text>
+                    }
+                    else
+                    {
+                        <text>Nu aveți nicio notificare.</text>
+                    }
+                </RadzenText>
+            </RadzenStack>
+        }
+    </RadzenCard>
+</RadzenStack>
+
+<style>
+    .notification-item:hover {
+        background: var(--rz-base-100) !important;
     }
-    else
-    {
-        <div class="text-center py-12">
-            <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/>
-            </svg>
-            <h3 class="text-lg font-medium text-gray-900 mb-2">Nu există notificări</h3>
-            <p class="text-gray-500">
-                @if (CurrentFilter == true)
-                {
-                    <text>Nu aveți notificări necitite în acest moment.</text>
-                }
-                else
-                {
-                    <text>Nu aveți nicio notificare.</text>
-                }
-            </p>
-        </div>
-    }
-</div>
+</style>
 
 @code {
     private List<NotificationDto> Notifications { get; set; } = new();
@@ -199,11 +182,22 @@
     private int CurrentPage { get; set; } = 1;
     private int PageSize { get; set; } = 25;
     private bool? CurrentFilter { get; set; }
-    private string SelectedType { get; set; } = "";
+    private string? SelectedType { get; set; }
     private int UnreadCount { get; set; }
     private int TotalCount { get; set; }
     private bool IsLoading { get; set; }
     private Guid CurrentUserId { get; set; }
+
+    private List<dynamic> typeOptions = new List<dynamic>
+    {
+        new { Text = "Toate tipurile", Value = (string?)null },
+        new { Text = "Note noi", Value = "GradeAdded" },
+        new { Text = "Prezență", Value = "AttendanceMarked" },
+        new { Text = "Cereri", Value = "RequestUpdate" },
+        new { Text = "Succes", Value = "Success" },
+        new { Text = "Avertismente", Value = "Warning" },
+        new { Text = "Informații", Value = "Info" }
+    };
 
     protected override async Task OnInitializedAsync()
     {
@@ -217,16 +211,13 @@
         await LoadNotifications();
     }
 
-    protected override async Task OnParametersSetAsync()
-    {
-        await LoadNotifications();
-    }
-
     private async Task LoadNotifications()
     {
         if (CurrentUserId == Guid.Empty) return;
 
         IsLoading = true;
+        StateHasChanged();
+
         try
         {
             var filter = new NotificationFilter
@@ -239,13 +230,13 @@
             PagedResult = await NotificationService.GetPagedAsync(CurrentUserId, filter, CurrentPage, PageSize);
             Notifications = PagedResult.Items;
 
-            // Update counts
             UnreadCount = await NotificationService.GetUnreadCountAsync(CurrentUserId);
             TotalCount = PagedResult.TotalCount;
         }
         finally
         {
             IsLoading = false;
+            StateHasChanged();
         }
     }
 
@@ -308,6 +299,13 @@
                 notification.IsRead = true;
             }
             UnreadCount = 0;
+            RadzenNotificationService.Notify(new NotificationMessage
+            {
+                Severity = NotificationSeverity.Success,
+                Summary = "Succes",
+                Detail = "Toate notificările au fost marcate ca citite.",
+                Duration = 3000
+            });
             StateHasChanged();
         }
     }
@@ -342,33 +340,44 @@
         return date.ToString("dd MMMM yyyy", new System.Globalization.CultureInfo("ro-RO"));
     }
 
-    private string GetTypeColorClass(NotificationType type)
+    private string GetTypeIcon(NotificationType type) => type switch
     {
-        return type switch
+        NotificationType.Info => "info",
+        NotificationType.Success => "check_circle",
+        NotificationType.Warning => "warning",
+        NotificationType.Error => "error",
+        NotificationType.GradeAdded => "school",
+        NotificationType.AttendanceMarked => "event_available",
+        NotificationType.RequestUpdate => "description",
+        _ => "notifications"
+    };
+
+    private string GetTypeIconStyle(NotificationType type)
+    {
+        var (bg, color) = type switch
         {
-            NotificationType.Info => "bg-blue-100 text-blue-600",
-            NotificationType.Success => "bg-green-100 text-green-600",
-            NotificationType.Warning => "bg-yellow-100 text-yellow-600",
-            NotificationType.Error => "bg-red-100 text-red-600",
-            NotificationType.GradeAdded => "bg-purple-100 text-purple-600",
-            NotificationType.AttendanceMarked => "bg-cyan-100 text-cyan-600",
-            NotificationType.RequestUpdate => "bg-indigo-100 text-indigo-600",
-            _ => "bg-gray-100 text-gray-600"
+            NotificationType.Info => ("rgba(59, 130, 246, 0.15)", "rgb(59, 130, 246)"),
+            NotificationType.Success => ("rgba(34, 197, 94, 0.15)", "rgb(34, 197, 94)"),
+            NotificationType.Warning => ("rgba(234, 179, 8, 0.15)", "rgb(234, 179, 8)"),
+            NotificationType.Error => ("rgba(239, 68, 68, 0.15)", "rgb(239, 68, 68)"),
+            NotificationType.GradeAdded => ("rgba(168, 85, 247, 0.15)", "rgb(168, 85, 247)"),
+            NotificationType.AttendanceMarked => ("rgba(6, 182, 212, 0.15)", "rgb(6, 182, 212)"),
+            NotificationType.RequestUpdate => ("rgba(99, 102, 241, 0.15)", "rgb(99, 102, 241)"),
+            _ => ("rgba(156, 163, 175, 0.15)", "rgb(156, 163, 175)")
         };
+
+        return $"width: 40px; height: 40px; border-radius: 50%; background: {bg}; color: {color}; display: flex; align-items: center; justify-content: center;";
     }
 
-    private string GetTypeBadgeClass(NotificationType type)
+    private BadgeStyle GetTypeBadgeStyle(NotificationType type) => type switch
     {
-        return type switch
-        {
-            NotificationType.Info => "bg-blue-50 text-blue-700",
-            NotificationType.Success => "bg-green-50 text-green-700",
-            NotificationType.Warning => "bg-yellow-50 text-yellow-700",
-            NotificationType.Error => "bg-red-50 text-red-700",
-            NotificationType.GradeAdded => "bg-purple-50 text-purple-700",
-            NotificationType.AttendanceMarked => "bg-cyan-50 text-cyan-700",
-            NotificationType.RequestUpdate => "bg-indigo-50 text-indigo-700",
-            _ => "bg-gray-50 text-gray-700"
-        };
-    }
+        NotificationType.Info => BadgeStyle.Info,
+        NotificationType.Success => BadgeStyle.Success,
+        NotificationType.Warning => BadgeStyle.Warning,
+        NotificationType.Error => BadgeStyle.Danger,
+        NotificationType.GradeAdded => BadgeStyle.Info,
+        NotificationType.AttendanceMarked => BadgeStyle.Success,
+        NotificationType.RequestUpdate => BadgeStyle.Primary,
+        _ => BadgeStyle.Light
+    };
 }

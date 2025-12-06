@@ -1,23 +1,434 @@
 @page "/setari"
+@using SMU.Services
+@using SMU.Data.Entities
 @using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthService AuthService
+@inject IUserService UserService
+@inject AuthenticationStateProvider AuthStateProvider
+@inject Radzen.NotificationService NotificationService
 @attribute [Authorize]
 
-<PageTitle>Setari - SMU</PageTitle>
+<PageTitle>Setări - SMU</PageTitle>
 
-<div class="space-y-6">
-    <div class="flex items-center justify-between">
-        <div>
-            <h1 class="text-2xl font-bold text-gray-900">Setari</h1>
-            <p class="mt-1 text-sm text-gray-600">Configurari cont si preferinte</p>
-        </div>
-    </div>
+<RadzenStack Gap="1.5rem" Style="max-width: 56rem; margin: 0 auto;">
+    <!-- Page Header -->
+    <RadzenStack Gap="0.25rem">
+        <RadzenText TextStyle="TextStyle.H4" Style="margin: 0; font-weight: 700;">Setări</RadzenText>
+        <RadzenText TextStyle="TextStyle.Body2" class="rz-color-secondary" Style="margin: 0;">
+            Configurări cont și preferințe
+        </RadzenText>
+    </RadzenStack>
 
-    <div class="card p-8 text-center">
-        <svg class="w-16 h-16 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-        </svg>
-        <h3 class="text-lg font-medium text-gray-900 mb-2">In Dezvoltare</h3>
-        <p class="text-gray-500">Pagina de setari va fi disponibila in curand.</p>
-    </div>
-</div>
+    @if (_isLoading)
+    {
+        <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Style="padding: 3rem 0;">
+            <RadzenProgressBarCircular ShowValue="false" Mode="ProgressBarMode.Indeterminate" Size="ProgressBarCircularSize.Large" />
+            <RadzenText TextStyle="TextStyle.Body2" class="rz-color-secondary" Style="margin-top: 1rem;">
+                Se încarcă datele...
+            </RadzenText>
+        </RadzenStack>
+    }
+    else if (_currentUser == null)
+    {
+        <RadzenAlert AlertStyle="AlertStyle.Warning" Variant="Variant.Flat" ShowIcon="true">
+            Nu s-au putut încărca datele utilizatorului.
+        </RadzenAlert>
+    }
+    else
+    {
+        <RadzenRow Gap="1.5rem" RowGap="1.5rem">
+            <!-- Left Column: Profile & Account Info -->
+            <RadzenColumn Size="12" SizeLG="7">
+                <!-- Profile Information Card -->
+                <RadzenCard Style="margin-bottom: 1.5rem;">
+                    <RadzenStack Gap="1.5rem">
+                        <RadzenStack Orientation="Radzen.Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center">
+                            <RadzenStack Orientation="Radzen.Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.75rem">
+                                <RadzenIcon Icon="person" Style="font-size: 24px; color: var(--rz-primary);" />
+                                <RadzenText TextStyle="TextStyle.H6" Style="margin: 0; font-weight: 600;">Informații Profil</RadzenText>
+                            </RadzenStack>
+                            @if (!_isEditingProfile)
+                            {
+                                <RadzenButton Text="Editează" Icon="edit" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small"
+                                              Click="@(() => _isEditingProfile = true)" />
+                            }
+                        </RadzenStack>
+
+                        @if (_isEditingProfile)
+                        {
+                            <RadzenStack Gap="1rem">
+                                <RadzenRow Gap="1rem">
+                                    <RadzenColumn Size="12" SizeMD="6">
+                                        <RadzenStack Gap="0.25rem">
+                                            <RadzenLabel Text="Prenume" />
+                                            <RadzenTextBox @bind-Value="_editFirstName" Style="width: 100%;" />
+                                        </RadzenStack>
+                                    </RadzenColumn>
+                                    <RadzenColumn Size="12" SizeMD="6">
+                                        <RadzenStack Gap="0.25rem">
+                                            <RadzenLabel Text="Nume" />
+                                            <RadzenTextBox @bind-Value="_editLastName" Style="width: 100%;" />
+                                        </RadzenStack>
+                                    </RadzenColumn>
+                                </RadzenRow>
+                                <RadzenStack Orientation="Radzen.Orientation.Horizontal" Gap="0.75rem" JustifyContent="JustifyContent.End">
+                                    <RadzenButton Text="Anulează" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small"
+                                                  Click="@CancelProfileEdit" />
+                                    <RadzenButton Text="@(_isSavingProfile ? "Se salvează..." : "Salvează")" Icon="save"
+                                                  ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small"
+                                                  Click="@SaveProfile" Disabled="@_isSavingProfile" />
+                                </RadzenStack>
+                            </RadzenStack>
+                        }
+                        else
+                        {
+                            <RadzenStack Gap="1rem">
+                                <RadzenRow>
+                                    <RadzenColumn Size="12" SizeMD="6">
+                                        <RadzenStack Gap="0.25rem">
+                                            <RadzenText TextStyle="TextStyle.Caption" class="rz-color-secondary" Style="margin: 0;">Prenume</RadzenText>
+                                            <RadzenText TextStyle="TextStyle.Body1" Style="margin: 0; font-weight: 500;">@_currentUser.FirstName</RadzenText>
+                                        </RadzenStack>
+                                    </RadzenColumn>
+                                    <RadzenColumn Size="12" SizeMD="6">
+                                        <RadzenStack Gap="0.25rem">
+                                            <RadzenText TextStyle="TextStyle.Caption" class="rz-color-secondary" Style="margin: 0;">Nume</RadzenText>
+                                            <RadzenText TextStyle="TextStyle.Body1" Style="margin: 0; font-weight: 500;">@_currentUser.LastName</RadzenText>
+                                        </RadzenStack>
+                                    </RadzenColumn>
+                                </RadzenRow>
+                            </RadzenStack>
+                        }
+                    </RadzenStack>
+                </RadzenCard>
+
+                <!-- Change Password Card -->
+                <RadzenCard>
+                    <RadzenStack Gap="1.5rem">
+                        <RadzenStack Orientation="Radzen.Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.75rem">
+                            <RadzenIcon Icon="lock" Style="font-size: 24px; color: var(--rz-primary);" />
+                            <RadzenText TextStyle="TextStyle.H6" Style="margin: 0; font-weight: 600;">Schimbă Parola</RadzenText>
+                        </RadzenStack>
+
+                        <RadzenStack Gap="1rem">
+                            <RadzenStack Gap="0.25rem">
+                                <RadzenLabel Text="Parola Curentă" />
+                                <RadzenPassword @bind-Value="_currentPassword" Style="width: 100%;" Placeholder="Introdu parola curentă" />
+                            </RadzenStack>
+                            <RadzenStack Gap="0.25rem">
+                                <RadzenLabel Text="Parola Nouă" />
+                                <RadzenPassword @bind-Value="_newPassword" Style="width: 100%;" Placeholder="Introdu parola nouă" />
+                                <RadzenText TextStyle="TextStyle.Caption" class="rz-color-secondary" Style="margin: 0;">
+                                    Minim 6 caractere, cu litere și cifre
+                                </RadzenText>
+                            </RadzenStack>
+                            <RadzenStack Gap="0.25rem">
+                                <RadzenLabel Text="Confirmă Parola Nouă" />
+                                <RadzenPassword @bind-Value="_confirmPassword" Style="width: 100%;" Placeholder="Confirmă parola nouă" />
+                            </RadzenStack>
+
+                            @if (!string.IsNullOrEmpty(_passwordError))
+                            {
+                                <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat" ShowIcon="true" Size="AlertSize.Small">
+                                    @_passwordError
+                                </RadzenAlert>
+                            }
+
+                            <RadzenStack Orientation="Radzen.Orientation.Horizontal" JustifyContent="JustifyContent.End">
+                                <RadzenButton Text="@(_isChangingPassword ? "Se schimbă..." : "Schimbă Parola")" Icon="vpn_key"
+                                              ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small"
+                                              Click="@ChangePassword" Disabled="@_isChangingPassword" />
+                            </RadzenStack>
+                        </RadzenStack>
+                    </RadzenStack>
+                </RadzenCard>
+            </RadzenColumn>
+
+            <!-- Right Column: Account Details -->
+            <RadzenColumn Size="12" SizeLG="5">
+                <RadzenCard>
+                    <RadzenStack Gap="1.5rem">
+                        <RadzenStack Orientation="Radzen.Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.75rem">
+                            <RadzenIcon Icon="badge" Style="font-size: 24px; color: var(--rz-primary);" />
+                            <RadzenText TextStyle="TextStyle.H6" Style="margin: 0; font-weight: 600;">Detalii Cont</RadzenText>
+                        </RadzenStack>
+
+                        <RadzenStack Gap="1.25rem">
+                            <!-- Email -->
+                            <RadzenStack Gap="0.25rem">
+                                <RadzenText TextStyle="TextStyle.Caption" class="rz-color-secondary" Style="margin: 0;">Email</RadzenText>
+                                <RadzenStack Orientation="Radzen.Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
+                                    <RadzenIcon Icon="email" Style="font-size: 18px; color: var(--rz-text-disabled-color);" />
+                                    <RadzenText TextStyle="TextStyle.Body1" Style="margin: 0;">@_currentUser.Email</RadzenText>
+                                </RadzenStack>
+                            </RadzenStack>
+
+                            <!-- Role -->
+                            <RadzenStack Gap="0.25rem">
+                                <RadzenText TextStyle="TextStyle.Caption" class="rz-color-secondary" Style="margin: 0;">Rol</RadzenText>
+                                <RadzenBadge BadgeStyle="@GetRoleBadgeStyle(_currentUser.Role)" Text="@GetRoleLabel(_currentUser.Role)" IsPill="true" />
+                            </RadzenStack>
+
+                            <!-- Status -->
+                            <RadzenStack Gap="0.25rem">
+                                <RadzenText TextStyle="TextStyle.Caption" class="rz-color-secondary" Style="margin: 0;">Status Cont</RadzenText>
+                                <RadzenStack Orientation="Radzen.Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
+                                    <div style="width: 10px; height: 10px; border-radius: 50%; background: @(_currentUser.IsActive ? "var(--rz-success)" : "var(--rz-danger)");"></div>
+                                    <RadzenText TextStyle="TextStyle.Body1" Style="margin: 0;">@(_currentUser.IsActive ? "Activ" : "Inactiv")</RadzenText>
+                                </RadzenStack>
+                            </RadzenStack>
+
+                            <!-- Created At -->
+                            <RadzenStack Gap="0.25rem">
+                                <RadzenText TextStyle="TextStyle.Caption" class="rz-color-secondary" Style="margin: 0;">Cont Creat</RadzenText>
+                                <RadzenStack Orientation="Radzen.Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
+                                    <RadzenIcon Icon="calendar_today" Style="font-size: 18px; color: var(--rz-text-disabled-color);" />
+                                    <RadzenText TextStyle="TextStyle.Body1" Style="margin: 0;">@_currentUser.CreatedAt.ToString("dd MMMM yyyy")</RadzenText>
+                                </RadzenStack>
+                            </RadzenStack>
+
+                            <!-- Last Login -->
+                            <RadzenStack Gap="0.25rem">
+                                <RadzenText TextStyle="TextStyle.Caption" class="rz-color-secondary" Style="margin: 0;">Ultima Autentificare</RadzenText>
+                                <RadzenStack Orientation="Radzen.Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
+                                    <RadzenIcon Icon="schedule" Style="font-size: 18px; color: var(--rz-text-disabled-color);" />
+                                    <RadzenText TextStyle="TextStyle.Body1" Style="margin: 0;">
+                                        @(_currentUser.LastLoginAt.HasValue ? _currentUser.LastLoginAt.Value.ToString("dd MMM yyyy, HH:mm") : "Necunoscut")
+                                    </RadzenText>
+                                </RadzenStack>
+                            </RadzenStack>
+                        </RadzenStack>
+                    </RadzenStack>
+                </RadzenCard>
+            </RadzenColumn>
+        </RadzenRow>
+    }
+</RadzenStack>
+
+@code {
+    private bool _isLoading = true;
+    private Services.DTOs.UserDto? _currentUser;
+    private Guid? _currentUserId;
+
+    // Profile editing
+    private bool _isEditingProfile = false;
+    private bool _isSavingProfile = false;
+    private string _editFirstName = "";
+    private string _editLastName = "";
+
+    // Password change
+    private string _currentPassword = "";
+    private string _newPassword = "";
+    private string _confirmPassword = "";
+    private string? _passwordError;
+    private bool _isChangingPassword = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUserData();
+    }
+
+    private async Task LoadUserData()
+    {
+        try
+        {
+            _isLoading = true;
+
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+
+            if (user.Identity?.IsAuthenticated == true)
+            {
+                var userIdClaim = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                if (Guid.TryParse(userIdClaim, out var userId))
+                {
+                    _currentUserId = userId;
+                    _currentUser = await UserService.GetByIdAsync(userId);
+
+                    if (_currentUser != null)
+                    {
+                        _editFirstName = _currentUser.FirstName;
+                        _editLastName = _currentUser.LastName;
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading user data: {ex.Message}");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void CancelProfileEdit()
+    {
+        if (_currentUser != null)
+        {
+            _editFirstName = _currentUser.FirstName;
+            _editLastName = _currentUser.LastName;
+        }
+        _isEditingProfile = false;
+    }
+
+    private async Task SaveProfile()
+    {
+        if (string.IsNullOrWhiteSpace(_editFirstName) || string.IsNullOrWhiteSpace(_editLastName))
+        {
+            NotificationService.Notify(new NotificationMessage
+            {
+                Severity = NotificationSeverity.Warning,
+                Summary = "Date incomplete",
+                Detail = "Prenumele și numele sunt obligatorii.",
+                Duration = 4000
+            });
+            return;
+        }
+
+        if (!_currentUserId.HasValue) return;
+
+        _isSavingProfile = true;
+
+        try
+        {
+            var updateDto = new Services.DTOs.UpdateUserDto
+            {
+                FirstName = _editFirstName.Trim(),
+                LastName = _editLastName.Trim(),
+                IsActive = _currentUser?.IsActive ?? true
+            };
+
+            var result = await UserService.UpdateAsync(_currentUserId.Value, updateDto);
+
+            if (result.Succeeded)
+            {
+                NotificationService.Notify(new NotificationMessage
+                {
+                    Severity = NotificationSeverity.Success,
+                    Summary = "Succes",
+                    Detail = "Profilul a fost actualizat cu succes.",
+                    Duration = 4000
+                });
+
+                // Reload user data
+                await LoadUserData();
+                _isEditingProfile = false;
+            }
+            else
+            {
+                NotificationService.Notify(new NotificationMessage
+                {
+                    Severity = NotificationSeverity.Error,
+                    Summary = "Eroare",
+                    Detail = result.ErrorMessage ?? "Eroare la actualizarea profilului.",
+                    Duration = 4000
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(new NotificationMessage
+            {
+                Severity = NotificationSeverity.Error,
+                Summary = "Eroare",
+                Detail = "Eroare la actualizarea profilului: " + ex.Message,
+                Duration = 4000
+            });
+        }
+        finally
+        {
+            _isSavingProfile = false;
+        }
+    }
+
+    private async Task ChangePassword()
+    {
+        _passwordError = null;
+
+        // Validate inputs
+        if (string.IsNullOrWhiteSpace(_currentPassword))
+        {
+            _passwordError = "Introdu parola curentă.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(_newPassword))
+        {
+            _passwordError = "Introdu parola nouă.";
+            return;
+        }
+
+        if (_newPassword.Length < 6)
+        {
+            _passwordError = "Parola nouă trebuie să aibă minim 6 caractere.";
+            return;
+        }
+
+        if (_newPassword != _confirmPassword)
+        {
+            _passwordError = "Parolele nu coincid.";
+            return;
+        }
+
+        _isChangingPassword = true;
+
+        try
+        {
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var result = await AuthService.ChangePasswordAsync(authState.User, _currentPassword, _newPassword);
+
+            if (result.Succeeded)
+            {
+                NotificationService.Notify(new NotificationMessage
+                {
+                    Severity = NotificationSeverity.Success,
+                    Summary = "Succes",
+                    Detail = "Parola a fost schimbată cu succes.",
+                    Duration = 4000
+                });
+
+                // Clear password fields
+                _currentPassword = "";
+                _newPassword = "";
+                _confirmPassword = "";
+            }
+            else
+            {
+                _passwordError = result.ErrorMessage ?? "Eroare la schimbarea parolei.";
+            }
+        }
+        catch (Exception ex)
+        {
+            _passwordError = "Eroare la schimbarea parolei: " + ex.Message;
+        }
+        finally
+        {
+            _isChangingPassword = false;
+        }
+    }
+
+    private BadgeStyle GetRoleBadgeStyle(UserRole role) => role switch
+    {
+        UserRole.Admin => BadgeStyle.Danger,
+        UserRole.Rector => BadgeStyle.Warning,
+        UserRole.Dean => BadgeStyle.Info,
+        UserRole.Secretary => BadgeStyle.Success,
+        UserRole.Professor => BadgeStyle.Primary,
+        UserRole.Student => BadgeStyle.Light,
+        _ => BadgeStyle.Light
+    };
+
+    private string GetRoleLabel(UserRole role) => role switch
+    {
+        UserRole.Admin => "Administrator",
+        UserRole.Rector => "Rector",
+        UserRole.Dean => "Decan",
+        UserRole.Secretary => "Secretar",
+        UserRole.Professor => "Profesor",
+        UserRole.Student => "Student",
+        _ => role.ToString()
+    };
+}
